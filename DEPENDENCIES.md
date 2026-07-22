@@ -112,7 +112,7 @@ or cryptographic implementation. Its direct binding dependencies are:
 | --- | --- | --- | --- | --- |
 | `pyo3` | 0.29.0 | MIT OR Apache-2.0 | `abi3-py39`, `macros`; `extension-module` only for wheels | CPython ABI/type/call adapter; `https://github.com/PyO3/pyo3` |
 | `zeroize` | 1.9.0 | Apache-2.0 OR MIT | `alloc` | Clears the binding's temporary Rust password owner before/while the core assumes ownership; already admitted above |
-| `unpackio` | 0.1.0, local path | MIT OR Apache-2.0 plus recorded adapted-source notices | normal core features only | Sole parser/model/decoder/crypto implementation |
+| `unpackio` | 0.1.0, local path | MIT plus recorded adapted-source notices | normal core features only | Sole parser/model/decoder/crypto implementation |
 
 PyO3 resolves `pyo3-build-config`, `pyo3-ffi`, `pyo3-macros`, and
 `pyo3-macros-backend` 0.29.0; `libc` 0.2.186; `once_cell` 1.21.4;
@@ -145,8 +145,8 @@ policy decision.
 Maturin 1.13.3 is pinned as the PEP 517 build backend and CI packaging tool; it
 is not installed or imported by the wheel at runtime. The produced package has
 no Python-level runtime dependency. Wheel and sdist license payloads include
-the repository MIT, Apache-2.0, upstream BSD-3-Clause, decoder notices, and
-`NOTICE` files. The CI-only `PyO3/maturin-action` is pinned to commit
+the project MIT `LICENSE`, separate third-party/adapted-source texts under
+`LICENSES/`, and `NOTICE`. The CI-only `PyO3/maturin-action` is pinned to commit
 `86b9d133d34bc1b40018696f782949dac11bd380` (v1.49.4, MIT).
 
 PyPI release automation adds no shipped dependency. The CI-only official
@@ -288,7 +288,7 @@ embedded or generated-code licensing facts.
 | Brotli | safe permissive decoder | `brotli-decompressor` 5.0.3 admitted with unsafe feature disabled |
 | LZ4 | safe permissive decoder | `lz4_flex` 0.13.1 admitted with checked/safe frame features |
 | Zstd | safe permissive decoder | `ruzstd` 0.8.1 admitted with frame-window preflight and dictionaries rejected |
-| Standalone Unix `.Z` | safe, limit-aware permissive implementation | In-tree safe Rust adaptation admitted; exact NetBSD BSD-3-Clause provenance and notice in `PROVENANCE.md` and `LICENSE-NETBSD-ZOPEN-BSD-3-CLAUSE` |
+| Standalone Unix `.Z` | safe, limit-aware permissive implementation | In-tree safe Rust adaptation admitted; exact NetBSD BSD-3-Clause provenance and notice in `PROVENANCE.md` and `LICENSES/BSD-3-Clause-netbsd-zopen.txt` |
 | Python FFI | isolated adapter over the stable core | PyO3 0.29.0 admitted in `bindings/python`; no Python dependency enters the core workspace |
 
 ## Development-only 7zz rule

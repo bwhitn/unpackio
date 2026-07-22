@@ -8,13 +8,12 @@ version = "0.1.0"
 description = "Security-focused, unpack-only multi-format archive and compressed-stream reader"
 readme = "README.md"
 requires-python = ">=3.9"
-license = "MIT OR Apache-2.0"
-license-files = ["LICENSE*", "NOTICE"]
+license = "MIT"
+license-files = ["LICENSE", "LICENSES/*", "NOTICE"]
 authors = []
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: Apache Software License",
   "License :: OSI Approved :: MIT License",
   "Operating System :: MacOS",
   "Operating System :: Microsoft :: Windows",

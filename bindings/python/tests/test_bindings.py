@@ -565,6 +565,21 @@ class BindingTests(unittest.TestCase):
         self.assertEqual(distribution.version, "0.1.0")
         self.assertFalse(distribution.requires)
         self.assertEqual(len(distribution.entry_points), 0)
+        self.assertEqual(distribution.metadata["License-Expression"], "MIT")
+        self.assertEqual(
+            set(distribution.metadata.get_all("License-File") or ()),
+            {
+                "LICENSE",
+                "LICENSES/Apache-2.0.txt",
+                "LICENSES/BSD-3-Clause-bodgit-sevenzip.txt",
+                "LICENSES/BSD-3-Clause-netbsd-zopen.txt",
+                "LICENSES/BSD-3-Clause-ulikunitz-xz.txt",
+                "LICENSES/MIT-rpmfile.txt",
+                "LICENSES/MIT-stangelandcl-ppmd.txt",
+                "LICENSES/README.md",
+                "NOTICE",
+            },
+        )
         self.assertEqual(unpackio.__version__, "0.1.0")
         self.assertEqual(native.__name__, "unpackio._native")
         self.assertEqual(unpackio.Archive.__module__, "unpackio._native")

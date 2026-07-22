@@ -72,7 +72,7 @@ the following embedded payload byte strings:
 | Zstandard | 137 | `5ccf154e0a5121b6477fa89c7b0a0b893ca245b4f3beab2b7e904b08e9eb5194` |
 
 RPM lead/header/digest/CPIO wrappers are generated in process and are original
-test data licensed MIT OR Apache-2.0. The compressor outputs contain only that
+test data licensed MIT. The compressor outputs contain only that
 project-authored data and are retained under the same test-fixture terms. No
 vendor RPM, package signature, third-party filename, or installed payload is
 included.

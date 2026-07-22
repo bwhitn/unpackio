@@ -207,9 +207,7 @@ functions never infer an output filename from the input path.
 
 ## Licensing
 
-Original Rust work is available under **MIT OR Apache-2.0**. Any translated or
-adapted work retains the applicable BSD-3-Clause notice. See `LICENSE-MIT`,
-`LICENSE-APACHE`, `LICENSE-BSD-3-CLAUSE`,
-`LICENSE-ULIKUNITZ-XZ-BSD-3-CLAUSE`,
-`LICENSE-STANGELANDCL-PPMD-MIT`,
-`LICENSE-NETBSD-ZOPEN-BSD-3-CLAUSE`, `NOTICE`, and `PROVENANCE.md`.
+Original unpackio work is licensed solely under the **MIT License** in
+`LICENSE`. Third-party and adapted-source terms are preserved separately in
+`LICENSES/` and apply only to the material identified in `NOTICE` and
+`PROVENANCE.md`.

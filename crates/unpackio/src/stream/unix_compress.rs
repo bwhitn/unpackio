@@ -4,7 +4,7 @@
 //! revision `bd9f26305380f03b3821f55381448a82827d6749` (BSD-3-Clause).
 //! The Rust data structures, checked arithmetic, resource controls, and writer
 //! integration are original to this project. See `PROVENANCE.md` and
-//! `LICENSE-NETBSD-ZOPEN-BSD-3-CLAUSE`.
+//! `LICENSES/BSD-3-Clause-netbsd-zopen.txt`.
 
 use std::{
     io::{self, Write},

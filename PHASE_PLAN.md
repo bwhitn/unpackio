@@ -30,7 +30,7 @@ limit. No existing Phase 1 layer was rewritten.
 
 Deliverables:
 
-- dual-license texts, upstream BSD-3-Clause text, NOTICE, and exact provenance
+- the project MIT license, separate upstream license texts, NOTICE, and exact provenance
   policy;
 - workspace using edition 2024, MSRV 1.85, committed lockfile, a safe core,
   and no shipped executable crate;

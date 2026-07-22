@@ -61,6 +61,20 @@ jobs:
           if project["project"]["name"] != "unpackio":
               raise SystemExit("the Python distribution name must remain 'unpackio'")
 
+          licenses = {
+              "workspace": root["workspace"]["package"]["license"],
+              "binding crate": binding["package"]["license"],
+              "Python project": project["project"]["license"],
+          }
+          if set(licenses.values()) != {"MIT"}:
+              raise SystemExit(f"package licenses must all be MIT: {licenses}")
+          expected_license_files = ["LICENSE", "LICENSES/*", "NOTICE"]
+          if project["project"].get("license-files") != expected_license_files:
+              raise SystemExit(
+                  "Python license-files must preserve the MIT license and "
+                  "separate third-party notices"
+              )
+
           with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
               output.write(f"version={version}\n")
           PY

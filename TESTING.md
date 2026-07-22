@@ -409,9 +409,9 @@ positive decoder evidence only for Copy.
 
 On 2026-07-21 a locally built `cp39-abi3` macOS x86-64 wheel installed into a
 clean CPython 3.12 virtual environment and all 15 binding tests passed. Its
-metadata has no `Requires-Dist`, and its license payload includes the NetBSD
-BSD-3-Clause notice for the Unix `.Z` adaptation. CI now has explicit
-manylinux-compatible Linux x86-64 and aarch64 build jobs; the aarch64 artifact
+metadata has no `Requires-Dist`, and its license payload includes
+`LICENSES/BSD-3-Clause-netbsd-zopen.txt` for the Unix `.Z` adaptation. CI now
+has explicit manylinux-compatible Linux x86-64 and aarch64 build jobs; the aarch64 artifact
 is installed and tested on a native `ubuntu-24.04-arm` runner. Those new Linux
 jobs remain configured evidence until their first hosted run completes.
 

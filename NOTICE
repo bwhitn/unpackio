@@ -10,20 +10,21 @@ Copyright (c) 2020, Matt Dainty
 Phase 2 variable-integer, signature/start-header, serialized header grammar,
 file/substream mapping, and selected decoder-property behavior adapted from the
 pinned reference are identified precisely in PROVENANCE.md and retain the
-upstream BSD-3-Clause notice reproduced in LICENSE-BSD-3-CLAUSE.
+upstream BSD-3-Clause notice reproduced in
+LICENSES/BSD-3-Clause-bodgit-sevenzip.txt.
 
 The Phase 3 Delta, BCJ, BCJ2, PPC, ARM, ARM64, and SPARC decoder work adapts
 the pinned reference implementation and retains that notice. The safe Rust
 LZMA and LZMA2 decoder adapts github.com/ulikunitz/xz v0.5.15 at commit
 7eee8a8a405163554a9accec7b9402ee21400769, Copyright (c) 2014-2022 Ulrich
 Kunitz, BSD-3-Clause. Its exact notice is reproduced in
-LICENSE-ULIKUNITZ-XZ-BSD-3-CLAUSE. Exact files, hashes, symbols, and the nature
+LICENSES/BSD-3-Clause-ulikunitz-xz.txt. Exact files, hashes, symbols, and the nature
 of each adaptation are recorded in PROVENANCE.md.
 
 The safe Rust PPMd7 variant-H decoder adapts github.com/stangelandcl/ppmd
 v0.1.1 at commit e7008704a75379d49824363eca5d87e947b2d9fa,
 Copyright (c) 2022 Clayton Stangeland and Copyright (c) 2014 Adam Hathcock,
-MIT. Its exact notice is reproduced in LICENSE-STANGELANDCL-PPMD-MIT. Exact
+MIT. Its exact notice is reproduced in LICENSES/MIT-stangelandcl-ppmd.txt. Exact
 files, hashes, and adaptation details are recorded in PROVENANCE.md.
 
 No AES or SHA-256 algorithm implementation is handwritten. Runtime AES-256-CBC
@@ -52,13 +53,13 @@ code-reader, width-transition, CLEAR-reset, and dictionary semantics of NetBSD
 `usr.bin/compress/zopen.c` at commit
 bd9f26305380f03b3821f55381448a82827d6749. Copyright (c) 1985, 1986, 1992,
 1993 The Regents of the University of California. Its BSD-3-Clause notice is
-reproduced in LICENSE-NETBSD-ZOPEN-BSD-3-CLAUSE; exact adaptation details are
+reproduced in LICENSES/BSD-3-Clause-netbsd-zopen.txt; exact adaptation details are
 recorded in PROVENANCE.md.
 
 The Python RPM compatibility projection adapts the public tag-name table from
 `rpmfile` 2.2.1 at commit c71e53491bb3ae8581e32630089c174b99b2aba6,
 Copyright (c) 2015 Sean Ross-Ross, MIT. Its notice is reproduced in
-LICENSE-RPMFILE-MIT. No rpmfile parser, decoder, or filesystem implementation
+LICENSES/MIT-rpmfile.txt. No rpmfile parser, decoder, or filesystem implementation
 is copied or used at runtime.
 
 ARJ methods 1 through 3 use `delharc` 0.6.1 at commit
@@ -71,4 +72,5 @@ The checked safe-Rust ARJ method-4 decoder adapts `unarj-rs` 0.2.1 at commit
 dbd80638eb4a200618c08de7b9e58b4d66a0d377 by Mike Krüger. Although that
 package's metadata says MIT, its distributed LICENSE contains Apache License
 2.0; this project conservatively preserves Apache-2.0 terms for the adaptation
-and four method fixtures. The full text is reproduced in LICENSE-APACHE.
+and four method fixtures. The full text is reproduced in
+LICENSES/Apache-2.0.txt.

@@ -52,7 +52,7 @@ These rules apply to the entire repository.
 
 ## Licensing, dependencies, and provenance
 
-- License new original Rust code as MIT OR Apache-2.0.
+- License new original Rust code solely under MIT.
 - Preserve the upstream Go project's BSD-3-Clause notice and exact provenance
   for every translated or adapted part.
 - Runtime dependencies are restricted to MIT, Apache-2.0, BSD-2-Clause,

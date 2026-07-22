@@ -3,7 +3,7 @@
 //! Methods 1--3 use `delharc` 0.6.1's static LH6 decoder through the audited
 //! boundary recorded in `DEPENDENCIES.md` and `PROVENANCE.md`. Method 4 is a
 //! checked safe-Rust adaptation of the ARJ "fastest" bit grammar documented
-//! there. The project code in this module remains MIT OR Apache-2.0; adapted
+//! there. The project code in this module is MIT licensed; adapted
 //! method-4 portions also retain their recorded Apache-2.0 provenance.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
