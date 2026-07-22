@@ -1,0 +1,13 @@
+/target/
+/fuzz/artifacts/
+/fuzz/corpus/
+/fuzz/target/
+/bindings/python/dist/
+/bindings/python/target/
+/bindings/python/python/unpackio/*.pyd
+/bindings/python/python/unpackio/*.so
+__pycache__/
+.venv/
+*.profraw
+*.profdata
+/rust_out

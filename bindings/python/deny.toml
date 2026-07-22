@@ -1,0 +1,61 @@
+[graph]
+all-features = true
+targets = [
+    "aarch64-apple-darwin",
+    "i686-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+]
+
+[advisories]
+ignore = []
+
+[licenses]
+allow = [
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+]
+# PyO3's target parser is a build-only dependency. LLVM-exception grants
+# additional permission to Apache-2.0 and is not linked into a wheel.
+exceptions = [
+    { allow = ["Apache-2.0 WITH LLVM-exception"], crate = "target-lexicon@0.13.5" },
+]
+confidence-threshold = 0.93
+include-dev = true
+unused-allowed-license = "allow"
+
+[licenses.private]
+ignore = false
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+highlight = "all"
+deny = [
+    { crate = "lib7z-sys", reason = "Runtime linkage to official 7-Zip code is prohibited" },
+    { crate = "liblzma-sys", reason = "Native liblzma licensing/provenance is outside the allowlist" },
+    { crate = "openssl", reason = "AES and SHA-256 must use reviewed RustCrypto crates" },
+    { crate = "openssl-sys", reason = "AES and SHA-256 must use reviewed RustCrypto crates" },
+    { crate = "p7zip", reason = "p7zip source and runtime integration are prohibited" },
+    { crate = "p7zip-sys", reason = "p7zip source and runtime integration are prohibited" },
+    { crate = "ring", reason = "Archive AES and SHA-256 must use reviewed RustCrypto crates" },
+    { crate = "sevenz-rust", reason = "7z implementations require a method-by-method provenance review" },
+    { crate = "sevenz-rust2", reason = "7z implementations require a method-by-method provenance review" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+unused-allowed-source = "allow"
+allow-registry = [
+    "https://github.com/rust-lang/crates.io-index",
+    "sparse+https://index.crates.io/",
+]
+allow-git = []

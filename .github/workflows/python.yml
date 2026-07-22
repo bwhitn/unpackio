@@ -1,0 +1,200 @@
+name: python
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  binding-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --manifest-path bindings/python/Cargo.toml -- --check
+      - run: cargo clippy --manifest-path bindings/python/Cargo.toml --all-targets --all-features --locked -- -D warnings
+      - run: cargo test --manifest-path bindings/python/Cargo.toml --no-default-features --lib --locked
+      - run: cargo check --manifest-path bindings/python/Cargo.toml --all-features --locked
+      - name: Build source distribution
+        run: |
+          python -m pip install maturin==1.13.3
+          maturin sdist --manifest-path bindings/python/Cargo.toml --out bindings/python/dist
+      - name: Rebuild wheel from source distribution
+        run: >-
+          python -m pip wheel --no-deps
+          bindings/python/dist/unpackio-0.1.0.tar.gz
+          --wheel-dir bindings/python/dist/from-sdist
+      - name: Install rebuilt source-distribution wheel
+        run: python -m pip install --no-index --find-links bindings/python/dist/from-sdist unpackio
+      - name: Test rebuilt source-distribution wheel
+        run: python -m unittest discover -s bindings/python/tests -v
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: unpackio-sdist
+          path: bindings/python/dist/*.tar.gz
+          if-no-files-found: error
+
+  binding-msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.85.0"
+      - run: cargo check --manifest-path bindings/python/Cargo.toml --all-features --locked
+
+  wheels:
+    name: wheel-${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-latest
+            manylinux: "2_17"
+            target: x86_64-unknown-linux-gnu
+            build-python-architecture: x64
+            wheel_arch: x86_64
+          - name: linux-aarch64
+            os: ubuntu-latest
+            manylinux: "2_17"
+            target: aarch64-unknown-linux-gnu
+            build-python-architecture: x64
+            wheel_arch: aarch64
+          - name: macos-x86_64
+            os: macos-15-intel
+            manylinux: "off"
+            target: x86_64-apple-darwin
+            build-python-architecture: x64
+            wheel_arch: x86_64
+          - name: macos-arm64
+            os: macos-15
+            manylinux: "off"
+            target: aarch64-apple-darwin
+            build-python-architecture: arm64
+            wheel_arch: arm64
+          - name: windows-x86_64
+            os: windows-latest
+            manylinux: "off"
+            target: x86_64-pc-windows-msvc
+            build-python-architecture: x64
+            wheel_arch: win_amd64
+          - name: windows-arm64
+            os: windows-11-arm
+            manylinux: "off"
+            target: aarch64-pc-windows-msvc
+            build-python-architecture: arm64
+            wheel_arch: win_arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: ${{ matrix.build-python-architecture }}
+      - name: Build wheel
+        uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
+        with:
+          command: build
+          maturin-version: v1.13.3
+          manylinux: ${{ matrix.manylinux }}
+          target: ${{ matrix.target }}
+          args: >-
+            --manifest-path bindings/python/Cargo.toml
+            --release
+            --locked
+            --compatibility pypi
+            --out bindings/python/dist
+      - name: Verify CPython 3.9 ABI3 wheel tag
+        env:
+          EXPECTED_WHEEL_ARCH: ${{ matrix.wheel_arch }}
+        run: >-
+          python -c "import os; from pathlib import Path;
+          wheels=list(Path('bindings/python/dist').glob('*.whl'));
+          assert len(wheels) == 1, wheels;
+          name=wheels[0].name;
+          assert 'cp39-abi3' in name, name;
+          assert os.environ['EXPECTED_WHEEL_ARCH'] in name, name"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: unpackio-${{ matrix.name }}-wheel
+          path: bindings/python/dist/*.whl
+          if-no-files-found: error
+
+  wheel-smoke:
+    name: smoke-${{ matrix.platform }}-python-${{ matrix.python-version }}
+    needs: wheels
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+        platform:
+          - linux-x86_64
+          - linux-aarch64
+          - macos-x86_64
+          - macos-arm64
+          - windows-x86_64
+          - windows-arm64
+        include:
+          - platform: linux-x86_64
+            os: ubuntu-latest
+            architecture: x64
+            artifact: unpackio-linux-x86_64-wheel
+          - platform: linux-aarch64
+            os: ubuntu-24.04-arm
+            architecture: arm64
+            artifact: unpackio-linux-aarch64-wheel
+          - platform: macos-x86_64
+            os: macos-15-intel
+            architecture: x64
+            artifact: unpackio-macos-x86_64-wheel
+          - platform: macos-arm64
+            os: macos-15
+            architecture: arm64
+            artifact: unpackio-macos-arm64-wheel
+          - platform: windows-x86_64
+            os: windows-latest
+            architecture: x64
+            artifact: unpackio-windows-x86_64-wheel
+          - platform: windows-arm64
+            os: windows-11-arm
+            architecture: arm64
+            artifact: unpackio-windows-arm64-wheel
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.architecture }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ matrix.artifact }}
+          path: bindings/python/dist
+      - name: Install built wheel
+        run: python -m pip install --no-index --find-links bindings/python/dist unpackio
+      - name: Verify interpreter and installed distribution
+        env:
+          EXPECTED_PYTHON: ${{ matrix.python-version }}
+        run: >-
+          python -c "import importlib.metadata, os, sys, unpackio;
+          expected=tuple(int(part) for part in os.environ['EXPECTED_PYTHON'].split('.'));
+          assert sys.version_info[:2] == expected, sys.version;
+          assert importlib.metadata.version('unpackio') == '0.1.0';
+          assert unpackio.__version__ == '0.1.0'"
+      - name: Test installed wheel
+        run: python -m unittest discover -s bindings/python/tests -v

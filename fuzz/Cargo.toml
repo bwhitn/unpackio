@@ -1,0 +1,74 @@
+[package]
+name = "unpackio-fuzz"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+aes = { version = "=0.9.1", default-features = false, features = ["zeroize"] }
+cbc = { version = "=0.2.1", default-features = false, features = ["zeroize"] }
+libfuzzer-sys = "0.4"
+unpackio = { version = "=0.1.0", path = "../crates/unpackio", features = ["unstable-internals"] }
+
+[[bin]]
+name = "path_validation"
+path = "fuzz_targets/path_validation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "header_envelope"
+path = "fuzz_targets/header_envelope.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "next_header"
+path = "fuzz_targets/next_header.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "validated_graph"
+path = "fuzz_targets/validated_graph.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "decoding"
+path = "fuzz_targets/decoding.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "volumes"
+path = "fuzz_targets/volumes.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "stream_formats"
+path = "fuzz_targets/stream_formats.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "archive_formats"
+path = "fuzz_targets/archive_formats.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

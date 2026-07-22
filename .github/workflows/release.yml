@@ -1,0 +1,183 @@
+name: release-pypi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pypi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Require a version-matched tag and consistent package metadata
+        id: metadata
+        env:
+          RELEASE_REF_TYPE: ${{ github.ref_type }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import ast
+          import os
+          from pathlib import Path
+          import re
+          import tomllib
+
+          if os.environ["RELEASE_REF_TYPE"] != "tag":
+              raise SystemExit("PyPI releases must be dispatched from an existing version tag")
+
+          root = tomllib.loads(Path("Cargo.toml").read_text(encoding="utf-8"))
+          binding = tomllib.loads(Path("bindings/python/Cargo.toml").read_text(encoding="utf-8"))
+          project = tomllib.loads(Path("bindings/python/pyproject.toml").read_text(encoding="utf-8"))
+          init_text = Path("bindings/python/python/unpackio/__init__.py").read_text(encoding="utf-8")
+          match = re.search(r'^__version__\s*=\s*(.+)$', init_text, re.MULTILINE)
+          if match is None:
+              raise SystemExit("unpackio.__version__ is missing")
+
+          versions = {
+              "workspace": root["workspace"]["package"]["version"],
+              "binding crate": binding["package"]["version"],
+              "Python project": project["project"]["version"],
+              "Python import": ast.literal_eval(match.group(1)),
+          }
+          if len(set(versions.values())) != 1:
+              raise SystemExit(f"package versions disagree: {versions}")
+          version = next(iter(versions.values()))
+          expected_tag = f"v{version}"
+          if os.environ["RELEASE_TAG"] != expected_tag:
+              raise SystemExit(
+                  f"release tag {os.environ['RELEASE_TAG']!r} does not match {expected_tag!r}"
+              )
+          if project["project"]["name"] != "unpackio":
+              raise SystemExit("the Python distribution name must remain 'unpackio'")
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"version={version}\n")
+          PY
+      - name: Verify locked package identity
+        env:
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+        run: >-
+          cargo metadata --locked --no-deps --format-version 1 |
+          python -c "import json,os,sys;
+          packages=json.load(sys.stdin)['packages'];
+          expected=[('unpackio',os.environ['RELEASE_VERSION'])];
+          assert [(p['name'],p['version']) for p in packages] == expected, packages"
+
+  core-gates:
+    needs: release-metadata
+    uses: ./.github/workflows/ci.yml
+
+  python-gates:
+    needs: release-metadata
+    uses: ./.github/workflows/python.yml
+
+  assemble-distributions:
+    needs: [release-metadata, core-gates, python-gates]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: unpackio-*-wheel
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: unpackio-sdist
+          path: dist
+      - name: Validate the complete release artifact set
+        env:
+          RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION"]
+          dist = Path("dist")
+          files = sorted(path for path in dist.iterdir() if path.is_file())
+          wheels = [path for path in files if path.suffix == ".whl"]
+          sdists = [path for path in files if path.name.endswith(".tar.gz")]
+          if len(wheels) != 6 or sdists != [dist / f"unpackio-{version}.tar.gz"]:
+              raise SystemExit(f"expected six wheels and one sdist, found: {files}")
+
+          wheel_prefix = f"unpackio-{version}-cp39-abi3-"
+          required_platforms = (
+              "manylinux_2_17_x86_64",
+              "manylinux_2_17_aarch64",
+              "macosx_10_12_x86_64",
+              "macosx_11_0_arm64",
+              "win_amd64",
+              "win_arm64",
+          )
+          names = [wheel.name for wheel in wheels]
+          if not all(name.startswith(wheel_prefix) for name in names):
+              raise SystemExit(f"non-ABI3 or wrong-version wheel: {names}")
+          missing = [platform for platform in required_platforms if not any(platform in name for name in names)]
+          if missing:
+              raise SystemExit(f"missing release wheel platforms {missing}: {names}")
+          PY
+      - name: Record release SHA-256 manifest
+        env:
+          RELEASE_VERSION: ${{ needs.release-metadata.outputs.version }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+
+          records = []
+          for path in sorted(Path("dist").iterdir()):
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              records.append(f"{digest}  {path.name}")
+          manifest = "\n".join(records) + "\n"
+          Path("unpackio-release-sha256.txt").write_text(manifest, encoding="ascii")
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
+              summary.write(f"## unpackio {os.environ['RELEASE_VERSION']} distributions\n\n```text\n")
+              summary.write(manifest)
+              summary.write("```\n")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: unpackio-pypi-distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: unpackio-release-sha256
+          path: unpackio-release-sha256.txt
+          if-no-files-found: error
+          retention-days: 90
+
+  publish-pypi:
+    needs: [release-metadata, assemble-distributions]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/unpackio/
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: unpackio-pypi-distributions
+          path: dist
+      - name: Publish approved distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          packages-dir: dist

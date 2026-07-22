@@ -1,0 +1,5 @@
+# Development-only exception required by cargo-fuzz's LLVM libFuzzer binding.
+# This file is scoped to fuzz/Cargo.toml and does not alter the runtime workspace.
+exceptions = [
+    { allow = ["NCSA"], crate = "libfuzzer-sys@0.4.13" },
+]
