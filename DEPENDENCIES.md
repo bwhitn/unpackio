@@ -112,7 +112,7 @@ or cryptographic implementation. Its direct binding dependencies are:
 | --- | --- | --- | --- | --- |
 | `pyo3` | 0.29.0 | MIT OR Apache-2.0 | `abi3-py39`, `macros`; `extension-module` only for wheels | CPython ABI/type/call adapter; `https://github.com/PyO3/pyo3` |
 | `zeroize` | 1.9.0 | Apache-2.0 OR MIT | `alloc` | Clears the binding's temporary Rust password owner before/while the core assumes ownership; already admitted above |
-| `unpackio` | 0.1.0, local path | MIT plus recorded adapted-source notices | normal core features only | Sole parser/model/decoder/crypto implementation |
+| `unpackio` | 0.1.1, local path | MIT plus recorded adapted-source notices | normal core features only | Sole parser/model/decoder/crypto implementation |
 
 PyO3 resolves `pyo3-build-config`, `pyo3-ffi`, `pyo3-macros`, and
 `pyo3-macros-backend` 0.29.0; `libc` 0.2.186; `once_cell` 1.21.4;

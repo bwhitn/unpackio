@@ -562,7 +562,7 @@ class CollectEntrySink:
 class BindingTests(unittest.TestCase):
     def test_distribution_and_native_module_names(self) -> None:
         distribution = importlib.metadata.distribution("unpackio")
-        self.assertEqual(distribution.version, "0.1.0")
+        self.assertEqual(distribution.version, "0.1.1")
         self.assertFalse(distribution.requires)
         self.assertEqual(len(distribution.entry_points), 0)
         self.assertEqual(distribution.metadata["License-Expression"], "MIT")
@@ -580,7 +580,7 @@ class BindingTests(unittest.TestCase):
                 "NOTICE",
             },
         )
-        self.assertEqual(unpackio.__version__, "0.1.0")
+        self.assertEqual(unpackio.__version__, "0.1.1")
         self.assertEqual(native.__name__, "unpackio._native")
         self.assertEqual(unpackio.Archive.__module__, "unpackio._native")
         self.assertEqual(unpackio.CompressedStream.__module__, "unpackio._native")

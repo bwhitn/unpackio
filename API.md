@@ -241,5 +241,5 @@ CPython limited API for Python 3.9 and newer. CI builds explicit Linux,
 macOS, and Windows x86-64/ARM64 ABI3 wheels, then installs each artifact and
 runs the complete binding suite on Python 3.12, 3.13, and 3.14. The Rust
 binding retains the repository MSRV of 1.85. The Python adapter remains
-pre-alpha in `0.1.0`; compatibility claims remain exactly those in
+pre-alpha in `0.1.1`; compatibility claims remain exactly those in
 `COMPATIBILITY.md`.

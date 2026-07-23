@@ -13,7 +13,7 @@ cargo-fuzz = true
 aes = { version = "=0.9.1", default-features = false, features = ["zeroize"] }
 cbc = { version = "=0.2.1", default-features = false, features = ["zeroize"] }
 libfuzzer-sys = "0.4"
-unpackio = { version = "=0.1.0", path = "../crates/unpackio", features = ["unstable-internals"] }
+unpackio = { version = "=0.1.1", path = "../crates/unpackio", features = ["unstable-internals"] }
 
 [[bin]]
 name = "path_validation"

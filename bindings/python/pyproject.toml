@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "unpackio"
-version = "0.1.0"
+version = "0.1.1"
 description = "Security-focused, unpack-only multi-format archive and compressed-stream reader"
 readme = "README.md"
 requires-python = ">=3.9"
