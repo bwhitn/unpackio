@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-//! Opt-in Phase 4 checks against the pinned Go fixture set.
+//! Opt-in Phase 4 checks against the audited external fixture set.
 
 use std::{
     error::Error as StdError,
@@ -223,10 +223,10 @@ fn split_into_five(bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA"]
+#[ignore = "requires UNPACKIO_7Z_TESTDATA"]
 fn phase4_codec_and_encryption_fixtures_verify() -> Result<(), Box<dyn StdError>> {
-    let root = std::env::var_os("UNPACKIO_GO_TESTDATA")
-        .ok_or_else(|| String::from("UNPACKIO_GO_TESTDATA is not set"))?;
+    let root = std::env::var_os("UNPACKIO_7Z_TESTDATA")
+        .ok_or_else(|| String::from("UNPACKIO_7Z_TESTDATA is not set"))?;
     let root = Path::new(&root);
     for name in [
         "deflate.7z",
@@ -254,10 +254,10 @@ fn phase4_codec_and_encryption_fixtures_verify() -> Result<(), Box<dyn StdError>
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA and 7zz"]
+#[ignore = "requires UNPACKIO_7Z_TESTDATA and 7zz"]
 fn standard_phase4_methods_match_7zz_bytes_and_metadata() -> Result<(), Box<dyn StdError>> {
-    let root = std::env::var_os("UNPACKIO_GO_TESTDATA")
-        .ok_or_else(|| String::from("UNPACKIO_GO_TESTDATA is not set"))?;
+    let root = std::env::var_os("UNPACKIO_7Z_TESTDATA")
+        .ok_or_else(|| String::from("UNPACKIO_7Z_TESTDATA is not set"))?;
     let root = Path::new(&root);
     for name in ["deflate.7z", "bzip2.7z", "ppmd.7z"] {
         compare_to_7zz(root, name, None)
@@ -271,10 +271,10 @@ fn standard_phase4_methods_match_7zz_bytes_and_metadata() -> Result<(), Box<dyn 
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA; private methods use deflate oracle data"]
+#[ignore = "requires UNPACKIO_7Z_TESTDATA; private methods use deflate oracle data"]
 fn private_phase4_methods_match_oracle_baseline() -> Result<(), Box<dyn StdError>> {
-    let root = std::env::var_os("UNPACKIO_GO_TESTDATA")
-        .ok_or_else(|| String::from("UNPACKIO_GO_TESTDATA is not set"))?;
+    let root = std::env::var_os("UNPACKIO_7Z_TESTDATA")
+        .ok_or_else(|| String::from("UNPACKIO_7Z_TESTDATA is not set"))?;
     let root = Path::new(&root);
     compare_to_7zz(root, "deflate.7z", None)?;
     for name in ["brotli.7z", "lz4.7z", "zstd.7z"] {
@@ -284,10 +284,10 @@ fn private_phase4_methods_match_oracle_baseline() -> Result<(), Box<dyn StdError
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA and 7zz"]
+#[ignore = "requires UNPACKIO_7Z_TESTDATA and 7zz"]
 fn generated_encrypted_bcj_chain_matches_7zz() -> Result<(), Box<dyn StdError>> {
-    let root = std::env::var_os("UNPACKIO_GO_TESTDATA")
-        .ok_or_else(|| String::from("UNPACKIO_GO_TESTDATA is not set"))?;
+    let root = std::env::var_os("UNPACKIO_7Z_TESTDATA")
+        .ok_or_else(|| String::from("UNPACKIO_7Z_TESTDATA is not set"))?;
     let source = Path::new(&root).join("sfx.exe");
     let nonce = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
     let directory = std::env::temp_dir().join(format!(
@@ -324,10 +324,10 @@ fn generated_encrypted_bcj_chain_matches_7zz() -> Result<(), Box<dyn StdError>> 
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA"]
+#[ignore = "requires UNPACKIO_7Z_TESTDATA"]
 fn encrypted_fixtures_distinguish_password_states() -> Result<(), Box<dyn StdError>> {
-    let root = std::env::var_os("UNPACKIO_GO_TESTDATA")
-        .ok_or_else(|| String::from("UNPACKIO_GO_TESTDATA is not set"))?;
+    let root = std::env::var_os("UNPACKIO_7Z_TESTDATA")
+        .ok_or_else(|| String::from("UNPACKIO_7Z_TESTDATA is not set"))?;
     let root = Path::new(&root);
     let required = open_fixture(&root.join("t2.7z"), None);
     assert_eq!(
@@ -348,10 +348,10 @@ fn encrypted_fixtures_distinguish_password_states() -> Result<(), Box<dyn StdErr
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA"]
+#[ignore = "requires UNPACKIO_7Z_TESTDATA"]
 fn sequential_and_encrypted_memory_volumes_verify() -> Result<(), Box<dyn StdError>> {
-    let root = std::env::var_os("UNPACKIO_GO_TESTDATA")
-        .ok_or_else(|| String::from("UNPACKIO_GO_TESTDATA is not set"))?;
+    let root = std::env::var_os("UNPACKIO_7Z_TESTDATA")
+        .ok_or_else(|| String::from("UNPACKIO_7Z_TESTDATA is not set"))?;
     let root = Path::new(&root);
 
     let cancellation = CancellationToken::new();
@@ -392,10 +392,10 @@ fn sequential_and_encrypted_memory_volumes_verify() -> Result<(), Box<dyn StdErr
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA"]
+#[ignore = "requires UNPACKIO_7Z_TESTDATA"]
 fn missing_and_limited_volumes_are_typed() -> Result<(), Box<dyn StdError>> {
-    let root = std::env::var_os("UNPACKIO_GO_TESTDATA")
-        .ok_or_else(|| String::from("UNPACKIO_GO_TESTDATA is not set"))?;
+    let root = std::env::var_os("UNPACKIO_7Z_TESTDATA")
+        .ok_or_else(|| String::from("UNPACKIO_7Z_TESTDATA is not set"))?;
     let root = Path::new(&root);
     let mut first_five = Vec::new();
     for ordinal in 1..=5 {

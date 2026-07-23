@@ -11,9 +11,9 @@ volumes, and archive metadata. LZ4 frame files, Zstandard frame files, and Unix
 Treating those inputs as synthetic archives would invent names, member CRCs,
 or mappings and would blur the existing parser/model trust boundary.
 
-The request expands the repository beyond the original 7z-only scope, but it
-does not authorize writers, compression, automatic filesystem extraction, a
-runtime command fallback, or ALES integration.
+The expanded format scope does not authorize writers, compression, automatic
+filesystem extraction, a runtime command fallback, or downstream application
+integration.
 
 ## Decision
 

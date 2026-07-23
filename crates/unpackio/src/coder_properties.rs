@@ -3,7 +3,7 @@
 use crate::{Result, parse_util::format_error};
 
 const PPMD_CANONICAL_PROPERTY_BYTES: usize = 5;
-const PPMD_PY7ZR_PROPERTY_BYTES: usize = 7;
+const PPMD_EXTENDED_PROPERTY_BYTES: usize = 7;
 const PPMD_MINIMUM_MEMORY_BYTES: u32 = 1 << 11;
 const PPMD_MINIMUM_ORDER: u8 = 2;
 const PPMD_MAXIMUM_ORDER: u8 = 64;
@@ -27,9 +27,9 @@ impl PpmdProperties {
 pub(crate) fn parse_ppmd_properties(properties: &[u8]) -> Result<PpmdProperties> {
     let canonical = match properties.len() {
         PPMD_CANONICAL_PROPERTY_BYTES => properties,
-        PPMD_PY7ZR_PROPERTY_BYTES => {
+        PPMD_EXTENDED_PROPERTY_BYTES => {
             let reserved = properties
-                .get(PPMD_CANONICAL_PROPERTY_BYTES..PPMD_PY7ZR_PROPERTY_BYTES)
+                .get(PPMD_CANONICAL_PROPERTY_BYTES..PPMD_EXTENDED_PROPERTY_BYTES)
                 .ok_or_else(|| format_error("PPMd reserved properties are truncated"))?;
             if reserved != [0, 0] {
                 return Err(format_error("PPMd reserved properties must be zero"));
@@ -74,7 +74,7 @@ mod tests {
     const CANONICAL: &[u8] = &[6, 0, 0, 1, 0];
 
     #[test]
-    fn accepts_canonical_and_zero_reserved_py7zr_properties() -> Result<()> {
+    fn accepts_canonical_and_zero_reserved_extended_properties() -> Result<()> {
         let expected = PpmdProperties {
             order: 6,
             memory_size: 64 * 1024,

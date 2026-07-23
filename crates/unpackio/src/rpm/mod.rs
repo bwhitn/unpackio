@@ -536,7 +536,7 @@ impl RpmArchive {
 
 fn payload_compression(header: &RpmHeader) -> Result<RpmPayloadCompression> {
     let Some(value) = header_scalar_bytes(header, TAG_PAYLOAD_COMPRESSOR)? else {
-        // RPM v4's historical default, also used by rpmfile.
+        // RPM v4's historical default.
         return Ok(RpmPayloadCompression::Gzip);
     };
     if value.eq_ignore_ascii_case(b"gzip") || value.eq_ignore_ascii_case(b"gz") {

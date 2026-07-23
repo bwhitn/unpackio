@@ -57,9 +57,8 @@ belong in the core.
 9. Give the binding its own cargo-deny policy, lockfile, type stub, license and
    notice payload, installed-wheel tests, sdist rebuild, MSRV check, and Linux
    x86-64/aarch64, macOS, and Windows wheel matrix. Linux aarch64 is installed
-   and exercised on a native hosted ARM64 runner. Maturin and `7zz` are
-   build/test tools only and never installed as runtime fallbacks; `py7zr` is
-   not a runtime dependency or fallback either.
+   and exercised on a native hosted ARM64 runner. Packaging and archive-oracle
+   tools are build/test-only and are never installed as runtime fallbacks.
 
 ## Consequences
 

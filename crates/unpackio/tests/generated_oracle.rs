@@ -1201,7 +1201,7 @@ fn assert_corruption_fails(path: &Path, password: Option<&str>) -> Result<(), Bo
 
 #[test]
 #[ignore = "requires stock 7zz 26.02"]
-fn generated_core_and_go_parity_methods_match_7zz() -> Result<(), Box<dyn StdError>> {
+fn generated_core_methods_match_7zz() -> Result<(), Box<dyn StdError>> {
     require_exact_7zz()?;
     let directory = temporary_directory("methods")?;
     let result = (|| -> Result<(), Box<dyn StdError>> {

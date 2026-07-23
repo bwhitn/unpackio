@@ -162,7 +162,7 @@ def zipcrypto_archive(name: bytes, payload: bytes, password: bytes) -> bytes:
         0o100644 << 16,
         0,
     ) + name
-    comment = b"ALES encrypted fixture"
+    comment = b"encrypted ZIP fixture"
     end = struct.pack(
         "<I4H2IH",
         0x0605_4B50,
@@ -930,7 +930,7 @@ class BindingTests(unittest.TestCase):
                 self.assertEqual(output.getvalue(), expected)
                 archive.verify()
 
-    def test_ales_zip_data_contract(self) -> None:
+    def test_zip_data_contract(self) -> None:
         encoded = zip_metadata_archive()
         with zipfile.ZipFile(io.BytesIO(encoded)) as reference_archive:
             reference_entries = reference_archive.infolist()
@@ -1009,7 +1009,7 @@ class BindingTests(unittest.TestCase):
         with self.assertRaises(unpackio.ChecksumError):
             extract(corrupt_archive, 0)
 
-    def test_ales_rpm_data_contract(self) -> None:
+    def test_rpm_data_contract(self) -> None:
         encoded = rpm_archive()
         archive = unpackio.open_rpm_bytes(encoded)
         signature = archive.signature_header.as_named_dict(signature=True)

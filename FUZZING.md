@@ -218,7 +218,7 @@ limits, cancellation, callback exception identity, callback `False`, writer
 delivery, natural-order solid batch extraction, empty and duplicate entries,
 batch CRC/exception/cancellation boundaries, shared work/output limits, and
 concurrent Python progress during detached Rust work. The same installed-wheel
-suite covers the native ALES data contract: duplicate order, metadata
+suite covers the native Python data contract: duplicate order, metadata
 projection, correct and incorrect ZIP passwords, caller-owned seekable output,
 typed corruption, symbolic/scalar RPM headers, and verified RPM extraction.
 No independent binary parser is introduced; arbitrary bytes still enter the

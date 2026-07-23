@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-//! Opt-in structural checks against the externally stored pinned Go corpus.
+//! Opt-in structural checks against an externally stored audited 7z corpus.
 
 use std::{error::Error as StdError, fs, path::Path};
 
@@ -16,10 +16,10 @@ fn parse_path(path: &Path) -> Result<(), Box<dyn StdError>> {
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA pointing at the pinned Go testdata directory"]
-fn pinned_go_valid_corpus_has_valid_models() -> Result<(), Box<dyn StdError>> {
-    let Some(root) = std::env::var_os("UNPACKIO_GO_TESTDATA") else {
-        return Err(String::from("UNPACKIO_GO_TESTDATA is not set").into());
+#[ignore = "requires UNPACKIO_7Z_TESTDATA pointing at the audited testdata directory"]
+fn audited_valid_corpus_has_valid_models() -> Result<(), Box<dyn StdError>> {
+    let Some(root) = std::env::var_os("UNPACKIO_7Z_TESTDATA") else {
+        return Err(String::from("UNPACKIO_7Z_TESTDATA is not set").into());
     };
     let root = Path::new(&root);
     let names = [
@@ -80,10 +80,10 @@ fn pinned_go_valid_corpus_has_valid_models() -> Result<(), Box<dyn StdError>> {
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA pointing at the pinned Go testdata directory"]
-fn pinned_go_missing_unpack_regression_is_rejected() -> Result<(), Box<dyn StdError>> {
-    let Some(root) = std::env::var_os("UNPACKIO_GO_TESTDATA") else {
-        return Err(String::from("UNPACKIO_GO_TESTDATA is not set").into());
+#[ignore = "requires UNPACKIO_7Z_TESTDATA pointing at the audited testdata directory"]
+fn audited_missing_unpack_regression_is_rejected() -> Result<(), Box<dyn StdError>> {
+    let Some(root) = std::env::var_os("UNPACKIO_7Z_TESTDATA") else {
+        return Err(String::from("UNPACKIO_7Z_TESTDATA is not set").into());
     };
     let path = Path::new(&root).join("COMPRESS-492.7z");
     let bytes = fs::read(&path)?;

@@ -86,10 +86,9 @@ unimplemented ZIP encryption/method, RPM payload/digest/CPIO slice, Debian
 member form/compression, or ARJ method/feature returns `UnsupportedMethod` or
 `UnsupportedFeature`, never fallback output.
 
-ALES consumes the native Python exception hierarchy directly. Concrete archive
-format/checksum, password, limit, cancellation, unsupported-feature, I/O, and
-internal failures retain their typed unpackio categories; no compatibility
-layer reclassifies them.
+Python callers receive the native exception hierarchy directly. Concrete
+archive format/checksum, password, limit, cancellation, unsupported-feature,
+I/O, and internal failures retain their typed unpackio categories.
 
 The Python binding sets `format` to `zip`, `rpm`, `cpio`, `deb`, or `arj` for
 their format-specific errors and exposes package checksum scopes as

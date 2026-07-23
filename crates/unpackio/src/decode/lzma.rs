@@ -1,9 +1,8 @@
 //! Safe, bounded raw LZMA and LZMA2 decoding.
 //!
-//! This decoder is an adaptation of the independently implemented BSD-3-Clause
-//! Go decoder in `github.com/ulikunitz/xz` v0.5.15. It is deliberately shaped
-//! around validated 7z coder properties, checked Rust arithmetic, fallible
-//! allocation, and explicit operation control rather than mirroring Go types.
+//! This decoder includes BSD-3-Clause adapted work recorded precisely in
+//! `PROVENANCE.md`. It is shaped around validated 7z coder properties, checked
+//! Rust arithmetic, fallible allocation, and explicit operation control.
 
 use std::io;
 

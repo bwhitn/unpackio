@@ -132,14 +132,14 @@ their own gates.
 
 ## Differential tests
 
-`7zz` is a test oracle only. With the inspected Go testdata available:
+`7zz` is a test oracle only. With the audited 7z testdata available:
 
 ```text
-UNPACKIO_GO_TESTDATA=/path/to/pinned/testdata \
+UNPACKIO_7Z_TESTDATA=/path/to/audited/testdata \
   cargo test -p unpackio --test reference_headers --all-features -- --ignored
-UNPACKIO_GO_TESTDATA=/path/to/pinned/testdata \
+UNPACKIO_7Z_TESTDATA=/path/to/audited/testdata \
   cargo test -p unpackio --test phase3_reference -- --ignored
-UNPACKIO_GO_TESTDATA=/path/to/pinned/testdata \
+UNPACKIO_7Z_TESTDATA=/path/to/audited/testdata \
 cargo test -p unpackio --test phase4_reference -- --ignored
 cargo test -p unpackio --test phase5_reference -- --ignored
 cargo test -p unpackio --lib stock_7zz_ -- --ignored
@@ -330,7 +330,7 @@ Nightly cargo-fuzz commands, seed policy, triage, and current smoke evidence
 are in `FUZZING.md`. The reproducible natural-order solid benchmark is:
 
 ```text
-UNPACKIO_GO_TESTDATA=/path/to/pinned/testdata \
+UNPACKIO_7Z_TESTDATA=/path/to/audited/testdata \
 UNPACKIO_BENCH_ITERATIONS=50 \
   cargo bench -p unpackio --bench natural_order_solid
 ```
@@ -439,15 +439,15 @@ installed wheel still declares no Python `Requires-Dist`. An explicit Rust
 all-feature Python binding; it also caught and prompted removal of two newer
 let-chain expressions before this result was recorded.
 
-The later ALES data-contract gate rebuilt and installed the same
+The later Python data-contract gate rebuilt and installed the same
 `cp39-abi3` macOS x86-64 wheel into a clean CPython 3.12 environment; all 19
 installed-package tests passed. The two added tests prove that the native ZIP
-and RPM objects return every value consumed by ALES, including all ZIP metadata,
-typed password/corruption outcomes, ZipCrypto and AE-2 AES-256 extraction,
-symbolic/scalar RPM headers, unknown tags, duplicate and empty members, and
-path-based exact extraction. A separate core regression proves that an empty
-AE-2 member succeeds only with an intact authentication tag. They use generated repository-owned
-ZIP/ZipCrypto/WinZip-AES/RPM/CPIO bytes and install no comparison package.
+and RPM objects return their documented metadata, typed password/corruption
+outcomes, ZipCrypto and AE-2 AES-256 extraction, symbolic/scalar RPM headers,
+unknown tags, duplicate and empty members, and path-based exact extraction. A
+separate core regression proves that an empty AE-2 member succeeds only with
+an intact authentication tag. They use generated repository-owned
+ZIP/ZipCrypto/WinZip-AES/RPM/CPIO bytes.
 
 The ordinary core coverage pass used cargo-llvm-cov 0.8.7 and Homebrew LLVM
 22.1.8. It measured 76.22% total core line coverage. The new ZIP files measured
@@ -458,14 +458,14 @@ The ordinary core coverage pass used cargo-llvm-cov 0.8.7 and Homebrew LLVM
 corruption, truncation, resource-limit, and exact-output assertions remain the
 compatibility evidence.
 
-The same installed wheel passed two disposable comparison-oracle checks using
-the exact MIT sdists and hashes recorded in `PROVENANCE.md`. `pyzipper` 0.4.0
-authored 24 AES profiles: its four reader methods crossed with AE-1/AE-2 and
-128-/192-/256-bit keys, each with a nonempty and empty duplicate-name entry.
-`unpackio` extracted exact bytes and verified every archive. `rpmfile` 2.2.1
-and `unpackio` then read the same independently generated gzip/newc package and
-agreed on names, output bytes, and modes. These were test-only oracles in a
-disposable virtual environment, not runtime dependencies or committed corpus.
+The same installed wheel passed disposable compatibility-oracle checks whose
+exact inputs and hashes are recorded in `PROVENANCE.md`. The generated matrix
+covered 24 AES profiles across four compression methods, AE-1/AE-2, and
+128-/192-/256-bit keys, each with nonempty and empty duplicate-name entries.
+`unpackio` extracted exact bytes and verified every archive. A separately
+generated gzip/newc package matched expected names, output bytes, and modes.
+These were test-only checks in a disposable environment, not runtime
+dependencies or committed corpus.
 
 After standalone CPIO, Debian-package, and ARJ support was added on 2026-07-21,
 the locked root workspace passed 221 non-ignored Rust tests plus three doctests;

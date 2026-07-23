@@ -93,9 +93,9 @@ The Python natural-order batch adapter, structural sink protocol, generated
 solid Copy fixtures, type stubs, and wheel-matrix changes are original project
 work licensed MIT. They delegate graph execution, folder reuse,
 work/cancellation accounting, and CRC finalization to the existing stable core
-API. No ALES or py7zr code was inspected or incorporated. The workflow design
-uses the public documentation for the already pinned maturin action and
-GitHub-hosted ARM64 runner labels; neither is runtime code.
+API. No downstream application or py7zr code was inspected or incorporated.
+The workflow design uses the public documentation for the already pinned
+maturin action and GitHub-hosted ARM64 runner labels; neither is runtime code.
 
 The incomplete Brotli negative vector is original test derivation: it removes
 the terminal byte from the already recorded ten-byte complete `hello\n`
@@ -444,7 +444,7 @@ only to define a read-compatibility comparison and Python-facing expectations.
 | SVR4 `newc`/CRC-`newc` CPIO records | Public SVR4 new ASCII record definition and RPM payload documentation, inspected 2026-07-21 | Format specification; no implementation source imported | Original exact-alignment/range/checksum parser; no libarchive or GNU cpio source inspected |
 | XZ and legacy LZMA RPM payloads | `lzma-rust2` crates.io 0.16.4, checksum `ce716bf1a316f47a280fc76295f6495b5bea4752bca01c3b3885e101b1c23c02`, tag commit `ab2ae87d607801a889d7e09edab4ed64d0b7d3bc` | Apache-2.0 | Safe decoder dependency; encoder/optimization disabled; original preflight and resource-control wrapper |
 | Other RPM payload codecs | Already admitted `miniz_oxide` 0.8.9, `bzip2-rs` 0.1.2, and `ruzstd` 0.8.1 | MIT/Zlib/Apache-2.0 combinations recorded in `DEPENDENCIES.md` | Existing bounded decoders reused; original RPM gzip envelope and payload dispatcher |
-| Python comparison baselines | `pyzipper` 0.4.0 tag commit `a814388f5a8a7b172ee2e2ca668fc33c7516e6bc`, PyPI sdist SHA-256 `a4b96afcac04c5589d5abdc6158dd362166374e3cc6810aa441e65f8a17cb9e3`; `rpmfile` 2.2.1 tag/attested commit `c71e53491bb3ae8581e32630089c174b99b2aba6`, PyPI sdist SHA-256 `8ffc44d15f8d2b6cad1ea885b09e1ca5f1744532c24710554f3fe4873506e9da`; inspected 2026-07-21 | MIT | Read-path/API comparison. `pyzipper` admits Store/Deflate/BZip2/ZIP-LZMA plus WinZip AES; `rpmfile.RPMFile` admits `070701` payload records and gzip/BZip2/XZ/optional-Zstandard decompression. The RPM tag-name table used by ALES was adapted as described below; no parser, decoder, crypto, or filesystem source was copied, and neither package is a build/runtime/test dependency |
+| Python test-oracle sources | `pyzipper` 0.4.0 tag commit `a814388f5a8a7b172ee2e2ca668fc33c7516e6bc`, PyPI sdist SHA-256 `a4b96afcac04c5589d5abdc6158dd362166374e3cc6810aa441e65f8a17cb9e3`; `rpmfile` 2.2.1 tag/attested commit `c71e53491bb3ae8581e32630089c174b99b2aba6`, PyPI sdist SHA-256 `8ffc44d15f8d2b6cad1ea885b09e1ca5f1744532c24710554f3fe4873506e9da`; inspected 2026-07-21 | MIT | Test-only read-path/API evidence. `pyzipper` admits Store/Deflate/BZip2/ZIP-LZMA plus WinZip AES; `rpmfile.RPMFile` admits `070701` payload records and gzip/BZip2/XZ/optional-Zstandard decompression. The RPM tag-name table was adapted as described below; no parser, decoder, crypto, or filesystem source was copied, and neither package is a build/runtime/test dependency |
 
 Generated ZIP fixtures are original serializers in Rust/Python tests. Fixed
 BZip2/XZ/Zstandard payload vectors were created from project-authored bytes by
@@ -496,7 +496,7 @@ dependency. Exact hashes and generation scope are in `CORPUS.md`.
 | Component | Exact origin/revision | License | Use and adaptation status |
 | --- | --- | --- | --- |
 | `bindings/python/src`, Python package/stubs/tests, workflow, and documentation | Original repository work, 2026-07-18 through 2026-07-21 | MIT | FFI adapter only; no upstream archive/stream algorithm or source adapted |
-| ALES ZIP/RPM data projections | Original repository work, 2026-07-21; output values compared with the pinned `pyzipper` 0.4.0 and `rpmfile` 2.2.1 baselines recorded above | MIT, except the adapted rpmfile tag-name table under its MIT notice | Native binding metadata and extraction only; no drop-in compatibility module. `bindings/python/src/rpm.rs::main_tag_name` adapts rpmfile 2.2.1's complete factual tag/name mapping, selecting canonical spellings for its duplicate `5097`/`5101` typo aliases; exact upstream notice is in `LICENSES/MIT-rpmfile.txt`. No upstream parser, decoder, cryptography, writer, or filesystem extraction source was copied. Generated ZipCrypto and AE-2 AES-256 regressions reuse the repository's own specification-based test algorithms |
+| Python ZIP/RPM data projections | Original repository work, 2026-07-21; output values checked with the test-oracle sources recorded above | MIT, except the adapted rpmfile tag-name table under its MIT notice | Native binding metadata and extraction only; no compatibility facade. `bindings/python/src/rpm.rs::main_tag_name` adapts rpmfile 2.2.1's complete factual tag/name mapping, selecting canonical spellings for its duplicate `5097`/`5101` typo aliases; exact upstream notice is in `LICENSES/MIT-rpmfile.txt`. No upstream parser, decoder, cryptography, writer, or filesystem extraction source was copied. Generated ZipCrypto and AE-2 AES-256 regressions reuse the repository's own specification-based test algorithms |
 | PyO3 family | crates.io `pyo3`, `pyo3-ffi`, `pyo3-build-config`, `pyo3-macros`, and `pyo3-macros-backend` 0.29.0; exact checksums in `bindings/python/Cargo.lock`; `https://github.com/PyO3/pyo3` | MIT OR Apache-2.0 | CPython ABI, owned handles, module/classes, exceptions, detach/attach, and limited-API build; dependency source not copied |
 | Python host API | Python 3.9+ stable ABI as exposed by the caller's interpreter; `https://docs.python.org/3/c-api/stable.html` | Python Software Foundation License for CPython | External host platform only; no interpreter source or binary copied or bundled |
 | maturin | PyPI/build-backend release 1.13.3, exactly pinned in `pyproject.toml`; `https://github.com/PyO3/maturin` | MIT OR Apache-2.0 | Development/build tool only; not a wheel runtime dependency and no source copied |
@@ -512,8 +512,8 @@ Python-facing file changes any decoder origin or expands a support claim.
 
 ## Corpus provenance
 
-No binary corpus file is committed. The pinned Go tree's testdata
-hash manifest is `reference/go-testdata.sha256`; it permits exact reacquisition
+No binary corpus file is committed. The audited source tree's testdata hash
+manifest is `reference/7z-testdata.sha256`; it permits exact reacquisition
 for inspection but does not assert independent redistribution rights for every
 fixture. See `CORPUS.md`.
 

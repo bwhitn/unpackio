@@ -25,32 +25,29 @@ The supported public surface is listed in `API.md`. Raw parser, envelope, and
 coder-graph exports are available only through the hidden
 `unstable-internals` regression/fuzz feature and are not compatibility API.
 The `unpackio` Python distribution delegates to that stable surface and adds no
-method implementation or runtime `7zz`/`py7zr` fallback. Its natural-order
-batch sink uses the core's one-decode-per-folder path with one shared work
-budget and cancellation token.
+method implementation or external runtime fallback. Its natural-order batch
+sink uses the core's one-decode-per-folder path with one shared work budget and
+cancellation token.
 
-“Target” below means planned scope, not present codec capability.
-
-The Go-reference column describes the pinned behavioral reference after source
-and bundled-test inspection. It does not imply Rust support.
+Only rows explicitly marked supported are compatibility claims. Fixture
+coverage and differential evidence do not imply support beyond the stated
+implementation boundary.
 
 ## ZIP archives
 
 `ZipArchive` is a separate unpack-only model. It is not routed through the 7z
-`Archive`, and no ZIP writer/editor API exists. The supported extraction slice
-covers the reader functionality of the inspected `pyzipper` 0.4.0 release and
-adds Deflate64 and Zstandard decoding. This is not a drop-in API claim:
-`pyzipper`'s archive creation and mutation operations are deliberately outside
-this project's scope.
+`Archive`, and no ZIP writer/editor API exists. Its reader supports the
+structure, compression, encryption, integrity, and metadata boundaries listed
+below.
 
 | Area | Supported | Evidence | Explicit boundary |
 | --- | --- | --- | --- |
 | Structure | Ordinary ZIP, ZIP64 sizes/offsets/counts, bounded SFX prefixes, central/local headers, ZIP64 and signed/unsigned data descriptors, exact end record, raw archive comment | Generated Store/Deflate archives, empty and duplicate entries, CP437 names, SFX, ZIP64 SFX, descriptor and truncation/corruption cases | Split/spanned archives, central-directory encryption, and PKWARE Strong Encryption return `UnsupportedFeature` |
-| Compression | Store (0), Deflate (8), Deflate64 (9), BZip2 (12), ZIP-LZMA (14), deprecated Zstandard (20), Zstandard (93) | Exact generated/fixed-vector extraction for every listed method; a disposable exact-`pyzipper` 0.4.0 matrix for its four reader methods; packed corruption, truncation, declared-size, output/work/cancellation tests | XZ (95), PPMd (98), and all unregistered method IDs are listable but extraction is typed unsupported |
-| Encryption | Traditional ZipCrypto; WinZip AES AE-1/AE-2 with 128-, 192-, and 256-bit keys | Generated Store/Deflate ZipCrypto cases; all AES key sizes; AE-1 and AE-2; no/wrong password; authentication corruption including an empty AE-2 member; exact extraction/verification of 24 `pyzipper`-authored method/version/key-size profiles | Passwords are caller-supplied bytes; no encoding is guessed. Strong encryption and encrypted central directories are unsupported |
+| Compression | Store (0), Deflate (8), Deflate64 (9), BZip2 (12), ZIP-LZMA (14), deprecated Zstandard (20), Zstandard (93) | Exact generated/fixed-vector extraction for every listed method; a 24-profile compatibility matrix; packed corruption, truncation, declared-size, output/work/cancellation tests | XZ (95), PPMd (98), and all unregistered method IDs are listable but extraction is typed unsupported |
+| Encryption | Traditional ZipCrypto; WinZip AES AE-1/AE-2 with 128-, 192-, and 256-bit keys | Generated Store/Deflate ZipCrypto cases; all AES key sizes; AE-1 and AE-2; no/wrong password; authentication corruption including an empty AE-2 member; exact extraction/verification across method/version/key-size profiles | Passwords are caller-supplied bytes; no encoding is guessed. Strong encryption and encrypted central directories are unsupported |
 | Integrity | Local/central agreement, exact ranges, AES authentication code, decoded size, applicable CRC-32 | Corruption before/inside/after payload, bad CRC/authenticator, bad password, descriptor mismatch, truncation | AE-2 follows the WinZip AES rule that authentication replaces a meaningful CRC field |
 | Metadata | Raw and decoded names, raw comments/extras, duplicate order, DOS time, creator/version flags, attributes, Unix mode, directory/symlink classification, safe-path result | Generated duplicates, empty members, CP437/Unicode-path handling, modes, traversal/path-policy cases | Extended timestamp extras are preserved raw but not yet normalized into additional timestamp fields; no filesystem extraction |
-| ALES Python data | Native `ZipArchive`/`ZipEntry` expose every metadata and extraction value consumed by ALES | Installed-wheel tests cover duplicate/empty entries, every recorded metadata field, no/wrong/correct ZipCrypto passwords, AE-2 AES-256 exact extraction, corruption, and caller-owned seekable output | ALES maps the native names explicitly. There is no drop-in facade, writer/mutation API, automatic path use, or whole-member return method |
+| Python API | Native `ZipArchive`/`ZipEntry` expose the documented metadata and extraction values | Installed-wheel tests cover duplicate/empty entries, every recorded metadata field, no/wrong/correct ZipCrypto passwords, AE-2 AES-256 exact extraction, corruption, and caller-owned seekable output | There is no compatibility facade, writer/mutation API, automatic path use, or whole-member return method |
 
 ZIP input, header, entry/name, decoded-output, dictionary, work, cancellation,
 and SFX limits are checked before the relevant allocation or decoder work.
@@ -60,23 +57,22 @@ accounting and uses `finish_entry` as the trusted boundary.
 
 ## RPM packages
 
-`RpmArchive` implements the read/list/extract surface represented by inspected
-`rpmfile` 2.2.1 while adding strict typed-header validation, CRC-newc, legacy
-LZMA and uncompressed payloads, package digest checks, cancellation/work
-budgets, explicit resource limits, duplicate preservation, and safe-path
-metadata. The API intentionally exposes numeric RPM tags and byte-preserving
-typed values as its canonical surface. Its symbolic projection returns the
-names and scalar values needed by ALES without changing or discarding that
-canonical metadata.
+`RpmArchive` implements a native read/list/extract surface with strict
+typed-header validation, CRC-newc, legacy LZMA and uncompressed payloads,
+package digest checks, cancellation/work budgets, explicit resource limits,
+duplicate preservation, and safe-path metadata. The API intentionally exposes
+numeric RPM tags and byte-preserving typed values as its canonical surface.
+Its symbolic projection returns names and scalar values without changing or
+discarding that canonical metadata.
 
 | Area | Supported | Evidence | Explicit boundary |
 | --- | --- | --- | --- |
 | Package envelope | RPM lead major 3/4, signature header, main header, all standard scalar/array/bin header value kinds, duplicate tag order, exact store ranges and alignment | Generated headers, shared-value amplification, truncation, offset/count/type/range/limit mutations | Header values remain bytes unless intrinsically numeric; no locale or policy interpretation is invented |
 | Payload compression | Uncompressed, gzip, BZip2, XZ, legacy LZMA-alone, Zstandard | Exact extraction from generated/fixed vectors for each compressor; header/trailer/index/dictionary/truncation/output/work/cancellation tests | Unsupported compressors return a stable `UnsupportedFeature` |
-| Payload archive | Shared checked CPIO parser: SVR4 `newc` (`070701`), CRC-`newc` (`070702`), portable ASCII `odc` (`070707`), and historical binary little-/big-endian records | Files, directories, symlinks, empty/duplicate names, every supported standalone layout, CRC members, trailer/padding/truncation/range cases; disposable exact name/data/mode agreement with `rpmfile` 2.2.1 over a generated gzip/newc package | The incompatible large-file `0707010` variant and unknown layouts are typed unsupported or malformed; no filesystem reconstruction |
+| Payload archive | Shared checked CPIO parser: SVR4 `newc` (`070701`), CRC-`newc` (`070702`), portable ASCII `odc` (`070707`), and historical binary little-/big-endian records | Files, directories, symlinks, empty/duplicate names, every supported standalone layout, CRC members, trailer/padding/truncation/range cases, and exact name/data/mode checks over a generated gzip/newc package | The incompatible large-file `0707010` variant and unknown layouts are typed unsupported or malformed; no filesystem reconstruction |
 | Metadata | Raw byte name, lossy display name, inode, mode/permissions, uid/gid, link count, mtime, size, device/rdev numbers, symlink/hard-link metadata, safe-path result | Generated mixed metadata and duplicate-order extraction | No automatic reconstruction of hard links, symlinks, owners, modes, or paths on a filesystem |
 | Integrity | Signature-header SHA-1/SHA-256 digests of the main header; compressed and uncompressed payload SHA-256 tags (declared algorithm 8 when present); gzip CRC/ISIZE; XZ structural CRCs; Zstandard checksums; CRC-newc member sums | Positive digest package plus corruption of header, payload, compressor trailer, and member checksum; unsupported digest-algorithm regressions | OpenPGP blobs are exposed but not authenticated. Legacy package MD5, per-file digest tables, SHA3-256-only header digests, and SHA-512/SHA-3 payload digest tags are not verified; a package declaring the latter is typed unsupported rather than silently trusted |
-| ALES Python data | Native `RpmArchive`/`RpmEntry` plus `RpmHeader.as_named_dict()` expose the complete symbolic tag set, scalar values, unknown numeric tags, lead metadata, ordered members, and verified extraction | Installed-wheel tests exercise selected and non-selected named tags, string/I18N/integer/array values, unknown tags, lead reserved bytes, duplicate/empty members, path opening, and exact extraction | ALES maps the native names explicitly. There is no filesystem extraction, private-header emulation, general third-party API claim, or partial metadata from a corrupt/unsupported payload |
+| Python API | Native `RpmArchive`/`RpmEntry` plus `RpmHeader.as_named_dict()` expose the complete symbolic tag set, scalar values, unknown numeric tags, lead metadata, ordered members, and verified extraction | Installed-wheel tests exercise selected and non-selected named tags, string/I18N/integer/array values, unknown tags, lead reserved bytes, duplicate/empty members, path opening, and exact extraction | There is no filesystem extraction, private-header emulation, compatibility facade, or partial metadata from a corrupt/unsupported payload |
 
 The complete decoded CPIO payload is currently retained in bounded memory, so
 `retained_payload_bytes()` may approach `max_total_output_bytes`. This is not a
@@ -155,7 +151,7 @@ Its archives exist only in runner temporary directories. This turns the
 existing opt-in evidence into a repeatable gate without broadening a codec or
 metadata claim.
 
-| Method/filter | Pinned Go reference | Rust status | Rust differential evidence |
+| Method/filter | Fixture coverage | Implementation status | Differential evidence |
 | --- | --- | --- | --- |
 | Copy | Registered; bundled fixture | Supported for validated graphs | `copy.7z`; corrupted-member, packed/folder/member CRC, output/work/cancellation regressions |
 | Delta | Registered; bundled fixture | Supported, distances 1..256 | `delta.7z`; local property/cancellation tests |
@@ -169,9 +165,9 @@ metadata claim.
 | SPARC | Registered; bundled fixture | Supported | `sparc.7z`; exact bytes/SHA-256/member CRC |
 | Deflate | Registered; bundled fixture | Supported as raw Deflate with bounded 32 KiB working-memory charge and final-block unknown-size termination | `deflate.7z`; exact `7zz` bytes/SHA-256/size/CRC/metadata plus positive unknown-size and every-prefix truncation, output, dictionary, work, and cancellation tests |
 | BZip2 | Registered; bundled fixture | Supported with block-size preflight and bounded adapter | `bzip2.7z`; exact `7zz` bytes/SHA-256/size/CRC/metadata plus malformed header, memory, and cancellation tests |
-| PPMd | Registered; bundled fixture | Supported for PPMd7 variant H with declared output size; properties are exactly canonical five-byte order/memory or the py7zr 1.1.3 seven-byte form with two zero reserved bytes | `ppmd.7z`; exact `7zz` bytes/SHA-256/size/CRC/metadata plus generated exact extraction for both property forms, nonzero-reserved, wrong-length, declared-property truncation, malicious-memory, output/work, and cancellation tests. A fixed stock-`7zz` 26.02 order-6/64-KiB packed vector supplies the decoded bytes |
+| PPMd | Registered; bundled fixture | Supported for PPMd7 variant H with declared output size; properties are exactly canonical five-byte order/memory or a seven-byte compatibility form with two zero reserved bytes | `ppmd.7z`; exact bytes/SHA-256/size/CRC/metadata plus generated exact extraction for both property forms, nonzero-reserved, wrong-length, declared-property truncation, malicious-memory, output/work, and cancellation tests. A fixed order-6/64-KiB packed vector supplies the decoded bytes |
 | AES-256-CBC/SHA-256 | Registered; encrypted fixtures | Supported for declared-size AES-256-CBC streams and bounded direct/iterated 7z SHA-256 KDF | `aes7z.7z`, `t2.7z`-`t5.7z`, `7zcracker.7z`; generated header-encrypted and data-encrypted Copy exact `7zz` differentials with corruption and typed missing/wrong-password states; generated BCJ→LZMA2→AES encrypted-header differential; block truncation and KDF limit/work/cancellation tests |
-| Brotli | Registered; bundled private-method fixture | Supported for complete streams, including the optional private 16-byte 7-Zip prefix; unfinished flush-only streams are malformed | `brotli.7z` verifies and matches the common `deflate.7z` corpus bytes/SHA-256/metadata; an independently recorded complete `hello\n` stream succeeds while its end-marker-truncated py7zr-style prefix returns `Format`; stock `7zz` 26.02 rejects this private method ID |
+| Brotli | Registered; bundled private-method fixture | Supported for complete streams, including the optional private 16-byte 7-Zip prefix; unfinished flush-only streams are malformed | `brotli.7z` verifies and matches the common `deflate.7z` corpus bytes/SHA-256/metadata; an independently recorded complete `hello\n` stream succeeds while its end-marker-truncated flush-only prefix returns `Format`; the standard oracle does not recognize this private method ID |
 | LZ4 | Registered; bundled private-method fixture | Supported for checked LZ4 frames without external dictionaries | `lz4.7z` verifies and matches the common `deflate.7z` corpus bytes/SHA-256/metadata; stock `7zz` 26.02 rejects this private method ID |
 | Zstd | Registered; bundled private-method fixture | Supported for frames whose declared window is within limits; dictionary frames are typed unsupported | `zstd.7z` verifies and matches the common `deflate.7z` corpus bytes/SHA-256/metadata; stock `7zz` 26.02 rejects this private method ID |
 | Deflate64 | Not registered | Supported for stored, fixed, and dynamic blocks with a checked 64 KiB history charge and final-block EOS | Generated long-distance `deflate64.7z`; exact `7zz` bytes/SHA-256/size/CRC/metadata, direct dynamic-block regression, every stored-prefix truncation, trailing input, corruption, dictionary/output/work tests |
@@ -183,7 +179,7 @@ metadata claim.
 
 ## Container features and metadata
 
-| Feature | Pinned Go reference observation | Rust status |
+| Feature | Fixture coverage | Implementation status |
 | --- | --- | --- |
 | Plain/encoded headers | Both covered by tests | Supported when every encoded-header coder is one of the supported methods; stored, encoded-folder/substream, and parsed-header bounds/CRCs enforced. Multiple decoded substreams are consumed exactly and concatenated in stream order; a generated two-substream Copy header containing one named empty file is accepted by stock `7zz` 26.02. Rust also safely handles a generated multi-folder form, but stock `7zz` rejects that form, so it is not a 7zz-compatibility claim |
 | Encrypted headers/data | Covered by password tests | Supported for graphs composed of supported methods; per-archive zeroized password state, KDF bound before hashing, and `PasswordRequired`/`WrongPasswordOrCorrupt` classification; positive external fixtures plus corpus-free generated header/data encryption, corruption, and exact oracle comparison |
@@ -199,14 +195,14 @@ metadata claim.
 | Windows/POSIX attributes and modes | Parsed/mapped | Inline and external raw Windows attributes are preserved; Unix-extension high bits expose a POSIX mode without applying it to a filesystem |
 | Symlink metadata | Mode mapping exists; no bundled corpus assertion | Unix-extension mode identifies symlinks and member bytes preserve the target; a generated `7zz -snl` archive matches mode and target bytes |
 | Hard links | `-snh` capability probe | Rust preserves both entries and returns the expected bytes for each on the macOS, Linux, and Windows probes. Stock extraction restored two ordinary files on macOS and Linux; Windows identity was unavailable. No automatic filesystem extraction or inode-preservation claim exists |
-| Duplicate names | Go `fs.FS` layer marks duplicates | Preserved in archive order as distinct entries; there is no automatic extraction/collision policy |
+| Duplicate names | Duplicate-name fixtures | Preserved in archive order as distinct entries; there is no automatic extraction/collision policy |
 | External folder/name/time/attribute streams | Explicit TODO errors | Supported for main-stream folder definitions and referenced Name/time/attribute/StartPos data. `DataIndex` selects a decoded AdditionalStreamsInfo folder output; folder definitions are staged, decoded, checksum-verified, reparsed for the exact declared folder count, consumed exactly, and fully revalidated. Synthetic one- and two-folder forms are accepted by stock `7zz` 26.02; encrypted, truncation, trailing-byte, index, CRC, coder-count, and output-limit regressions exercise the production API |
 | Additional streams | Explicit TODO error | Parsed and decoded once per folder when referenced by external folder definitions or supported external file properties. `Archive::verify` sequentially decodes every folder, including unreferenced folders, and verifies packed, folder, and logical-substream CRCs while sharing limits and operation control with main streams. Unreferenced stream bytes are not exposed by the public API |
 | StartPos | Explicit TODO error | Inline and external values preserved as `Option<u64>` |
 | Anti-items | ID defined but not handled in FilesInfo | Parsed for streamless records |
 | Archive properties | Explicit TODO error | Bounded raw properties retained |
 | Comments | ID defined; no parser handling found | Bounded raw property retained without semantic text decoding. A synthetic file-comment candidate makes stock `7zz` 26.02 emit `Unsupported feature`; an archive-property candidate is ignored without a listed Comment field. Neither is positive semantic-comment evidence |
-| Safe member paths | Go `fs.FS` performs path-facing checks | Raw names and mapping are preserved independently; opt-in UTF-8/UTF-16 validators reject traversal, absolute, drive, UNC/device, and NUL paths; no automatic filesystem extraction exists |
+| Safe member paths | Hostile-path fixtures | Raw names and mapping are preserved independently; opt-in UTF-8/UTF-16 validators reject traversal, absolute, drive, UNC/device, and NUL paths; no automatic filesystem extraction exists |
 | Unknown unpacked size/EOS | No compliant general model identified | Preserved as `None` and admitted by an explicit method allowlist: LZMA/LZMA2 require codec EOS, Deflate/Deflate64 require a final block, Copy/size-preserving filters derive the bounded input size, and BCJ2 ends at its bounded main stream. LZMA, LZMA2, Deflate, and Deflate64 have positive unknown-size units with truncation checks. PPMd, AES, BZip2, Brotli, LZ4, and Zstandard return typed `UnsupportedFeature` for unknown output; unknown packed size is also typed unsupported. Stock `7zz` 26.02 rejects the synthetic unknown-Copy-root candidate with `Data Error` and rejects unknown packed/non-final candidates with `Headers Error`; Rust's safe Copy extension is not credited as oracle parity |
 
 ## Stock 7zz capability-probe evidence
@@ -250,13 +246,13 @@ provenance.
   of a minimal envelope, overflowed next-header offsets, unexpected
   identifiers, unsupported major versions, start/next CRC corruption, header
   and total-input limits, cancellation, and work-budget exhaustion.
-- The opt-in pinned-reference harness passed the complete stored next-header
-  parser and validated model for 32 logical
-  Go-reference archives: 31 single-file inputs (including `sfx.exe` and
+- The opt-in source-audit harness passed the complete stored next-header
+  parser and validated model for 32 logical archives: 31 single-file inputs
+  (including `sfx.exe` and
   encrypted/encoded headers) plus the six joined `multi.7z.001`-`.006`
   volumes. At the Phase 2 boundary those cases proved only that stored stream
   descriptors validated; Phase 3/4 evidence below covers decoded headers.
-- Generated tests cover the two audited Go panic classes, exact 100,000-entry
+- Generated tests cover two audited panic classes, exact 100,000-entry
   handling and rejection above it, every byte-prefix truncation, CRC-correct
   mutations, checked offset/count overflow, invalid and duplicate graph
   domains, cycles, deterministic topological schedules, file/substream
@@ -277,8 +273,8 @@ provenance.
   Rust `MemberReader::finish` verifies each declared member CRC, and a final
   natural-order archive verification succeeds.
 - The test inputs are the exact external files identified by SHA-256 in
-  `reference/go-testdata.sha256`; they are not redistributed here. The command
-  is `UNPACKIO_GO_TESTDATA=<pinned>/testdata cargo test -p unpackio --test
+  `reference/7z-testdata.sha256`; they are not redistributed here. The command
+  is `UNPACKIO_7Z_TESTDATA=<audited>/testdata cargo test -p unpackio --test
   phase3_reference -- --ignored`.
 - Synthetic tests independently cover reverse-stored topological execution,
   unsupported method typing, a corrupted Copy member, packed/folder/member CRC
@@ -366,9 +362,8 @@ provenance.
   decoding rather than guessing a size.
 - Existing Phase 2-4 regressions remain the evidence for malformed headers and
   graphs, password errors, SFX, metadata, Unicode, symlinks, duplicates, path
-  safety, and the pinned Go corpus. The request's literal `<CORPUS>` and
-  `<MALFORMED_CORPUS>` sets were confirmed unavailable; they are not
-  compatibility evidence.
+  safety, and the audited fixture set. No separate valid or malformed corpus
+  was available, so none is claimed as compatibility evidence.
 
 ## Phase 7 Python-binding evidence
 
@@ -398,8 +393,8 @@ provenance.
   work exhaustion. Empty files receive explicit boundaries; streamless
   directories and anti-items remain metadata-only and do not produce batch
   sink events.
-- Generated ZIP/ZipCrypto and RPM/CPIO packages exercise the native values
-  needed by ALES from an installed wheel. The ZIP test covers every recorded
+- Generated ZIP/ZipCrypto and RPM/CPIO packages exercise the documented native
+  values from an installed wheel. The ZIP test covers every recorded
   metadata field, duplicate and empty entries, no/wrong/correct passwords,
   AE-2 AES-256 exact extraction, zero-length authentication, CRC corruption, and
   caller-owned seekable output. The RPM test covers reserved lead bytes,
@@ -412,7 +407,7 @@ provenance.
   3.9 Linux/macOS/Windows wheel build/install/test jobs, binding quality gate,
   Rust 1.85 binding check, and sdist rebuild test. Those CI results establish
   the packaging/platform boundary, not additional codec evidence.
-- On 2026-07-21 the ALES data-contract change rebuilt a local macOS x86-64
+- On 2026-07-21 the Python data-contract change rebuilt a local macOS x86-64
   `cp39-abi3` wheel, installed it into a clean CPython 3.12 environment, and
   passed all 19 then-current installed-package tests, including the two
   format-specific migration tests above. The subsequent PyPI packaging audit

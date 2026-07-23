@@ -5,14 +5,14 @@
 
 ## Context
 
-Callers need ZIP and RPM inspection and extraction with at least the read-side
-behavior of PyPI `pyzipper` and `rpmfile`. The existing `Archive` model is
-specifically a 7z folder/coder graph. Treating ZIP entries or an RPM payload as
-7z members would erase format-specific metadata and weaken validation.
+Callers need complete ZIP and RPM inspection and extraction through the native
+API. The existing `Archive` model is specifically a 7z folder/coder graph.
+Treating ZIP entries or an RPM payload as 7z members would erase
+format-specific metadata and weaken validation.
 
-The repository remains unpack-only. Compatibility with libraries that also
-write archives does not authorize a writer, mutation API, automatic filesystem
-extraction, runtime Python dependency, or external-tool fallback.
+The repository remains unpack-only. Format compatibility does not authorize a
+writer, mutation API, automatic filesystem extraction, runtime Python
+dependency, or external-tool fallback.
 
 ## Decision
 
@@ -64,8 +64,7 @@ authentication boundary has completed.
   archive abstraction.
 - Duplicate names and unsafe names remain metadata and retain their original
   ordering; they never select an output path automatically.
-- Read compatibility can exceed the named Python libraries without exposing
-  their write surfaces.
+- Read compatibility remains independent of any writer or mutation surface.
 - Strong Encryption, split ZIP, and cryptographic RPM signature verification
   cannot be claimed until their explicit contracts and evidence are added.
 - ZIP and RPM each require positive, corruption, truncation, limit, fuzz, and

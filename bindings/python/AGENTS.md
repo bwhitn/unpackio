@@ -11,8 +11,8 @@ rules in the root `AGENTS.md`.
   duplicate, fork, or reimplement parsing, validation, graph construction,
   decoding, cryptography, CRC handling, volume assembly, or path policy here.
 - Keep the Rust core free of Python and PyO3 dependencies. Do not add a CLI,
-  console script, or subprocess archive adapter. Do not modify or integrate
-  with ALES.
+  console script, or subprocess archive adapter. Do not modify code outside
+  this repository.
 - Treat Python as the caller-provided host platform; never bundle an
   interpreter. A new Python-level runtime dependency requires the same source,
   license, and provenance review as a Rust runtime dependency.

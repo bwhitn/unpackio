@@ -33,10 +33,9 @@ to one `ZipArchive`; RPM accepts no password. Both formats preserve raw names
 as `bytes`, duplicate order, metadata, and safe-path classification. Neither
 API writes a name to disk or returns all decoded payloads as one object.
 
-## ALES data contract
+## Format-specific data model
 
-ALES can consume the native, format-specific unpackio objects directly; no
-API is named after another Python package:
+Applications consume the native, format-specific unpackio objects directly:
 
 ```python
 import io
@@ -53,23 +52,23 @@ payload = io.BytesIO()
 package.extract_entry_to(package.entries()[0].index, payload)
 ```
 
-`ZipEntry` exposes every value ALES records: decoded/raw names, comments,
-extras, sizes, CRC, DOS timestamp, method, flags, creator/extractor versions,
-attributes, local-header offset, encryption kind, and directory metadata.
+`ZipEntry` exposes decoded/raw names, comments, extras, sizes, CRC, DOS
+timestamp, method, flags, creator/extractor versions, attributes, local-header
+offset, encryption kind, and directory metadata.
 Passwords are supplied when opening a `ZipArchive`; trying another password
 creates another per-archive session. Even a zero-length encrypted member must
 be extracted so its password verifier and authentication data are checked.
 
 `RpmArchive.header` and `.signature_header` retain ordered typed tags.
-`as_named_dict()` adds the complete symbolic projection needed by ALES,
-preserves unknown tags under numeric keys, returns scalar integers for
-single-value numeric tags, and selects the first locale for I18N values. RPM
-opening validates the complete supported package, including applicable
-digests, before member data is exposed.
+`as_named_dict()` adds a complete symbolic projection, preserves unknown tags
+under numeric keys, returns scalar integers for single-value numeric tags, and
+selects the first locale for I18N values. RPM opening validates the complete
+supported package, including applicable digests, before member data is
+exposed.
 
-These are unpackio APIs, not compatibility facades. They contain no writer,
-`extractall`, automatic path use, or runtime fallback. Callers must apply their
-own policy before using a metadata name as a path.
+These APIs contain no writer, `extractall`, automatic path use, or runtime
+fallback. Callers must apply their own policy before using a metadata name as
+a path.
 
 `ZipArchive.extract_entries_to` and `RpmArchive.extract_entries_to` use the
 same three callbacks as the 7z batch protocol, with `ZipEntry` or `RpmEntry`

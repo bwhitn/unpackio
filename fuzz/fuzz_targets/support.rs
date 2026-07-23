@@ -43,7 +43,7 @@ const PPMD_SEED: &[u8] = &[
     0x00,
 ];
 const PPMD_SEED_PROPERTIES: &[u8] = &[0x06, 0x00, 0x00, 0x01, 0x00];
-const PPMD_PY7ZR_SEED_PROPERTIES: &[u8] = &[0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00];
+const PPMD_EXTENDED_SEED_PROPERTIES: &[u8] = &[0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00];
 const PPMD_SEED_OUTPUT: &[u8] = b"PPMd fuzz seed: alpha beta gamma delta 0123456789\n";
 
 // Synthetic `hello\n` vectors. The BZip2 stream was produced by bzip2 1.0.8;
@@ -906,7 +906,7 @@ pub(crate) fn generated_decoder_seed(data: &[u8]) -> Option<GeneratedDecoderSeed
         _ => simple_seed(
             copy_bytes(PPMD_SEED)?,
             METHOD_PPMD,
-            Some(PPMD_PY7ZR_SEED_PROPERTIES),
+            Some(PPMD_EXTENDED_SEED_PROPERTIES),
             PPMD_SEED_OUTPUT,
         ),
     }

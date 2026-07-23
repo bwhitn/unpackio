@@ -18,7 +18,7 @@ warmup occur outside the timed loop.
 | 2026-07-18 | Pre-commit Phase 5 snapshot | Natural-order solid `Archive::extract_entries_to`, `lzma2.7z`, 50 timed iterations | 36,054 decoded bytes/iteration; 0.038949 s total; 44.139 MiB/s | Not measured | Same reproducibility workload after remaining-method integration; counting sink correctness warmup passed; one solid folder decoded per iteration |
 | 2026-07-18 | Pre-commit Phase 6 snapshot | Natural-order solid `Archive::extract_entries_to`, `lzma2.7z`, 50 timed iterations | 10 entries; 36,054 decoded bytes and 92,896 deterministic work units/iteration; 0.042591 s total; 40.364 MiB/s | 1,359,872-byte direct-process peak RSS; 8,184-byte retained archive payload account; one 36,054-byte folder output | Direct release binary under macOS `/usr/bin/time -l`; correctness warmup passed; every timed iteration matched byte and work counts |
 | 2026-07-18 | Pre-commit Phase 7 snapshot | Python FFI | Not benchmarked | Not measured | Installed-wheel test verifies that another Python thread advances during 8 MiB Copy verification; this is a GIL-detachment correctness test, not a throughput or memory result |
-| 2026-07-21 | Uncommitted ALES-readiness snapshot | Python natural-order batch adapter | Not benchmarked | Caller-retained Python buffers not measured | Installed-wheel functional test proves one shared work budget and a batch work cost below two random-access solid-folder decodes; no new decoder path was added |
+| 2026-07-21 | Uncommitted Python batch snapshot | Python natural-order batch adapter | Not benchmarked | Caller-retained Python buffers not measured | Installed-wheel functional test proves one shared work budget and a batch work cost below two random-access solid-folder decodes; no new decoder path was added |
 | 2026-07-21 | Uncommitted standalone-stream snapshot | LZ4, Zstandard, and Unix `.Z` extraction | Not benchmarked | Decoder dictionaries/windows are preflighted; process peak not measured | Exact native-tool differentials and bounded-memory tests are functional evidence only, not throughput measurements |
 | 2026-07-21 | Uncommitted release-profile audit | macOS x86-64 CPython ABI3 wheel | ThinLTO/O3 retained; 719,812-byte wheel | 1,424,240-byte native extension before installation metadata | FatLTO/O3 saved 2.0% but regressed Unix `.Z`; FatLTO/Oz saved 19.2% but materially regressed every measured decoder |
 | 2026-07-21 | Uncommitted CPIO/Debian/ARJ snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 964,108-byte Python-only wheel; 23 installed-wheel tests passed | Process peak not measured | No console entry point or Python runtime dependency; includes ZIP/RPM, three new readers, ARJ decoder dependency, fixtures' required notices, and all existing formats; a size observation, not a throughput benchmark |
@@ -32,7 +32,7 @@ Benchmark context:
 - archive SHA-256:
   `15934a5ff1325d4608f9b9c63b1a6d110957566fbea4f9e12c60864b5b7a684f`;
 - archive size: 6,110 bytes; output size: 36,054 bytes;
-- command: `UNPACKIO_GO_TESTDATA=<pinned>/testdata
+- command: `UNPACKIO_7Z_TESTDATA=<audited>/testdata
   UNPACKIO_BENCH_ITERATIONS=50 cargo bench -p unpackio --bench
   natural_order_solid`;
 - Rust: 1.97.0 (`2d8144b78`), release profile, target

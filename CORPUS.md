@@ -2,10 +2,9 @@
 
 ## Inputs actually available
 
-The request contained literal `<CORPUS>` and `<MALFORMED_CORPUS>` placeholders.
-No paths were substituted, and a search of the target repository and adjacent
-workspace found no separate 7z corpus. The project therefore cannot claim to
-have inspected those two requested corpora.
+The initial corpus placeholders contained no paths, and no separate 7z corpus
+was available. The project therefore makes no claim based on those
+placeholders.
 
 On 2026-07-18 the repository owner confirmed that no separate valid or
 malformed corpus is available. That absence is now an explicit test-design
@@ -15,20 +14,20 @@ CRC-correct semantic mutation, exhaustive truncation tests, and
 coverage-guided fuzzing. No compatibility row is credited merely because a
 fuzz target accepts arbitrary bytes.
 
-The pinned Go repository supplied the only available 7z reference set:
+An audited external 7z testdata set supplied the initial reference material:
 
 - 38 top-level `testdata` files: 31 `.7z` files, six parts of
   `multi.7z.001` through `.006`, and one SFX executable;
-- four Go fuzz artifacts under `testdata/fuzz/FuzzNewReaderWithPassword`;
+- four fuzz artifacts under `testdata/fuzz/FuzzNewReaderWithPassword`;
 - total files in the manifest: 42; and
-- exact SHA-256 values in `reference/go-testdata.sha256`.
+- exact SHA-256 values in `reference/7z-testdata.sha256`.
 
 These files were inspected in the temporary pinned checkout and were **not
 copied** into this repository. A hash manifest establishes identity, not a
 right to redistribute each binary fixture.
 
-The pinned checkout's own `go test ./...` suite passed with Go 1.26.5 on macOS;
-this establishes the inspected reference baseline but is not Rust evidence.
+The source audit's own test suite passed on its recorded toolchain; this is
+source-audit context, not unpackio evidence.
 
 ## ZIP and RPM evidence
 
@@ -196,9 +195,9 @@ width transitions, block/non-block state, and CLEAR resets in CI.
 
 The ignored integration harness in
 `crates/unpackio/tests/reference_headers.rs` reads fixtures only from an explicit
-`UNPACKIO_GO_TESTDATA` directory, so no upstream binary is copied or implicitly
+`UNPACKIO_7Z_TESTDATA` directory, so no external binary is copied or implicitly
 downloaded. On 2026-07-18 it passed the production stored-next-header parser
-and validated model for 32 logical Go-reference archives: 31 named single-file
+and validated model for 32 logical audited archives: 31 named single-file
 fixtures and the six `multi.7z.001` through `.006` parts joined as one logical
 byte sequence. The set includes the SFX executable and plain, encoded, and
 encrypted header families.
@@ -207,14 +206,13 @@ This is evidence for stored syntax/model validation, not for decoding an
 encoded header, password handling, volume-provider behavior, decoded metadata,
 or any decoder. The same opt-in run confirms that external
 `COMPRESS-492.7z` is rejected. Generated Rust regressions independently cover
-that missing-UnpackInfo condition, the FilesInfo-only initialization panic
-class, and the invalid packed-index File.Open panic class; the upstream binary
-itself remains external and is not committed.
+that missing-UnpackInfo condition and both audited panic classes; the source
+binary itself remains external and is not committed.
 
 The exact local command was:
 
 ```text
-UNPACKIO_GO_TESTDATA=<PINNED_GO_CHECKOUT>/testdata \
+UNPACKIO_7Z_TESTDATA=<AUDITED_7Z_TESTDATA>/testdata \
   cargo test -p unpackio --test reference_headers -- --ignored
 ```
 
@@ -233,7 +231,7 @@ final Rust natural-order archive verification succeeded.
 The exact command was:
 
 ```text
-UNPACKIO_GO_TESTDATA=<PINNED_GO_CHECKOUT>/testdata \
+UNPACKIO_7Z_TESTDATA=<AUDITED_7Z_TESTDATA>/testdata \
   cargo test -p unpackio --test phase3_reference -- --ignored
 ```
 
@@ -247,8 +245,8 @@ unavailable and are not used as evidence.
 ## Corpus-free generated differential evidence
 
 `crates/unpackio/tests/generated_oracle.rs` removes the external-corpus dependency
-for every method that stock `7zz` 26.02 can author in the original Go-parity
-and core-filter set. The ignored suite creates deterministic synthetic input
+for every method that stock `7zz` 26.02 can author in the initial core and
+filter set. The ignored suite creates deterministic synthetic input
 and temporary archives for Copy, LZMA, LZMA2, Delta, BCJ, BCJ2, PPC, ARM,
 ARM64, SPARC, Deflate, BZip2, and PPMd. Filter fixtures contain matching branch
 or delta patterns, and the test confirms that their packed representation was
@@ -397,7 +395,7 @@ not redistributed corpus additions.
 The command is:
 
 ```text
-UNPACKIO_GO_TESTDATA=<PINNED_GO_CHECKOUT>/testdata \
+UNPACKIO_7Z_TESTDATA=<AUDITED_7Z_TESTDATA>/testdata \
   cargo test -p unpackio --test phase4_reference -- --ignored
 ```
 
@@ -436,8 +434,8 @@ cargo test -p unpackio --test phase5_reference -- --ignored
 
 Both Phase 5 ignored tests passed with `7zz` 26.02. Existing Phase 2-4 tests
 remain the corpus evidence for malformed grammar/graphs, SFX, metadata,
-Unicode, symlinks, duplicate names, wrong passwords, and the pinned Go
-fixtures. A separate in-tree unit vector forces a dynamic Huffman block through
+Unicode, symlinks, duplicate names, wrong passwords, and the audited fixtures.
+A separate in-tree unit vector forces a dynamic Huffman block through
 the Deflate64 decoder; the generated oracle fixture supplies the
 Deflate64-specific long-distance and long-match evidence.
 

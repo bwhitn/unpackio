@@ -1,4 +1,4 @@
-//! Size-preserving compatibility filters added after Go parity.
+//! Additional size-preserving compatibility filters.
 //!
 //! The instruction layouts and bijective transforms are independently
 //! expressed in safe Rust from the 0BSD XZ Utils filter descriptions at

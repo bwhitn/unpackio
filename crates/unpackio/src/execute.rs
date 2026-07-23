@@ -155,9 +155,9 @@ fn validate_coder_registration(coder: &Coder) -> Result<()> {
             ));
         }
     } else if matches!(method, METHOD_BROTLI | METHOD_LZ4 | METHOD_ZSTD) {
-        // The pinned Go implementation treats these private-method properties
-        // as opaque plugin metadata. The parser has already bounded and copied
-        // them exactly; the framed stream remains self-describing.
+        // These private-method properties are opaque plugin metadata. The
+        // parser has already bounded and copied them exactly; the framed stream
+        // remains self-describing.
         validate_arity(coder, 1, 1)?;
     } else if method == METHOD_AES {
         validate_arity(coder, 1, 1)?;

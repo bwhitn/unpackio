@@ -1,8 +1,7 @@
 //! Safe in-memory core filters used by 7z coder graphs.
 //!
-//! Delta, branch conversion, and BCJ2 semantics are adapted from the pinned
-//! BSD-3-Clause Go reference at commit
-//! `dcfc72a0ee9f527c55521f44ffdf1c31b732e256`. Bounds and arithmetic are
+//! Delta, branch conversion, and BCJ2 semantics include BSD-3-Clause adapted
+//! work recorded precisely in `PROVENANCE.md`. Bounds and arithmetic are
 //! expressed independently with checked Rust operations.
 
 use std::io;

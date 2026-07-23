@@ -7,19 +7,16 @@ Phases 1-7 are present on `main`; subsequent compatibility-hardening review
 units are recorded below. Historical dates identify when each review unit and
 its recorded local gates were performed.
 
-## Reference inspection completed before implementation
+## Source audit completed before implementation
 
-The reference is `github.com/bodgit/sevenzip` at
-`dcfc72a0ee9f527c55521f44ffdf1c31b732e256` (`v1.6.5`). Source, history,
-license, tests, 38 top-level testdata files, and four Go fuzz artifacts were
-inspected. Exact hashes are in `reference/go-testdata.sha256`.
+The source revision, license, testdata inventory, and exact hashes used during
+the initial audit are recorded in `PROVENANCE.md` and
+`reference/7z-testdata.sha256`.
 
-The prompt's `<CORPUS>` and `<MALFORMED_CORPUS>` placeholders did not resolve to
-paths and no separate 7z corpus exists in the adjacent workspace. Those
-sets were later confirmed unavailable; no claim based on them is made. Narrow
-pinned-reference and generated evidence is recorded separately in `CORPUS.md`;
-binary fixtures were not copied from upstream because their individual
-provenance was not established.
+The initial corpus placeholders did not resolve to paths, and no separate 7z
+corpus was available. No claim based on those placeholders is made. Audited
+and generated evidence is recorded separately in `CORPUS.md`; binary fixtures
+were not copied when their individual provenance was not established.
 
 ## Phase 1: foundation and policy
 
@@ -86,7 +83,7 @@ decompression claim is made.
 
 Gate evidence on 2026-07-18: format, Clippy with `-D warnings`, all workspace
 tests/features and documentation tests, both workspace/fuzz cargo-deny checks,
-the 32-logical-archive pinned-reference model harness, external
+the 32-logical-archive source-audit model harness, external
 `COMPRESS-492.7z` rejection, and four 10,000-run stable libFuzzer smoke targets
 passed. The local Homebrew Rust installation is stable 1.97 and has neither
 rustup, cargo-fuzz, Miri, nor the i686 standard library, so local MSRV, Miri,
@@ -144,7 +141,7 @@ Miri, MSRV 1.85, i686 compilation, and Linux/macOS/Windows tests. Peak RSS was
 not measured, and the current full-folder buffer is documented without a
 constant-memory claim.
 
-## Phase 4: Go parity, crypto, SFX, metadata, and volumes
+## Phase 4: codec expansion, crypto, SFX, metadata, and volumes
 
 Status: implemented for the evidence-bounded capability rows in
 `COMPATIBILITY.md` on 2026-07-18, with external folder definitions added as a
@@ -189,7 +186,7 @@ Review units:
    oracle, external-folder stock-oracle and malformed/encrypted regressions,
    expanded decoder fuzzing, and an active volume fuzz target.
 
-Exit gate: every Go-parity row claimed in `COMPATIBILITY.md` has a named
+Exit gate: every supported row claimed in `COMPATIBILITY.md` has a named
 differential test. Five-volume encrypted and unencrypted fixtures, SFX,
 encrypted BCJ chains, and wrong/missing-password cases pass. Secrets have no
 global cache and are cleared in drop tests where observable.
@@ -236,9 +233,9 @@ peak-memory result.
    archives through `PathVolumeProvider`.
 5. Existing Phase 2-4 evidence remains the positive and malformed matrix for
    SFX, metadata, external streams, Unicode, symlinks, duplicates, graph and
-   header corruption, passwords, and the pinned Go corpus. The request's
-   literal `<CORPUS>` and `<MALFORMED_CORPUS>` placeholders identify no local
-   path, so they were not run and are not claimed as evidence.
+   header corruption, passwords, and the audited 7z fixture set. No separate
+   valid or malformed corpus path was available, so none was run or claimed as
+   evidence.
 
 Exit gate: all target rows are either supported with passing evidence or marked
 unsupported with a typed-error test. No ambiguous “partial” claim remains.
@@ -248,7 +245,7 @@ Clippy, 96 core unit tests, 34 parser/model integration tests, all workspace and
 documentation tests, rustdoc with warnings denied, and both workspace/fuzz
 cargo-deny checks passed. All six fuzz binaries compile and pass strict Clippy;
 the expanded decoder target completed a freshly rebuilt 1,000-run seedless
-stable-built no-panic smoke. The pinned Go model tests, Phase 3 differential,
+stable-built no-panic smoke. The audited model tests, Phase 3 differential,
 all eight Phase 4 oracle tests, and both Phase 5 oracle tests passed. The Phase
 5 matrix covers all six methods, corruption, encrypted solid and non-solid
 Deflate64, and separately authored five-part encrypted and unencrypted
@@ -350,8 +347,8 @@ gates passed.
 6. **Implemented:** added `bindings/python/AGENTS.md`, PEP 561 stubs, exact
    license/notice payloads, a separate cargo-deny policy, installed-wheel tests,
    sdist rebuild testing, and Linux/macOS/Windows wheel CI plus an MSRV gate.
-   ADR 0003 records the FFI and packaging decision. This phase does not modify
-   or integrate with ALES.
+   ADR 0003 records the FFI and packaging decision. This phase changes only
+   this repository.
 
 Exit gate evidence on 2026-07-18: the binding passed formatting, strict
 all-target/all-feature Clippy, all-feature compilation, its Rust unwind unit,
@@ -377,7 +374,7 @@ Status: active after the repository owner confirmed on 2026-07-18 that no
 separate valid or malformed corpus is available.
 
 1. Added a corpus-free generated `7zz` 26.02 oracle suite for the 13
-   stock-authored core/Go-parity methods, header/data AES, and synthetic-prefix
+   stock-authored core methods, header/data AES, and synthetic-prefix
    SFX. It verifies method selection, transforming filter input, ordered name,
    size, CRC, exact bytes, SHA-256, password typing, and packed corruption.
 2. Fixed a parallel ignored-test collision in the encoded-header oracle by
@@ -466,14 +463,14 @@ separate valid or malformed corpus is available.
     symlink restoration, rejected both raw-AES authoring forms with
     `E_NOTIMPL`, and reported `same-file=false` for stock hard-link extraction.
     It therefore adds byte-level evidence without a hard-link semantic claim.
-17. Added the ALES-readiness adapter work without modifying ALES: strict PPMd
-    admission for canonical five-byte properties and the py7zr 1.1.3
-    zero-reserved seven-byte form; generated exact/malformed/resource tests;
+17. Added the Python batch adapter: strict PPMd admission for canonical
+    five-byte properties and a zero-reserved seven-byte compatibility form;
+    generated exact/malformed/resource tests;
     Python natural-order batch extraction with one shared budget/token and
     CRC-finalized entry boundaries; a complete-versus-unfinished Brotli
     regression; and explicit Linux x86-64/aarch64 ABI3 wheel jobs with native
-    aarch64 smoke testing. No dependency or lockfile changed, and neither
-    `py7zr` nor `7zz` is a runtime fallback. Local gate evidence is recorded in
+    aarch64 smoke testing. No dependency or lockfile changed, and no external
+    runtime fallback was added. Local gate evidence is recorded in
     `TESTING.md`: formatting, strict Clippy, full locked Rust tests, binding
     tests, installed ABI3 wheel tests, fuzz generator/smoke, ordinary coverage,
     and all three cargo-deny graphs passed. Hosted ARM64, Rust 1.85, Miri, and

@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-//! Opt-in decoder differential checks against the pinned Go corpus and 7zz.
+//! Opt-in decoder differential checks against an audited 7z corpus and oracle.
 
 use std::{error::Error as StdError, fs, path::Path, process::Command};
 
@@ -187,10 +187,10 @@ fn compare_archive(root: &Path, filename: &str) -> Result<(), Box<dyn StdError>>
 }
 
 #[test]
-#[ignore = "requires UNPACKIO_GO_TESTDATA and 7zz"]
+#[ignore = "requires UNPACKIO_7Z_TESTDATA and 7zz"]
 fn core_methods_match_7zz_bytes() -> Result<(), Box<dyn StdError>> {
-    let Some(root) = std::env::var_os("UNPACKIO_GO_TESTDATA") else {
-        return Err(String::from("UNPACKIO_GO_TESTDATA is not set").into());
+    let Some(root) = std::env::var_os("UNPACKIO_7Z_TESTDATA") else {
+        return Err(String::from("UNPACKIO_7Z_TESTDATA is not set").into());
     };
     let root = Path::new(&root);
     for filename in [

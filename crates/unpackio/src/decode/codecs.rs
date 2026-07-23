@@ -602,9 +602,8 @@ mod tests {
         })?;
         assert_eq!(decoded, BROTLI_HELLO);
 
-        // py7zr 1.1.3's writer is externally reported to flush without
-        // finishing. Model that interoperability boundary without importing
-        // py7zr bytes by removing only this complete vector's terminal byte.
+        // Model a flush-only interoperability boundary without importing an
+        // external stream by removing only this complete vector's terminal byte.
         let unfinished = COMPLETE_BROTLI_HELLO
             .get(..COMPLETE_BROTLI_HELLO.len().saturating_sub(1))
             .ok_or_else(|| crate::parse_util::format_error("Brotli test vector is empty"))?;

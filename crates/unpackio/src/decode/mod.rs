@@ -46,11 +46,11 @@ pub(crate) const METHOD_DEFLATE: &[u8] = &[0x04, 0x01, 0x08];
 pub(crate) const METHOD_DEFLATE64: &[u8] = &[0x04, 0x01, 0x09];
 /// 7z BZip2 method identifier.
 pub(crate) const METHOD_BZIP2: &[u8] = &[0x04, 0x02, 0x02];
-/// 7z Zstandard method identifier used by the pinned Go implementation.
+/// Private 7z Zstandard method identifier.
 pub(crate) const METHOD_ZSTD: &[u8] = &[0x04, 0xf7, 0x11, 0x01];
-/// 7z Brotli method identifier used by the pinned Go implementation.
+/// Private 7z Brotli method identifier.
 pub(crate) const METHOD_BROTLI: &[u8] = &[0x04, 0xf7, 0x11, 0x02];
-/// 7z LZ4 method identifier used by the pinned Go implementation.
+/// Private 7z LZ4 method identifier.
 pub(crate) const METHOD_LZ4: &[u8] = &[0x04, 0xf7, 0x11, 0x04];
 /// 7z AES-256-CBC method identifier.
 pub(crate) const METHOD_AES: &[u8] = &[0x06, 0xf1, 0x07, 0x01];

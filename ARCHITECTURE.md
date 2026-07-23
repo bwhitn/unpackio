@@ -3,8 +3,7 @@
 Status: Phase 7 Python binding plus separate ZIP, RPM, CPIO, Debian, ARJ, and standalone stream readers,
 2026-07-21. The
 bounded byte parser, borrowed raw grammar, separate graph validator, semantic
-model validator, owned metadata model, arbitrary-graph executor, Go-parity
-decoders,
+model validator, owned metadata model, arbitrary-graph executor, core decoders,
 crypto/password layer, sequential volume assembly, supported external metadata,
 external-folder resolution, and CRC-finalizing member APIs are implemented
 behind a curated public surface. A separately locked PyO3/maturin adapter
@@ -365,12 +364,12 @@ adapter while Rust decoding stays detached; `.verify` discards output. No
 whole-output Python return or inferred output filename is provided by the
 native stream/archive classes.
 
-ALES-facing values are exposed directly by the native `ZipArchive`,
+Format-specific values are exposed directly by the native `ZipArchive`,
 `ZipEntry`, `RpmArchive`, `RpmEntry`, and `RpmHeader` classes. Named RPM
 headers are projections of retained typed values; the numeric/order-preserving
-header remains canonical. There is no Python compatibility layer, parser,
-decoder, cryptography implementation, or whole-member convenience API above
-these classes.
+header remains canonical. There is no second Python parser, decoder,
+cryptography implementation, or whole-member convenience API above these
+classes.
 
 Every archive-processing or caller-invoking Python operation has an explicit
 unwind guard; trivial values and generated class-field access remain behind

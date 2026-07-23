@@ -220,9 +220,10 @@ fn named_value_to_python(py: Python<'_>, value: &RpmValue) -> PyResult<Py<PyAny>
     }
 }
 
-// This is the complete public tag-name set recognized by rpmfile 2.2.1, using
-// canonical spellings for its two duplicate typo aliases. Unknown identifiers
-// deliberately remain numeric instead of being discarded.
+// This is the complete public tag-name projection used by the Python API.
+// Canonical spellings replace two duplicate typo aliases. Unknown identifiers
+// deliberately remain numeric instead of being discarded. Exact source
+// provenance is recorded in PROVENANCE.md.
 fn main_tag_name(tag: u32) -> Option<&'static str> {
     match tag {
         61 => Some("headerimage"),

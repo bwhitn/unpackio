@@ -8,10 +8,11 @@
 
 7z is a graph-based container with attacker-controlled lengths, indices,
 properties, decoder memory parameters, filenames, and volume boundaries. The
-reference Go implementation is useful behavioral evidence but deliberately
-does not meet all requirements of this project. Decoder provenance is also a
-licensing and security boundary: official 7-Zip and p7zip source are forbidden,
-and permissive dependency metadata alone is insufficient proof of origin.
+audited source material and black-box oracles provide useful behavioral
+evidence without defining this project's architecture or safety requirements.
+Decoder provenance is also a licensing and security boundary: prohibited
+sources remain excluded, and permissive dependency metadata alone is
+insufficient proof of origin.
 
 ## Decision
 
@@ -37,9 +38,9 @@ and permissive dependency metadata alone is insufficient proof of origin.
    derived keys globally.
 8. Do not inspect, copy, translate, link, vendor, or generate from official
    7-Zip or p7zip source. `7zz` may be executed only by differential tests.
-9. Treat the pinned Go source as BSD-3-Clause reference material. Record every
-   adaptation at file/symbol granularity before merging it, and retain its
-   notice.
+9. Treat all BSD-3-Clause source material as provenance-controlled reference
+   material. Record every adaptation at file/symbol granularity before merging
+   it, and retain its notice.
 10. Record every decoder/filter implementation independently, even when it is
     original, with its algorithm reference, code origin, and applicable
     license.

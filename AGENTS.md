@@ -15,14 +15,14 @@ These rules apply to the entire repository.
 - Keep byte parsing, validated archive models, coder-graph construction,
   decoders, volume access, filesystem path policy, the Rust core, and Python
   binding in separate layers.
-- Do not modify or integrate with ALES unless a later task explicitly changes
-  that scope.
+- Do not modify code outside this repository unless a later task explicitly
+  changes that scope.
 - Preserve raw archive metadata. Never extract through a member path until an
   explicit filesystem policy has validated it.
 - Unsupported valid features return a typed error. They must never panic,
   silently degrade, or fall back to another implementation.
-- `7zz`, `rpmfile`, and `pyzipper` are permitted only as test oracles. They
-  must never be runtime dependencies or fallbacks.
+- External archive tools and comparison libraries are permitted only as test
+  oracles. They must never be runtime dependencies or fallbacks.
 
 ## Hostile-input and resource-safety rules
 

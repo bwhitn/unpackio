@@ -307,7 +307,7 @@ retained by a Python writer or callback is caller-owned and cannot be included
 in the archive resource account. Native output therefore uses bounded chunks
 and provides no complete-output return API by default.
 
-ALES uses the native writer/callback surface. If an application supplies a
+Applications use the native writer/callback surface. If a caller supplies a
 Python `BytesIO`, that retained output is caller-owned and cannot be included
 in Rust's archive resource account. Native limits are still checked
 before/during decoding, integrity is finalized before successful return, and a
@@ -517,6 +517,6 @@ meaningful corruption, property, CRC, dictionary/output/work, and cancellation
 regressions, so oracle authorship does not confer trust or bypass any resource
 or integrity boundary.
 
-Archive creation, modification, automatic filesystem extraction, ALES
-integration, network volume fetching, and isolation from a hostile in-process
-Python or Rust caller are not offered.
+Archive creation, modification, automatic filesystem extraction, downstream
+application integration, network volume fetching, and isolation from a hostile
+in-process Python or Rust caller are not offered.

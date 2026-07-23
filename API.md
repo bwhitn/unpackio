@@ -194,10 +194,9 @@ The format-specific batch protocols mirror the 7z sink boundary but pass a
 concrete entry (`ZipEntry`, `RpmEntry`, `CpioEntry`, `DebEntry`, or
 `ArjEntry`). They preserve callback exceptions, share one work
 budget/token for the operation, bound chunks, and call `finish_entry` only
-after applicable integrity checks. `RpmHeader.as_named_dict()` provides the
-complete symbolic/scalar header projection required by ALES while preserving
-unknown tags numerically. Applications use these unpackio-native objects
-directly; no compatibility module is named after another Python library.
+after applicable integrity checks. `RpmHeader.as_named_dict()` provides a
+complete symbolic/scalar header projection while preserving unknown tags
+numerically. Applications use these unpackio-native objects directly.
 
 `Entry` is an owned metadata snapshot. It preserves raw UTF-16 code units as
 `list[int] | None`, lossy display text separately, every optional size/CRC/time/

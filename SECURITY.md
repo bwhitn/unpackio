@@ -305,7 +305,7 @@ Zstandard are conservatively rejected for unknown output until their adapters
 can prove exact framed-input consumption. No decoder invents a size.
 
 PPMd coder properties are admitted only as the canonical five-byte
-order/little-endian-memory record or as the py7zr 1.1.3 seven-byte form whose
+order/little-endian-memory record or as a seven-byte compatibility form whose
 last two reserved bytes are both zero. All other lengths and nonzero reserved
 bytes are malformed. The same parsed memory value is charged against the
 dictionary limit before allocation for either form. Brotli remains strict

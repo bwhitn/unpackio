@@ -50,8 +50,8 @@ fn output_bytes(archive: &Archive) -> Result<u64, Box<dyn StdError>> {
 }
 
 fn main() -> Result<(), Box<dyn StdError>> {
-    let Some(root) = std::env::var_os("UNPACKIO_GO_TESTDATA") else {
-        println!("natural_order_solid: skipped; UNPACKIO_GO_TESTDATA is not set");
+    let Some(root) = std::env::var_os("UNPACKIO_7Z_TESTDATA") else {
+        println!("natural_order_solid: skipped; UNPACKIO_7Z_TESTDATA is not set");
         return Ok(());
     };
     let iterations = match std::env::var("UNPACKIO_BENCH_ITERATIONS") {

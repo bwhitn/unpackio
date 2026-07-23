@@ -1,12 +1,12 @@
 #![forbid(unsafe_code)]
-//! Generated canonical and py7zr-compatible PPMd property regressions.
+//! Generated canonical and zero-reserved extended PPMd property regressions.
 
 use unpackio::{Archive, CancellationToken, Error, LimitKind, Limits, Result, WorkBudget};
 
 const SIGNATURE: &[u8] = b"7z\xbc\xaf\x27\x1c";
 const METHOD_PPMD: &[u8] = &[0x03, 0x04, 0x01];
 const CANONICAL_PROPERTIES: &[u8] = &[0x06, 0x00, 0x00, 0x01, 0x00];
-const PY7ZR_PROPERTIES: &[u8] = &[0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00];
+const EXTENDED_PROPERTIES: &[u8] = &[0x06, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00];
 const PPMD_PACKED: &[u8] = &[
     0x00, 0x50, 0x01, 0xe2, 0xfb, 0xf5, 0x0f, 0xe5, 0x00, 0x93, 0xf9, 0x01, 0xda, 0xf2, 0xa8, 0x02,
     0x8b, 0x72, 0x66, 0x5b, 0x34, 0xaa, 0x5a, 0xfc, 0xd6, 0xbb, 0xf6, 0x4e, 0x79, 0xab, 0x83, 0xe5,
@@ -149,7 +149,7 @@ fn truncated_ppmd_property_archive() -> Result<Vec<u8>> {
     next_header.extend_from_slice(METHOD_PPMD);
     push_uint(&mut next_header, 7)?;
     next_header.extend_from_slice(
-        PY7ZR_PROPERTIES
+        EXTENDED_PROPERTIES
             .get(..6)
             .ok_or_else(|| std::io::Error::other("test PPMd properties are truncated"))?,
     );
@@ -168,8 +168,8 @@ fn open(properties: &[u8], limits: Limits) -> Result<Archive> {
 }
 
 #[test]
-fn canonical_and_py7zr_properties_extract_exact_bytes() -> Result<()> {
-    for properties in [CANONICAL_PROPERTIES, PY7ZR_PROPERTIES] {
+fn canonical_and_extended_properties_extract_exact_bytes() -> Result<()> {
+    for properties in [CANONICAL_PROPERTIES, EXTENDED_PROPERTIES] {
         let archive = open(properties, Limits::default())?;
         let cancellation = CancellationToken::new();
         let mut budget = WorkBudget::unlimited();
@@ -220,10 +220,10 @@ fn declared_seven_byte_properties_reject_truncated_input() -> Result<()> {
 }
 
 #[test]
-fn py7zr_properties_keep_dictionary_output_work_and_cancellation_bounds() -> Result<()> {
+fn extended_properties_keep_dictionary_output_work_and_cancellation_bounds() -> Result<()> {
     assert!(matches!(
         open(
-            PY7ZR_PROPERTIES,
+            EXTENDED_PROPERTIES,
             Limits::builder()
                 .max_dictionary_bytes((64 * 1024) - 1)
                 .build(),
@@ -235,7 +235,7 @@ fn py7zr_properties_keep_dictionary_output_work_and_cancellation_bounds() -> Res
         })
     ));
 
-    let archive = open(PY7ZR_PROPERTIES, Limits::default())?;
+    let archive = open(EXTENDED_PROPERTIES, Limits::default())?;
     let cancellation = CancellationToken::new();
     let mut output_budget = WorkBudget::bounded(0);
     assert!(matches!(
@@ -255,7 +255,7 @@ fn py7zr_properties_keep_dictionary_output_work_and_cancellation_bounds() -> Res
     ));
 
     let limited = open(
-        PY7ZR_PROPERTIES,
+        EXTENDED_PROPERTIES,
         Limits::builder().max_total_output_bytes(49).build(),
     )?;
     let mut budget = WorkBudget::unlimited();

@@ -2438,7 +2438,7 @@ mod tests {
         [order, first, second, third, fourth]
     }
 
-    fn py7zr_properties(order: u8, memory: u32) -> [u8; 7] {
+    fn extended_properties(order: u8, memory: u32) -> [u8; 7] {
         let [first, second, third, fourth] = memory.to_le_bytes();
         [order, first, second, third, fourth, 0, 0]
     }
@@ -2531,13 +2531,13 @@ mod tests {
     }
 
     #[test]
-    fn zero_reserved_py7zr_properties_decode_the_exact_stock_vector() -> Result<()> {
+    fn zero_reserved_extended_properties_decode_the_exact_stock_vector() -> Result<()> {
         let cancellation = CancellationToken::new();
         let mut budget = WorkBudget::unlimited();
         let mut control = ParseControl::new(&cancellation, &mut budget);
         let decoded = decode_ppmd(
             PPMD_SEED,
-            &py7zr_properties(6, 64 * 1024),
+            &extended_properties(6, 64 * 1024),
             Some(50),
             50,
             Limits::default(),
@@ -2549,8 +2549,8 @@ mod tests {
     }
 
     #[test]
-    fn py7zr_properties_preserve_preallocation_resource_checks() {
-        let properties = py7zr_properties(6, 64 * 1024);
+    fn extended_properties_preserve_preallocation_resource_checks() {
+        let properties = extended_properties(6, 64 * 1024);
         let cancellation = CancellationToken::new();
         let mut budget = WorkBudget::unlimited();
         let mut control = ParseControl::new(&cancellation, &mut budget);

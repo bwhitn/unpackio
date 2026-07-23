@@ -163,13 +163,13 @@ release path pins `actions/upload-artifact` v4.6.2 at
 build/distribution infrastructure and are not imported, linked, or declared
 by the installed wheel.
 
-The 2026-07-21 ALES-readiness changes add no Cargo or Python dependency and do
-not alter any lockfile. PPMd property interoperability is an in-tree parser
-rule over the already admitted decoder, and Python batch extraction is an
-adapter over the existing stable core `EntrySink`. ZIP/RPM data needed by ALES
-is exposed on the existing native classes, with no extra Python adapter,
-decoder, crypto implementation, runtime fallback, or lockfile entry. `py7zr`,
-`pyzipper`, `rpmfile`, and `7zz` are not
+The 2026-07-21 Python interoperability changes add no Cargo or Python
+dependency and do not alter any lockfile. PPMd property interoperability is an
+in-tree parser rule over the already admitted decoder, and Python batch
+extraction is an adapter over the existing stable core `EntrySink`. ZIP/RPM
+data projections are exposed on the existing native classes, with no extra
+Python adapter, decoder, crypto implementation, runtime fallback, or lockfile
+entry. `py7zr`, `pyzipper`, `rpmfile`, and `7zz` are not
 installed, imported, or executed by a built wheel. Wheel CI uses the same
 pinned maturin action to cross-build manylinux-compatible x86-64 and aarch64
 `cp39-abi3` artifacts; the aarch64 artifact is smoke-tested on GitHub's native

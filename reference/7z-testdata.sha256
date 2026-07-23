@@ -1,4 +1,4 @@
-# github.com/bodgit/sevenzip testdata at dcfc72a0ee9f527c55521f44ffdf1c31b732e256
+# Audited 7z testdata; exact origin and revision are recorded in PROVENANCE.md
 9ee5096f046212b1783be1040050bd9cb1e98c5765d75548bc06c1760e628827  testdata/7zcracker.7z
 1f513e29c0c822c3a093c94207ea42cee5a0876a5205dbd0c4adffc05d416e92  testdata/COMPRESS-492.7z
 38e3c66573d1ff7445200c2bbe9cdc49dd094a6b8d2fd10d6ff8fe4f9e81cafb  testdata/aes7z.7z
