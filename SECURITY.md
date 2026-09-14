@@ -167,6 +167,23 @@ ciphertext, and only then decodes. AE-1 also verifies CRC; AE-2 follows the
 format's authenticated-data rule. Password bytes and derived material are
 zeroized and never shared with a 7z session.
 
+ZIP XZ method 95 admits exactly one XZ 1.0.4 Stream followed only by optional
+four-byte groups of zero Stream Padding. Stream Header, Block Header, Index,
+and Stream Footer CRCs; every Index record and Block boundary; and each Block's
+declared Check (NONE, CRC-32, CRC-64, or SHA-256) are validated before the
+decoded member can succeed. The independent ZIP decoded-size and CRC boundary
+still applies, including after ZipCrypto or WinZip AES processing.
+
+ZIP PPMd method 98 is a separate PPMd-I revision-1 boundary, not the 7z PPMd7
+variant-H decoder. Its two-byte little-endian declaration must encode order 2
+through 16, 1 through 256 MiB of model memory, and restoration mode restart,
+cutoff, or freeze. The dictionary limit is checked before the fallible model
+allocation. Decoding is bounded by the ZIP-declared output, but that size is
+not accepted as a substitute for codec termination: an early or missing PPMd
+end marker, output beyond the declared size, or any byte after the end marker
+is malformed. The independent ZIP CRC still gates delivery, including through
+ZipCrypto and WinZip AES.
+
 RPM parsing validates both header index tables against their bounded stores
 before constructing typed values. Supported main-header and payload digests are
 checked while opening, before any CPIO member is available. CPIO CRC-newc sums
@@ -262,6 +279,16 @@ scanning, entry/name counts before metadata growth, declared decoded sizes
 before extraction, and codec working memory before decoder construction. One
 batch shares total output, work, and cancellation accounting. AES PBKDF2 uses
 its fixed interoperable iteration count and charges the operation before work.
+For method 95, the XZ Index is parsed before decoding; Block count, filter
+count/properties, LZMA2 dictionary, total declared output, header bytes, and
+coder totals are checked first. Parsing, LZMA2 output, reverse filters, and all
+checks use the same work budget and cancellation token.
+For method 98, property and coder counts, declared output, and model memory are
+preflighted before model allocation. Range normalization, context traversal,
+allocator maintenance/restoration, each decoded byte, and final end-marker
+validation share the operation's work budget and cancellation token. Modeled
+addresses are checked offsets into one fallibly allocated heap; input-derived
+pointers, unchecked traversal, and a global model cache do not exist.
 
 `RpmArchive` checks header index/store counts and modeled value allocation
 before cloning values, then bounds compressed input, decoder dictionary/window,
@@ -304,7 +331,7 @@ bounded main stream. PPMd and AES need declared sizes. BZip2, Brotli, LZ4, and
 Zstandard are conservatively rejected for unknown output until their adapters
 can prove exact framed-input consumption. No decoder invents a size.
 
-PPMd coder properties are admitted only as the canonical five-byte
+7z PPMd coder properties are admitted only as the canonical five-byte
 order/little-endian-memory record or as a seven-byte compatibility form whose
 last two reserved bytes are both zero. All other lengths and nonzero reserved
 bytes are malformed. The same parsed memory value is charged against the
@@ -340,6 +367,13 @@ uses PyPI Trusted Publishing rather than a stored API token. It downloads the
 already tested aggregate artifact, performs no checkout or build, and leaves
 attestation generation enabled.
 
+For version 0.2.0, every direct runtime crate is exact-pinned at the newest
+Rust-1.85-compatible release admitted by the license/provenance policy, every
+resolved graph passed cargo-deny, and the core and binding were tested with
+Rust 1.85.0. CI actions are pinned to immutable commits. Maturin excludes
+`dist*/**` from source distributions, and CI rejects any sdist containing a
+nested wheel or build-output directory before attempting the isolated rebuild.
+
 Security-sensitive changes must add a minimized regression and update all
 affected compatibility, provenance, dependency, fuzzing, and benchmark claims.
 Fuzz crashes are treated as security bugs until triaged. Corpus files need an
@@ -350,12 +384,14 @@ No separate valid or malformed corpus is currently available. Security
 regressions therefore use deterministic hostile constructors, CRC-correct
 semantic mutation, exhaustive truncation/limit cases, and eight
 coverage-guided targets: six 7z/path targets, the standalone-stream target,
-and a ZIP/RPM target that also constructs structurally valid containers around
-arbitrary payloads.
+and an archive-format target that also constructs structurally valid ZIP,
+RPM, CPIO, Debian, and ARJ containers around arbitrary payloads. Its ZIP path
+includes valid method-95 XZ and method-98 PPMd streams plus structured
+corruption and truncation.
 Temporary `7zz` output supplies positive
 differential evidence only and is deleted after each opt-in test.
 
-The one retained oracle-authored compressed payload is a 49-byte test-only PPMd
+The original retained oracle-authored compressed payload is a 49-byte test-only 7z PPMd
 stream over project-authored text; `CORPUS.md` records its exact 7zz 26.02
 command, properties, CRC, and hashes. Production code does not invoke the
 oracle. Unit and public-API regressions require exact output and reject every
@@ -368,6 +404,17 @@ with canonical five-byte and zero-reserved seven-byte properties. It adds no
 second PPMd implementation or external archive corpus. A separately generated
 declared-property truncation and nonzero-reserved variants must fail before
 decoding.
+
+ZIP method 98 has its own nine-byte stock-`7zz` 26.02 vector over
+project-authored `abc` and deterministic in-crate fixtures for every legal
+property/restoration value. The latter encoder is compiled only for tests and
+is not a public or production writer. Normal tests reject every strict payload
+prefix, malformed property and range prefix, corruption, trailing data, early
+or late end markers, size/CRC/version disagreement, insufficient dictionary,
+output, coder/property or work limits, and cancellation before any writer or
+batch sink is finalized. The external reference corpus is checksum-pinned,
+opt-in, and never packaged; its supplemental PPMd sample is not attributed to
+WinZip because the producer is unrecorded.
 
 The exact-version capability probes are classification tests, not validation
 shortcuts. Their observed `7zz` rejection of unknown packed and non-final sizes

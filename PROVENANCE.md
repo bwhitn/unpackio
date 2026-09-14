@@ -107,11 +107,11 @@ work.
 
 The 2026-07-21 standalone LZ4 and Zstandard stream layer is original checked
 Rust built from the official format documents pinned below and the public APIs
-of the already admitted `lz4_flex` 0.13.1 and `ruzstd` 0.8.1 decoders. The
+of the already admitted `lz4_flex` 0.14.0 and `ruzstd` 0.8.1 decoders. The
 layout validators, frame table, limit accounting, checksum boundary, output
 API, fuzz target, Python adapter, and tests are MIT. No LZ4 or
 Zstandard implementation source was copied into this repository. LZ4 header
-checksums use `twox-hash` 2.1.2; block/content decoding and checksums remain in
+checksums use `twox-hash` 2.1.4; block/content decoding and checksums remain in
 `lz4_flex`. Zstandard content-checksum calculation is enabled through
 `ruzstd`'s `hash` feature and its existing `twox-hash` dependency.
 
@@ -216,7 +216,7 @@ graph, CRC, and direct AES-KDF layouts. Minimal uncompressed LZMA2, Deflate,
 Deflate64, LZ4-frame, and Zstandard-frame records were independently serialized
 for bounded test payloads; they are not compression APIs and are not compiled
 into the runtime crates. Test-only AES-CBC encryption is delegated to the same
-RustCrypto `aes` 0.9.1 and `cbc` 0.2.1 crates used by the core dependency graph,
+RustCrypto `aes` 0.9.2 and `cbc` 0.2.1 crates used by the core dependency graph,
 with a fixed public fuzz password. The raw LZMA vector retains its documented
 XZ Utils 5.8.3 command provenance. The BZip2 vector was produced from the
 synthetic text `hello\n` by `/usr/bin/bzip2` 1.0.8. The ten-byte Brotli vector
@@ -279,6 +279,7 @@ are offered under MIT.
 | `crates/unpackio/src/decode/lzma.rs`: range/probability trees, state machine, literal/length/distance decoding, dictionary history | `github.com/ulikunitz/xz/lzma`: `decoder.go`, `decoderdict.go`, `directcodec.go`, `distcodec.go`, `lengthcodec.go`, `literalcodec.go`, `operation.go`, `prob.go`, `properties.go`, `rangecodec.go`, `state.go`, `treecodecs.go` | `v0.5.15`, commit `7eee8a8a405163554a9accec7b9402ee21400769` | Adapted algorithm/state semantics into a one-shot safe Rust decoder with checked state access, exact declared-size/EOS behavior, fallible output allocation, dictionary-distance validation, and cancellation/work checks | Ulrich Kunitz BSD-3-Clause notice; Rust changes MIT |
 | `crates/unpackio/src/decode/lzma.rs`: LZMA2 control/chunk state | `github.com/ulikunitz/xz/lzma`: `header2.go`, `reader2.go` | `v0.5.15`, commit `7eee8a8a405163554a9accec7b9402ee21400769` | Adapted chunk/reset/property state and sizes; rewritten around bounded slice cursors, exact EOS/trailing-byte rules, checked sizes, and operation control | Ulrich Kunitz BSD-3-Clause notice; Rust changes MIT |
 | `crates/unpackio/src/decode/ppmd.rs`: PPMd7 model, range decoder, context/state heap, and suballocator | `github.com/stangelandcl/ppmd`: `reader.go` and `internal/h7z/*.go` listed and hashed below | `v0.1.1`, commit `e7008704a75379d49824363eca5d87e947b2d9fa` | Adapted variant-H model semantics into safe Rust; every modeled address, heap access, conversion, allocation, output append, and arithmetic boundary is fallible, dictionary memory is charged before allocation, and decode loops honor cancellation/work limits | Clayton Stangeland/Adam Hathcock MIT notice; Rust changes MIT |
+| `crates/unpackio/src/decode/ppmd_i.rs`: ZIP PPMd-I revision-1 model, carryless range decoder, context/state heap, and suballocator | Dmitry Shkarin `ppmdi1.rar`; public-domain `Model.cpp`, `PPMd.h`, `SubAlloc.hpp`, and Dmitry Subbotin `Coder.hpp` separately published in OpenXRay; SharpCompress's managed I1 port by Michael Bone at the exact revisions and hashes below | Original archive SHA-256 `5a559300c26949fc5dd015983bfe680fd9a32c2b4afb85320dc9b38f90f8c5d6`; OpenXRay commit `bcefa731baf3add37c33348ec709ab391a9032a2`; SharpCompress commit `e04d51176c5d87668c4c8779825342230c33aa74` | Adapted canonical variant-I revision-1 semantics and used the managed port to cross-check packed layout and control flow; pointer layouts are modeled as validated offsets, allocations and arithmetic are fallible, list traversal is bounded, and decode loops enforce input/output/dictionary/work/cancellation limits | Original authors' public-domain dedication; SharpCompress MIT notice; new Rust changes MIT |
 | `crates/unpackio/src/decode/aes.rs`: property parsing, password encoding, KDF input serialization, and block truncation | `internal/aes7z/reader.go:NewReader`; `internal/aes7z/key.go:calculateKey` | `dcfc72a0ee9f527c55521f44ffdf1c31b732e256` | Adapted the property and KDF byte layout; replaced the global Go cache with per-archive zeroized state and bounded/checkpointed KDF work; cryptographic primitives are supplied exclusively by RustCrypto | BSD-3-Clause upstream notice; Rust changes MIT; RustCrypto crates MIT OR Apache-2.0 |
 | `crates/unpackio/src/decode/codecs.rs`: optional 7-Zip Brotli header removal | `internal/brotli/reader.go:headerFrame`, `NewReader` | `dcfc72a0ee9f527c55521f44ffdf1c31b732e256` | Adapted only the private 16-byte frame recognition; all Brotli bitstream decoding is delegated to `brotli-decompressor` | BSD-3-Clause upstream notice; Rust adapter changes MIT |
 | `crates/unpackio/src/decode/deflate64.rs`: bit reader, Huffman tables, block decoder, history copy | Apache Commons Compress `src/main/java/org/apache/commons/compress/compressors/deflate64/HuffmanDecoder.java` | `9499ba8ed3c6dce1275ac3d0471afa414b23daff` | Adapted the Deflate64 grammar and numeric tables into a one-shot safe Rust decoder; all input/range/arithmetic/output operations are checked, the 64 KiB resource is preflighted, allocation is fallible, and loops honor cancellation/work limits | Apache-2.0 source and notice; Rust changes MIT |
@@ -298,7 +299,7 @@ are offered under MIT.
 | Stock-7zz capability-probe harness | Original `crates/unpackio/tests/capability_probe.rs` over the already recorded serialized container grammar | Project evidence rules and black-box execution of exact stock `7zz` 26.02; no oracle implementation source consulted | MIT plus the upstream notice for already adapted serialized grammar | Exact-version structured author/read/Rust results for comment candidates, alternative coder candidate, unknown sizes, raw AES main/filter authoring, link member bytes and host semantics, and platform metadata switches; Windows control, ADS readback, bounded diagnostic context, and stage-drift checks; deterministic hashes in `CAPABILITY_PROBES.md` |
 | Stock-7zz method/property matrix | Original additions to `crates/unpackio/tests/generated_oracle.rs` over the already recorded coder-property grammar | Project differential-evidence rules and black-box execution of exact stock `7zz` 26.02; no oracle implementation source consulted | MIT plus the upstream notice for already adapted serialized grammar | 24 ephemeral archives; exact LZMA/LZMA2/PPMd/Delta properties, BZip2 packed headers, Deflate level distinction, filter/AES graphs, solid folder shapes, metadata, bytes, SHA-256, CRC-finalized verification, packed corruption, physical/logical truncation, CRC-correct property mutations, and resource/work/cancellation limits |
 | Stock-7zz PPMd positive vector | Original test integration in `crates/unpackio/src/decode/ppmd.rs` and `fuzz/fuzz_targets/support.rs`; 49 packed bytes produced from project-authored text | Black-box `7-Zip (z) 26.02 (x64)` invocation `7zz a -t7z -m0=PPMd:o6:mem64k -mhc=off -mhe=off -bd -bb0`; no 7-Zip or p7zip source inspected | Project-authored input and original Rust test code MIT; executable output retained only as a test vector | Exact command, properties, CRC, decoded/packed/archive SHA-256 values, and non-retention record in `CORPUS.md`; exact decode, every packed prefix, corruption, dictionary/output/work, and cancellation regressions |
-| In-process decoder fuzz seeds and structured mutator | Original `fuzz/fuzz_targets/support.rs`, `decoding.rs`, and `fuzz/tests/generated_seeds.rs` over already recorded serialized grammar | Project hostile-input requirements; fixed vectors and test-only primitive origins recorded above; no new decoder implementation or runtime API | MIT plus the upstream notice for adapted 7z/AES serialization; embedded Brotli vector under BSD-3-Clause OR MIT; RustCrypto crates MIT OR Apache-2.0 | 20 verified positive profiles, eight bounded mutation classes, deterministic exhaustive generator test, and fresh coverage-guided campaigns without an external corpus |
+| In-process decoder fuzz seeds and structured mutator | Original `fuzz/fuzz_targets/support.rs`, `decoding.rs`, and `fuzz/tests/generated_seeds.rs` over already recorded serialized grammar | Project hostile-input requirements; fixed vectors and test-only primitive origins recorded above; no new decoder implementation or runtime API | MIT plus the upstream notice for adapted 7z/AES serialization; embedded Brotli vector under BSD-3-Clause OR MIT; RustCrypto crates MIT OR Apache-2.0 | 21 verified positive profiles, eight bounded mutation classes, deterministic exhaustive generator test, and fresh coverage-guided campaigns without an external corpus |
 | Additional-stream processor, verifier, and external metadata resolver | Original `crates/unpackio/src/metadata.rs` and `archive.rs` orchestration over Phase 2's adapted serialized property layouts | Requirements-driven sequential decoding of validated AdditionalStreamsInfo folders, verification of every logical substream, and exact bounded application to file records; no external decoder or container implementation copied | MIT plus upstream notice for adapted layouts | Synthetic production-API external Name tests; exact/trailing-byte rejection; referenced and unreferenced packed/folder/substream CRC checks; AES password states; shared output/work/cancellation limits; crossed three-part memory volumes; and limits for decoded header/name bytes |
 | Staged external-folder resolver | Original staging and orchestration in `model.rs`, `validate.rs`, `parser.rs`, `metadata.rs`, and `archive.rs`, over the adapted `types.go:readUnpackInfo` flag/`DataIndex` grammar recorded above | Project hostile-input requirements plus black-box `7zz` 26.02 behavior; the pinned Go revision does not implement resolution | MIT plus the upstream BSD-3-Clause notice for adapted serialized grammar | Production extraction with one and two AdditionalStreamsInfo folder outputs; stock-oracle acceptance of both forms; external Name reuse; exact-consumption, prefix-truncation, index, pre-decode packed-range overlap, packed/folder/substream CRC, combined count/output-limit, and encrypted password-state regressions |
 | Sequential volume assembly | Original `crates/unpackio/src/volume.rs` and archive integration | Project `VolumeProvider` requirements plus the pinned reference's observed `.001` naming behavior; no provider or concatenation code copied | MIT | Memory/path providers, total-byte and volume-count preflight, cancellation/work checks between reads, exact missing suffix, six-part fixture, five-part encrypted fixture, and cross-volume packed data |
@@ -307,6 +308,33 @@ are offered under MIT.
 | Safe path and symlink metadata policy | Original `crates/unpackio/src/path.rs` and `model.rs` accessors | Project security requirements and platform path syntax; no extraction code or external implementation copied | MIT | Traversal/absolute/drive/UNC/device/NUL tests over UTF-16 and a generated `7zz -snl` symlink metadata oracle |
 
 ## Adapted source hashes
+
+The exact public-domain PPMd-I revision-1 mirror inputs inspected for ZIP
+method 98 are:
+
+| Source file | SHA-256 |
+| --- | --- |
+| `Model.cpp` | `40bc27f205addf3ad249c9db92aa644a9761886315d6e5dc6ca306d5dac211aa` |
+| `PPMd.h` | `586f20649e3f9ff334d58ff5338af1ec5166f75f3e6ffc96723bb3f978148cfb` |
+| `SubAlloc.hpp` | `445244bcac687744c47f5cec377c89bc23b4cd43a7a40b3261124e469c45928c` |
+| `Coder.hpp` | `0180aeeb2382353ed52f8a02d7c770b87a938ef4efabdb7d641a0a4dfb827dbe` |
+
+The secondary managed-port inputs used to cross-check that adaptation are
+from SharpCompress commit `e04d51176c5d87668c4c8779825342230c33aa74`
+(2026-08-07), licensed MIT with the notice reproduced in
+`LICENSES/MIT-SharpCompress.txt`:
+
+| Source file | SHA-256 |
+| --- | --- |
+| `I1/Allocator.cs` | `1e2a6f5c7b68bde3d84f9fca5f6dec48369d893ba935a59577f3376d072dd005` |
+| `I1/Coder.cs` | `e0d00eff741d3e5234ed542b6861db2b38f23d90b7a26479a2895e9341c78607` |
+| `I1/MemoryNode.cs` | `d987459e2d5648d8442a7f7173844d219b79a01427177807491f49b818ec558b` |
+| `I1/Model.cs` | `8273f1cf70ae49208e4e4152adbdd976b9ebc28887e14f0abafcbf05f48f8408` |
+| `I1/ModelRestorationMethod.cs` | `4559b00c8b4bcf18e59013f2f51bc59d0392e777dfb2dfcda976ba31e99a03ce` |
+| `I1/Pointer.cs` | `a3c5df77bd1c9731f31bfbbe7b588417cd08cbe6e3011d0711900ca4ec1fdaf9` |
+| `I1/PpmContext.cs` | `f2c09e0b30cf22cb344c61d864e2f4ae112fd742d02735b12e6639eb76e4afdd` |
+| `I1/PpmState.cs` | `806224c50a285454e424b2b46dbbfd6fd357f85070378a0449cc30380ec8f9b4` |
+| `I1/See2Context.cs` | `7a161b047184b70437617a673bf4dacdf9aff1515617c23706cd515fe8c65fc1` |
 
 The following SHA-256 values identify the exact pinned Go decoder inputs:
 
@@ -407,14 +435,14 @@ support claims and exact fixtures are maintained separately in
 | ARM | `internal/bra/arm.go` | Adapted `decode/filters.rs` | BSD-3-Clause plus MIT changes | Implemented and tested |
 | ARM64 | `internal/bra/arm64.go` | Adapted `decode/filters.rs` | BSD-3-Clause plus MIT changes | Implemented and tested |
 | SPARC | `internal/bra/sparc.go` | Adapted `decode/filters.rs` | BSD-3-Clause plus MIT changes | Implemented and tested |
-| Deflate | `internal/deflate/reader.go` plus Go compress dependency | Original bounded adapter in `decode/codecs.rs` over `miniz_oxide` 0.8.9 from `https://github.com/Frommi/miniz_oxide` | Adapter MIT; dependency MIT OR Zlib OR Apache-2.0 | Implemented and tested with raw-stream corruption/output/dictionary/work controls and `deflate.7z` differential evidence |
+| Deflate | `internal/deflate/reader.go` plus Go compress dependency | Original bounded adapter in `decode/codecs.rs` over `miniz_oxide` 0.9.1 from `https://github.com/Frommi/miniz_oxide` | Adapter MIT; dependency MIT OR Zlib OR Apache-2.0 | Implemented and tested with raw-stream corruption/output/dictionary/work controls and `deflate.7z` differential evidence |
 | BZip2 | `internal/bzip2/reader.go` plus Go standard library | Original bounded adapter in `decode/codecs.rs` over `bzip2-rs` 0.1.2 from `https://github.com/paolobarbolini/bzip2-rs` | Adapter MIT; dependency MIT OR Apache-2.0 | Implemented and tested with header/memory/cancellation controls and `bzip2.7z` differential evidence |
 | PPMd | `internal/ppmd/reader.go` plus Go PPMd dependency | Adapted `decode/ppmd.rs` from `github.com/stangelandcl/ppmd` v0.1.1 at commit `e7008704a75379d49824363eca5d87e947b2d9fa` | Upstream MIT notice; Rust changes MIT | Implemented and tested with property/memory/cancellation/truncation controls and `ppmd.7z` differential evidence |
-| AES-256-CBC/SHA-256 KDF | `internal/aes7z/reader.go`, `key.go`, plus Go standard library | Adapted property/KDF serialization in `decode/aes.rs`; primitives from RustCrypto `aes` 0.9.1, `cbc` 0.2.1, `cipher` 0.5.2, and `sha2` 0.11.0 | BSD-3-Clause for adapted layout; Rust changes MIT; primitives MIT OR Apache-2.0 | Implemented and tested for encrypted headers/data, direct/iterated KDF, KDF/cancellation limits, missing/wrong passwords, and identified encrypted fixtures |
-| Brotli | `internal/brotli/reader.go` plus Go Brotli dependency | Original bounded adapter over `brotli-decompressor` 5.0.3, with pinned-Go adaptation only for the private 16-byte 7-Zip prefix | Adapter MIT plus pinned BSD-3-Clause notice; dependency BSD-3-Clause OR MIT | Implemented and tested with private `brotli.7z` fixture and common-corpus byte/SHA baseline; stock `7zz` 26.02 cannot decode the private method ID |
-| LZ4 | `internal/lz4/reader.go` plus Go LZ4 dependency | Original bounded checked-frame adapter over `lz4_flex` 0.13.1 from `https://github.com/pseitz/lz4_flex` | Adapter MIT; dependency MIT | Implemented and tested with private `lz4.7z` fixture and common-corpus byte/SHA baseline; stock `7zz` 26.02 cannot decode the private method ID |
+| AES-256-CBC/SHA-256 KDF | `internal/aes7z/reader.go`, `key.go`, plus Go standard library | Adapted property/KDF serialization in `decode/aes.rs`; primitives from RustCrypto `aes` 0.9.2, `cbc` 0.2.1, `cipher` 0.5.2, and `sha2` 0.11.0 | BSD-3-Clause for adapted layout; Rust changes MIT; primitives MIT OR Apache-2.0 | Implemented and tested for encrypted headers/data, direct/iterated KDF, KDF/cancellation limits, missing/wrong passwords, and identified encrypted fixtures |
+| Brotli | `internal/brotli/reader.go` plus Go Brotli dependency | Original bounded adapter over `brotli-decompressor` 6.0.0, with pinned-Go adaptation only for the private 16-byte 7-Zip prefix | Adapter MIT plus pinned BSD-3-Clause notice; dependency BSD-3-Clause OR MIT | Implemented and tested with private `brotli.7z` fixture and common-corpus byte/SHA baseline retained from the independently licensed 5.0.3 regression vector; stock `7zz` 26.02 cannot decode the private method ID |
+| LZ4 | `internal/lz4/reader.go` plus Go LZ4 dependency | Original bounded checked-frame adapter over `lz4_flex` 0.14.0 from `https://github.com/pseitz/lz4_flex` | Adapter MIT; dependency MIT | Implemented and tested with private `lz4.7z` fixture and common-corpus byte/SHA baseline; stock `7zz` 26.02 cannot decode the private method ID |
 | Zstd | `internal/zstd/reader.go` plus Go compress dependency | Original frame-window-preflighting adapter over `ruzstd` 0.8.1 from `https://github.com/KillingSpark/zstd-rs` | Adapter MIT; dependency MIT | Implemented and tested without dictionaries using private `zstd.7z` fixture and common-corpus byte/SHA baseline; 0.8.1 is pinned because later releases exceed Rust 1.85; stock `7zz` 26.02 cannot decode the private method ID |
-| Standalone LZ4 frame | Outside the 7z reference surface | Original bounded layout/session adapter over `lz4_flex` 0.13.1 using the pinned official frame document | Adapter MIT; dependency MIT; document repository BSD-2-Clause | Standard/legacy/concatenated/skippable frames implemented; declared checksums enforced; external dictionaries typed unsupported |
+| Standalone LZ4 frame | Outside the 7z reference surface | Original bounded layout/session adapter over `lz4_flex` 0.14.0 using the pinned official frame document | Adapter MIT; dependency MIT; document repository BSD-2-Clause | Standard/legacy/concatenated/skippable frames implemented; declared checksums enforced; external dictionaries typed unsupported |
 | Standalone Zstandard frame | Outside the 7z reference surface | Original bounded layout/session adapter over `ruzstd` 0.8.1 using the pinned official format document | Adapter MIT; dependency MIT; document repository BSD-3-Clause | Standard concatenated/skippable frames implemented; content checksum and window enforced; external dictionaries typed unsupported |
 | Unix `compress` `.Z` | Outside the 7z reference surface | Checked safe-Rust adaptation of pinned NetBSD `zopen.c` read behavior | NetBSD/Berkeley BSD-3-Clause plus MIT Rust changes | 9-16 bit block/non-block LZW implemented with width/CLEAR/dictionary/output/work/cancellation tests and native-tool differential evidence; format has no checksum |
 | Deflate64 | Not in pinned Go reference | Checked in-tree `decode/deflate64.rs` adaptation from the pinned Apache Commons Compress file above | Apache-2.0 source; Rust changes MIT | Implemented and tested with stored/dynamic/long-distance streams, every-prefix truncation, corruption, output/dictionary/work controls, and generated `7zz` differential archives |
@@ -432,28 +460,225 @@ below. No source from 7-Zip, p7zip, Info-ZIP, libarchive, `pyzipper`, or
 `rpmfile` was copied, translated, or vendored. Those Python packages were used
 only to define a read-compatibility comparison and Python-facing expectations.
 
+The ZIP XZ method-95 boundary was pinned on 2026-09-14 before implementation.
+PKWARE APPNOTE 6.3.10 (FINAL, 2022-11-01), retrieved from the official PKWARE
+distribution URL with SHA-256
+`0b993022a7d320a0bf704e6980bea36fafd17a6066ab994db0a0c16278a50cd6`,
+registers method 95 as XZ. WinZip's *Additional Compression Methods
+Specification* 3.1 (2014-04-14), preserved in the Internet Archive snapshot
+`20150121121519id_` and retrieved with SHA-256
+`8f584a40114fb5ec9c440f7a7f6a5e4200def378d6b564e1a434410cb1328c6e`,
+defines the payload as exactly one XZ 1.0.4 Stream with optional zero Stream
+Padding, at most one predefined size-preserving filter before LZMA2, all four
+defined XZ Check types, and zero or more Blocks. It requires the ZIP
+version-needed value used for Deflate (2.0, while later values remain valid
+when another ZIP feature requires them). The current WinZip knowledge-base
+method table and unsupported-format article, reviewed 2025-01-09 and retrieved
+2026-09-14, independently retain method 95 and version-needed 2.0.
+
+The referenced public-domain *The .xz File Format* 1.0.4 (2009-08-27) was
+retrieved from Tukaani with SHA-256
+`fada567e0ebd8b910d2c3210d13e74f3fcc8475d64e29e35db0fc05e3c6820f5`.
+It supplies the Stream, Block, Index, VLI, padding, filter-property, and Check
+invariants independently expressed by the MIT wrapper. The method adapter
+reuses the existing in-tree checked LZMA2, Delta, and BCJ decoders. The
+original method-95 boundary review inspected the then-admitted Apache-2.0
+`lzma-rust2` 0.16.4 crate and found both that its
+LZMA2 dictionary is created with an infallible `vec!` allocation and that its streaming
+`XzReader` compares the decoded Block count with the Index but does not compare
+each Index record's Unpadded Size and Uncompressed Size. Consequently method
+95 does not use that permissive aggregate boundary: the project wrapper
+preflights every record, gives the fallibly allocating in-tree LZMA2 decoder
+only that Block's derived Compressed Data range and property, requires exact
+input and output consumption, applies the declared size-preserving filters,
+and verifies the declared XZ Check before joining Block output. The later
+0.20.1 dependency refresh retains only the safe-code `std`/LZMA-alone surface;
+its optional XZ container remains disabled and does not change this boundary.
+No encoder, writer API, FFI, external command, or runtime fallback is added.
+
+The ZIP PPMd method-98 boundary was pinned on 2026-09-14 before
+implementation. WinZip's live *Additional Compression Methods* specification
+at `https://www.winzip.com/de/support/compression-methods/`, retrieved
+2026-09-14, identifies the codec as PPMd variant I revision 1 and
+defines the two-byte little-endian prefix as
+`(order - 1) | ((memory_mib - 1) << 4) | (restoration << 12)`. It admits
+orders 2 through 16, model memories 1 through 256 MiB, restoration values 0
+(restart), 1 (cutoff), and 2 (freeze), and the Deflate-equivalent
+version-needed value 2.0. PKWARE APPNOTE 6.3.10 registers method 98 and defers
+the codec details to the vendor specification. The payload terminates with the
+codec end marker; the ZIP header's independently bounded uncompressed size is
+also required, and extraction succeeds only after both boundaries and the ZIP
+CRC agree.
+
+The safe in-tree PPMd-I model, carryless range decoder, context/state layout,
+and suballocator are adapted from Dmitry Shkarin's original PPMII variant-I
+revision-1 sources and Dmitry Subbotin's public-domain range coder. The
+canonical author archive `ppmdi1.rar` was retrieved from
+`https://compression.ru/ds/ppmdi1.rar` with SHA-256
+`5a559300c26949fc5dd015983bfe680fd9a32c2b4afb85320dc9b38f90f8c5d6`.
+Because the archive is a solid RAR revision unsupported by the available
+inspection tools, exact separately published source files were inspected in
+the OpenXRay mirror at commit
+`bcefa731baf3add37c33348ec709ab391a9032a2`; their hashes are recorded above.
+Only the canonical PPMII model, allocator, and carryless range-coder behavior
+was adapted. OpenXRay-specific trained-model additions were excluded. The new
+Rust expression replaces pointers, unions, casts, and unchecked arithmetic
+with validated offsets, checked heap access, fallible allocation, explicit
+limits, bounded list traversal, work accounting, and cancellation. It is
+offered under MIT while preserving the authors' public-domain attribution.
+
+`ppmd-rust` 1.4.0 and 1.5.0 were audited and rejected as runtime dependencies
+or adaptation sources: their own provenance states that they port the PPMd
+code from 7-Zip, their model uses extensive `unsafe` pointer arithmetic, and
+their `CC0-1.0 OR MIT-0` expression is outside this repository's admitted
+runtime license set. No code from those crates, 7-Zip, p7zip, an SDK, or
+libarchive was copied, translated, linked, or vendored. Stock `7zz` is used
+only as a black-box test oracle; libarchive was inspected only as a rejected
+candidate/reference implementation.
+
+### Deferred WinZip recompression research
+
+The 2026-09-14 research pass pinned the registrations but did not admit another
+decoder. PKWARE APPNOTE 6.3.10, with the exact hash above, assigns 94 to MP3,
+96 to the WinZip JPEG variant, and 97 to WavPack. WinZip's live method table at
+`https://kb.winzip.com/en/130539` independently records those identifiers and
+the Deflate-equivalent version-needed value 2.0. The WinZip article
+`https://kb.winzip.com/130580`, retrieved the same day, says MP3 compression
+was introduced in WinZip 21 and is selected for MP3 input under the Best
+compression setting, but neither that article nor APPNOTE publishes the method
+94 payload grammar, framing, termination, or reconstruction rules. Registration
+and product behavior therefore cannot support a decoder or positive fixture.
+
+The official *WinZip JPEG Compression Specification*, version 1.0 (2008), was
+retrieved from `https://www.winzip.com/static/wz/docs/wz-jpg-comp.pdf` with
+SHA-256
+`91eb8a1fe967b8ddf58d044a407a994fc3103d3c1b6e21649c051afa0096cd99`.
+It defines method 96/version-needed 2.0, a minimum four-byte properties header
+(format version `0x10`, method 1, and option/slice fields), bounded metadata
+bundles with two- or four-byte sizes and a 16 MiB maximum, an inner LZMA 4.57
+metadata stream, JPEG marker/scan and arithmetic-coded transform data, and
+exact reconstruction for the specified 8-/12-bit sequential one- through
+four-component JPEG profiles. This is a nested parser/decoder, not a normal
+JPEG library call. XADMaster 1.10.8 at commit
+`881e0ec25e249c9ad5bbc1b6782ae8dcdf48a6ed` was the only complete independent
+decoder located, but it is LGPL-2.1 C/Objective-C with an unsafe native parser.
+It was inspected only to establish candidate availability and was not copied,
+translated, linked, or used as an oracle.
+
+APPNOTE section 5.9 is the authoritative method-97 framing: WavPack output
+begins immediately after the local-header data, the local and central method
+fields are 97, version-needed follows Deflate, and every storage byte of each
+sample—including nominally unused bits—must round-trip. The official *WavPack
+5 Library Documentation*, dated 2024-02-15, was retrieved from
+`https://www.wavpack.com/WavPack5LibraryDoc.pdf` with SHA-256
+`8622c1b780788227d05602bda8fa8690f0ba425252c6d5ffee72e751329652ee`.
+Its WinZip compatibility notes require the legacy lossless/very-high encoder
+configuration, preserving RIFF headers and trailers as wrapper data, and a
+reader callback plus `OPEN_WRAPPER` for exact recovery; zero audio samples are
+not a valid WavPack stream. Official WavPack 5.9.0 at commit
+`5803634a030e2a11dba602ba057b89cc34486c67` is BSD-licensed native C but would
+require an unsafe FFI and delegate the hostile stream parser. `wavpack-rs` at
+commit `009766e5d06a6072f3b95a268d73089abd2726ed` was rejected for the missing
+license file at that revision, overflow-disabled and unchecked input paths,
+unbounded unary decoding, incomplete PCM coverage, and inability to reconstruct
+the exact original RIFF wrapper.
+
+Libarchive 3.8.9 at commit
+`27cbc7827172698143e440801fc0ba39ccb4f1f5` was also checked. Its BSD-licensed
+C ZIP reader recognizes these numeric identifiers but implements neither the
+WinZip JPEG nor WavPack payload decoder; its broad unsafe native parser is not
+an admissible fallback. No safe, permissively licensed, bounded method-94,
+method-96, or method-97 implementation and no provenance-complete deterministic
+encoder/fixture set was found. The verified public names are therefore exposed
+only as stable metadata enum values, while extraction returns the numeric typed
+`UnsupportedMethod` error before codec allocation.
+
+### Deferred ZIP structure and encryption research
+
+APPNOTE 6.3.10 section 8 supplies the split/spanned design facts. Split ZIP is
+the same segmentation model as removable-media spanning; ordinary split names
+are `filename.z01` through `filename.z(n-1)` followed by `filename.zip`, while
+DOS spanned disks use `PKBACK#xxx` labels. The first segment may carry
+`0x08074b50`, and a single-segment abandoned split may carry `0x30304b50`.
+Segment sizes may differ, the minimum conventional segment is 64 KiB, local and
+central header records must not be split, the central directory may span only
+between records, and member data may cross disks. The format's nearly 2^32
+disk/size capacities are not implementation defaults. The future bounded
+caller-provider model, ordering/range rules, work sharing, cancellation, and
+failure classification are recorded in `THREAT_MODEL.md`; no parser or API has
+been admitted.
+
+APPNOTE sections 7.0 through 7.8 pin the Strong Encryption surface. Bits 0 and
+6 identify it, bit 13 identifies an encrypted central directory and masked
+local metadata, central extra field `0x0017` uses format 2, and each encrypted
+file has a variable decryption header with format 3, IV, algorithm/key/flag
+declarations, encrypted random data, optional certificate structures, and
+encrypted validation data plus CRC. Registered algorithms include RC2, RC4,
+DES, 3DES, AES, Blowfish, and Twofish; block algorithms use CBC, and the
+password/session-key construction uses SHA-1-derived material. Central-directory
+encryption requires the Archive Decryption Header, ZIP64 EOCD version 2,
+version-needed 62, optional central compression, hashes, masked local fields,
+and no random-access claim. The specification also carries an explicit
+proprietary/patent warning. No complete admissible cryptographic/certificate
+stack or redistributable positive/corrupt fixture set was found, so the review
+defines a future resource/KDF/metadata boundary without changing the current
+typed-unsupported behavior.
+
+### Local-only WinZip interoperability corpus
+
+Representative proprietary-tool output is not committed. A local sparse clone
+of SharpCompress at exact commit
+`e04d51176c5d87668c4c8779825342230c33aa74` (MIT notice copied verbatim to
+`LICENSES/MIT-SharpCompress.txt`, SHA-256
+`b7ca2b6174cee11afe41d78b48527e3d7659a4435c25019a4a5e072299a2f8ed`)
+supplied four version-labelled WinZip ZIPX samples. `WinZip26_BZip2.zipx` and
+`WinZip26_LZMA.zipx` entered that upstream corpus at commit
+`224614312fa7992e98f4cab9136c2723892ca103`; `WinZip27_XZ.zipx` at
+`b9d019561f8be6c7195bfeab482824284617f351`; and
+`WinZip27_ZSTD.zipx` at `92df1ecd5f7579a88a1c5a7d30744a091de95b2a`.
+The filenames and test names are upstream attestations of WinZip 26/27, but the
+upstream commits do not record an automation/GUI creation command. That missing
+producer command is preserved as a provenance limitation rather than invented.
+
+The opt-in `winzip_reference` integration test pins each archive hash, entry
+count, method, version-needed field, absence of encryption, member CRC/size,
+and decoded SHA-256; it then performs extraction and full verification under
+production limits. The same corpus contains `Zip.ppmd.zip`, present since
+SharpCompress's initial commit and useful as an independent method-98 layout
+and output vector, but neither its filename nor history identifies WinZip or a
+producer version. It is therefore supplemental PPMd interoperability evidence,
+not counted as a WinZip-produced archive. Exact hashes, inventory, reproduction
+command, and the no-redistribution decision are in `CORPUS.md`.
+
 | Component | Exact origin/revision | License | Use and adaptation status |
 | --- | --- | --- | --- |
 | ZIP records, ZIP64, descriptors, method IDs, flags, extras, and traditional encryption facts | PKWARE APPNOTE 6.3.10 (2022-11-01), official `APPNOTE.TXT`, retrieved 2026-07-21 | Specification; no source code imported | Independently expressed checked parser/model and legacy ZipCrypto state machine; MIT project code |
+| ZIP XZ method 95 | WinZip *Additional Compression Methods Specification* 3.1 (2014-04-14), Internet Archive snapshot `20150121121519id_`, SHA-256 `8f584a40114fb5ec9c440f7a7f6a5e4200def378d6b564e1a434410cb1328c6e`; PKWARE APPNOTE 6.3.10, SHA-256 `0b993022a7d320a0bf704e6980bea36fafd17a6066ab994db0a0c16278a50cd6`; retrieved 2026-09-14 | Format specifications; no source code imported | Exact one-Stream XZ 1.0.4 profile, optional zero padding, Deflate-equivalent version-needed rule, per-Block/Index exactness, and ZIP member-integrity integration independently expressed in MIT Rust |
+| ZIP PPMd method 98 framing | WinZip live *Additional Compression Methods* specification and PKWARE APPNOTE 6.3.10, retrieved 2026-09-14 | Format specifications; no source code imported | Exact two-byte property prefix, PPMd-I revision-1 selection, order/memory/restoration bounds, end-marker requirement, and Deflate-equivalent version-needed rule independently expressed in MIT Rust |
+| ZIP PPMd-I revision-1 decoder | Dmitry Shkarin `ppmdi1.rar`, SHA-256 `5a559300c26949fc5dd015983bfe680fd9a32c2b4afb85320dc9b38f90f8c5d6`; separately published original-source mirror files at OpenXRay commit `bcefa731baf3add37c33348ec709ab391a9032a2`; SharpCompress I1 port by Michael Bone at commit `e04d51176c5d87668c4c8779825342230c33aa74`; hashes above | Original sources state public domain; SharpCompress MIT; new Rust code MIT | Safe, fallible adaptation of the original context model, allocator, restoration modes, and Dmitry Subbotin carryless range coder, with managed layout/control-flow cross-checking; no OpenXRay trained-model extension and no 7-Zip-derived implementation used |
+| XZ 1.0.4 container and checks | Tukaani *The .xz File Format* 1.0.4 (2009-08-27), SHA-256 `fada567e0ebd8b910d2c3210d13e74f3fcc8475d64e29e35db0fc05e3c6820f5`, retrieved 2026-09-14 | Public-domain format specification | Structural reference for checked Stream/Block/Index parsing, predefined filters, CRC-32/CRC-64/SHA-256 checks, exact padding, and size reconciliation; no XZ source copied or linked |
 | WinZip AES AE-1/AE-2 layout | WinZip AES Encryption Specification 1.04 (2009-01-30), official WinZip support document, retrieved 2026-07-21 | Specification; no source code imported | Independently expressed salt/verifier/layout/authentication adapter; AES/CTR/PBKDF2/HMAC/SHA-1 delegated to RustCrypto |
 | CP437 name mapping | Unicode Consortium `Public/MAPPINGS/VENDORS/MICSFT/PC/CP437.TXT`, retrieved 2026-07-21 | Unicode data-file license | Byte-to-Unicode display table only; raw ZIP names remain authoritative metadata |
-| `rawzip` | crates.io 0.4.4, checksum `9d9575f44c8cf85bc843ad666dcdf20d05a7753772bef56eb2a5140282b32150`, tag commit `ed9b1832b16ad9f28f9b9d72cc66696632831871` | MIT | Safe ZIP locator/central iterator dependency; writer API unused; all security validation remains project code |
-| WinZip AES primitives | RustCrypto `ctr` 0.10.1, `hmac` 0.13.0, `pbkdf2` 0.13.0, and `sha1` 0.11.0, exact crates.io checksums in `Cargo.lock`; existing `aes` 0.9.1 | MIT OR Apache-2.0 | Cryptographic primitives only; no primitive is reimplemented |
+| `rawzip` | crates.io 0.5.1, checksum `75a2b2577f5fd7e26caabd4aa7bba1ef18653ff32204eea251c1136db1a549f3`, source commit `571e479673646848ec16b12213b7600d639971d8` | MIT | Safe ZIP locator/central iterator dependency; writer API unused; all security validation remains project code |
+| WinZip AES primitives | RustCrypto `ctr` 0.10.1, `hmac` 0.13.0, `pbkdf2` 0.13.0, and `sha1` 0.11.0, exact crates.io checksums in `Cargo.lock`; existing `aes` 0.9.2 | MIT OR Apache-2.0 | Cryptographic primitives only; no primitive is reimplemented |
 | ZIP Deflate64 | Existing in-tree Apache Commons Compress adaptation recorded above | Apache-2.0 plus MIT changes | Reused behind ZIP method 9 with the same bounds and operation controls |
 | RPM envelope, tags, payload declarations, and digest ranges | RPM 6.0 format-v4/signature-digest manuals and official `include/rpm/rpmtag.h` at rpm commit `a8f0192aee1c08bd1454ed2ac6ebaf506004b55c`, inspected 2026-07-21 | RPM project GPL source tree was consulted only for public numeric tag definitions; no implementation code copied or linked | Original bounded lead/header/store parser and digest selection; factual constants do not import source-code licensing |
 | SVR4 `newc`/CRC-`newc` CPIO records | Public SVR4 new ASCII record definition and RPM payload documentation, inspected 2026-07-21 | Format specification; no implementation source imported | Original exact-alignment/range/checksum parser; no libarchive or GNU cpio source inspected |
-| XZ and legacy LZMA RPM payloads | `lzma-rust2` crates.io 0.16.4, checksum `ce716bf1a316f47a280fc76295f6495b5bea4752bca01c3b3885e101b1c23c02`, tag commit `ab2ae87d607801a889d7e09edab4ed64d0b7d3bc` | Apache-2.0 | Safe decoder dependency; encoder/optimization disabled; original preflight and resource-control wrapper |
-| Other RPM payload codecs | Already admitted `miniz_oxide` 0.8.9, `bzip2-rs` 0.1.2, and `ruzstd` 0.8.1 | MIT/Zlib/Apache-2.0 combinations recorded in `DEPENDENCIES.md` | Existing bounded decoders reused; original RPM gzip envelope and payload dispatcher |
+| XZ LZMA2 Blocks | Existing in-tree `decode/lzma.rs` adaptation from `github.com/ulikunitz/xz/lzma` v0.5.15 commit `7eee8a8a405163554a9accec7b9402ee21400769` | BSD-3-Clause plus MIT changes | Fallibly allocating, checked LZMA2 entropy decoder shared by 7z, ZIP, RPM, and Debian behind the original exact XZ Block/Index/check/resource wrapper |
+| Legacy LZMA payloads | `lzma-rust2` crates.io 0.20.1, checksum `5e2a88783b84d2d67ef2791778a9e76bfb68b8017aaf6c9d7d5f2626a478b16c`, source commit `62042f7fe56e6a98e886c5f8f9e8a04d04183069` | Apache-2.0 | Safe-code legacy LZMA-alone entropy decoder for RPM and Debian; encoder/optimization and optional aggregate XZ container disabled |
+| Other RPM payload codecs | Already admitted `miniz_oxide` 0.9.1, `bzip2-rs` 0.1.2, and `ruzstd` 0.8.1 | MIT/Zlib/Apache-2.0 combinations recorded in `DEPENDENCIES.md` | Existing bounded decoders reused; original RPM gzip envelope and payload dispatcher |
 | Python test-oracle sources | `pyzipper` 0.4.0 tag commit `a814388f5a8a7b172ee2e2ca668fc33c7516e6bc`, PyPI sdist SHA-256 `a4b96afcac04c5589d5abdc6158dd362166374e3cc6810aa441e65f8a17cb9e3`; `rpmfile` 2.2.1 tag/attested commit `c71e53491bb3ae8581e32630089c174b99b2aba6`, PyPI sdist SHA-256 `8ffc44d15f8d2b6cad1ea885b09e1ca5f1744532c24710554f3fe4873506e9da`; inspected 2026-07-21 | MIT | Test-only read-path/API evidence. `pyzipper` admits Store/Deflate/BZip2/ZIP-LZMA plus WinZip AES; `rpmfile.RPMFile` admits `070701` payload records and gzip/BZip2/XZ/optional-Zstandard decompression. The RPM tag-name table was adapted as described below; no parser, decoder, crypto, or filesystem source was copied, and neither package is a build/runtime/test dependency |
 
-Generated ZIP fixtures are original serializers in Rust/Python tests. Fixed
-BZip2/XZ/Zstandard payload vectors were created from project-authored bytes by
-the locally installed `bzip2` 1.0.8, XZ Utils 5.8.1, and Zstandard 1.5.7
-executables; only compressed bytes are embedded. Python standard-library
-`zipfile` generated the interoperability Deflate/BZip2/LZMA archives used by
-binding tests. WinZip AES/ZipCrypto fixtures are produced by independent
-test-only encoders around public passwords and project-authored text; no writer
-is included in runtime code.
+Generated ZIP fixtures are original serializers in Rust/Python tests. The
+original fixed BZip2/Zstandard vectors were created from project-authored bytes
+by locally installed `bzip2` 1.0.8 and Zstandard 1.5.7 executables; the
+method-95 XZ vectors use XZ Utils 5.8.3 as recorded in `CORPUS.md`. Only
+compressed bytes are embedded. Python standard-library `zipfile` generated the
+interoperability Deflate/BZip2/LZMA archives used by binding tests. WinZip
+AES/ZipCrypto fixtures are produced by independent test-only encoders around
+public passwords and project-authored text; no writer is included in runtime
+code. The separate RPM XZ/LZMA vectors retain their recorded XZ Utils 5.8.1
+origin.
 
 Generated RPM fixtures are original typed-header and CPIO serializers used
 only under `cfg(test)` or in binding tests. They wrap project-authored bytes and
@@ -474,9 +699,9 @@ or ARJ writer.
 | CPIO new ASCII, CRC-new ASCII, old portable ASCII, and historical binary records | The Open Group Base Specifications Issue 7, 2018 edition, `cpio`/extended `cpio` format descriptions; public System V `newc`/CRC record definition; inspected 2026-07-21 | Format specifications; no implementation source imported | Original checked parser for `070701`, `070702`, `070707`, and little-/big-endian binary magic `070707`; exact alignment, bounds, trailer, and applicable CRC validation |
 | Debian binary package envelope | Debian `deb(5)` binary package format and Debian Policy 4.7.2.0, binary packages appendix; inspected 2026-07-21 | Format documentation; no dpkg source imported | Original checked System V ar subset requiring `debian-binary`, `control.tar*`, and `data.tar*`; no package installation, maintainer-script execution, or signature claim |
 | tar members inside Debian packages | POSIX.1-2017 `pax` extended tar interchange format plus documented GNU long-name/long-link records; inspected 2026-07-21 | Format specifications/documentation; no implementation source imported | Original V7/ustar parser with checksum, bounded PAX records, GNU long name/link handling, metadata preservation, and caller-selected sinks |
-| Debian member compression | Existing admitted `miniz_oxide` 0.8.9, `bzip2-rs` 0.1.2, `lzma-rust2` 0.16.4, and `ruzstd` 0.8.1 | MIT/Zlib/Apache-2.0 combinations recorded in `DEPENDENCIES.md` | Existing bounded gzip, BZip2, XZ, legacy LZMA-alone, and Zstandard adapters reused; no new compressor or FFI dependency |
+| Debian member compression | Existing admitted `miniz_oxide` 0.9.1, `bzip2-rs` 0.1.2, `lzma-rust2` 0.20.1, and `ruzstd` 0.8.1 | MIT/Zlib/Apache-2.0 combinations recorded in `DEPENDENCIES.md` | Existing bounded gzip, BZip2, XZ, legacy LZMA-alone, and Zstandard adapters reused; no new compressor or FFI dependency |
 | ARJ headers, methods, flags, and SFX identification | `ARJ TECHNICAL INFORMATION`, September 2001, file `doc/arj.txt` in `unarj-rs` 0.2.1, SHA-256 `b6163452b2a6ed99b5bcf1e78535c5257244240467b87ad3218b0378cda9ab29`; inspected 2026-07-21 | Public format document; no embedded C excerpt copied | Original checked main/local/extended-header parser, bounded SFX scan, typed unsupported feature detection, range validation, and CRC enforcement |
-| ARJ methods 1--3 payload decoder | `delharc` crates.io 0.6.1, checksum `1c93ba2617f5094875af777b3e1e5d66e79d7c832e4ae2e25722c965a482e5a1`, source commit `969e19d90ddf0a8e93598ac5cf117dfd8d1c2b7d`, Rafal Michalski | MIT OR Apache-2.0 | Exact dependency's static LH6 decoder only; its archive parser and optional decoders are unused. Original wrapper preflights 68 KiB decoder state and output, accounts work/input, checks cancellation, catches dependency panics, and verifies ARJ CRC |
+| ARJ methods 1--3 payload decoder | `delharc` crates.io 0.6.2, checksum `3658b90877f637514897c3dcbd628e0d290bcc7fee551a398b3994ebdc62d51e`, source commit `737ab3fc9913dad0a4fb9965f0bcd95a013f5a28`, Rafal Michalski | MIT OR Apache-2.0 | Exact dependency's static LH6 decoder only; its archive parser and optional decoders are unused. The release also fixes header-parser overflow/preallocation defects even though that parser remains outside the invoked surface. Original wrapper preflights 68 KiB decoder state and output, accounts work/input, checks cancellation, catches dependency panics, and verifies ARJ CRC |
 | ARJ method 4 payload decoder | `unarj-rs` crates.io 0.2.1 at commit `dbd80638eb4a200618c08de7b9e58b4d66a0d377`, Mike Krüger, `src/decode_fastest.rs` SHA-256 `555d36c89b5aa473953630520481800a9494f9e24d83d8fef97f36d1f97031e8` | The package metadata says MIT while the shipped `LICENSE` is Apache-2.0; this project conservatively treats the adaptation as Apache-2.0 | Checked safe-Rust adaptation of the variable-length literal/match grammar; rewritten around bounded bit reads, checked arithmetic/indexing, 8-KiB history preflight, work/cancellation checks, exact declared output, and typed errors |
 
 The four committed ARJ method fixtures are base64 encodings of
@@ -497,12 +722,14 @@ dependency. Exact hashes and generation scope are in `CORPUS.md`.
 | --- | --- | --- | --- |
 | `bindings/python/src`, Python package/stubs/tests, workflow, and documentation | Original repository work, 2026-07-18 through 2026-07-21 | MIT | FFI adapter only; no upstream archive/stream algorithm or source adapted |
 | Python ZIP/RPM data projections | Original repository work, 2026-07-21; output values checked with the test-oracle sources recorded above | MIT, except the adapted rpmfile tag-name table under its MIT notice | Native binding metadata and extraction only; no compatibility facade. `bindings/python/src/rpm.rs::main_tag_name` adapts rpmfile 2.2.1's complete factual tag/name mapping, selecting canonical spellings for its duplicate `5097`/`5101` typo aliases; exact upstream notice is in `LICENSES/MIT-rpmfile.txt`. No upstream parser, decoder, cryptography, writer, or filesystem extraction source was copied. Generated ZipCrypto and AE-2 AES-256 regressions reuse the repository's own specification-based test algorithms |
-| PyO3 family | crates.io `pyo3`, `pyo3-ffi`, `pyo3-build-config`, `pyo3-macros`, and `pyo3-macros-backend` 0.29.0; exact checksums in `bindings/python/Cargo.lock`; `https://github.com/PyO3/pyo3` | MIT OR Apache-2.0 | CPython ABI, owned handles, module/classes, exceptions, detach/attach, and limited-API build; dependency source not copied |
+| PyO3 family | crates.io `pyo3`, `pyo3-ffi`, `pyo3-build-config`, `pyo3-macros`, and `pyo3-macros-backend` 0.29.2; `pyo3` checksum `4688ddedf473e32662b9b067670129a8afb8c18e351482c70d62ba4a88171e8b`, source commit `a70d17f898df41b3d1632ee987f624f5222d8d39`; remaining exact checksums in `bindings/python/Cargo.lock`; `https://github.com/PyO3/pyo3` | MIT OR Apache-2.0 | CPython ABI, owned handles, module/classes, exceptions, detach/attach, and limited-API build; dependency source not copied |
 | Python host API | Python 3.9+ stable ABI as exposed by the caller's interpreter; `https://docs.python.org/3/c-api/stable.html` | Python Software Foundation License for CPython | External host platform only; no interpreter source or binary copied or bundled |
-| maturin | PyPI/build-backend release 1.13.3, exactly pinned in `pyproject.toml`; `https://github.com/PyO3/maturin` | MIT OR Apache-2.0 | Development/build tool only; not a wheel runtime dependency and no source copied |
-| maturin GitHub Action | `PyO3/maturin-action` v1.49.4 at commit `86b9d133d34bc1b40018696f782949dac11bd380` | MIT | CI-only pinned wheel builder; no runtime code and no source copied |
-| GitHub artifact actions | `actions/upload-artifact` v4.6.2 at `ea165f8d65b6e75b540449e92b4886f43607fa02`; `actions/download-artifact` v4.3.0 at `d3f86a106a0bac45b974a628896c90dbdf5c8093` | MIT | CI-only pinned transfer of tested wheels/sdist into the manually approved publish job; no runtime code and no source copied |
-| PyPI publishing action | `pypa/gh-action-pypi-publish` v1.14.0 at `cef221092ed1bacb1cc03d23a2d87d1d172e277b` | BSD-3-Clause | CI-only Trusted Publishing client after protected-environment approval; no long-lived credential, runtime code, or copied source |
+| maturin | PyPI/build-backend release 1.15.0, exactly pinned in `pyproject.toml`; `https://github.com/PyO3/maturin` | MIT OR Apache-2.0 | Development/build tool only; not a wheel runtime dependency and no source copied |
+| GitHub checkout/setup actions | `actions/checkout` v7.0.1 at `3d3c42e5aac5ba805825da76410c181273ba90b1`; `actions/setup-python` v7.0.0 at `5fda3b95a4ea91299a34e894583c3862153e4b97` | MIT | CI-only, immutable pins; their Node 24 runtime is supplied by the selected GitHub-hosted runners |
+| cargo-deny GitHub Action | `EmbarkStudios/cargo-deny-action` v2.1.1 at `3c6349835b2b7b196a839186cb8b78e02f7b5f25` | Apache-2.0 | CI-only policy runner for the three separately locked graphs; no runtime code and no source copied |
+| maturin GitHub Action | `PyO3/maturin-action` v1.51.0 at commit `e83996d129638aa358a18fbd1dfb82f0b0fb5d3b` | MIT | CI-only pinned wheel builder; no runtime code and no source copied |
+| GitHub artifact actions | `actions/upload-artifact` v7.0.1 at `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`; `actions/download-artifact` v8.0.1 at `3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c` | MIT | CI-only pinned transfer of tested wheels/sdist into the manually approved publish job; no runtime code and no source copied |
+| PyPI publishing action | `pypa/gh-action-pypi-publish` v1.14.2 at `dc37677b2e1c63e2034f94d8a5b11f265b73ba33` | BSD-3-Clause | CI-only Trusted Publishing client after protected-environment approval; no long-lived credential, runtime code, or copied source |
 | `target-lexicon` | crates.io 0.13.5, checksum `adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca` | Apache-2.0 WITH LLVM-exception | PyO3 build-only target parsing; exact permissive cargo-deny exception, not linked into the wheel |
 | Binding license payload | Root-equivalent `LICENSE`, `LICENSES/`, and `NOTICE` payload | Project MIT license plus separately labeled third-party/adapted-source terms | Included in wheel and sdist; preserves all adapted core provenance without relicensing it |
 
@@ -519,8 +746,11 @@ fixture. See `CORPUS.md`.
 
 The separate `<CORPUS>` and `<MALFORMED_CORPUS>` inputs in the request were
 literal placeholders and the owner confirmed that no such sets are available.
-Any future external corpus must have its paths, hashes, origins, and licenses
-added here before it is copied, mutated, or used for a compatibility claim.
+The narrower local-only SharpCompress/WinZip ZIPX set is recorded above and in
+`CORPUS.md`; it is fetched outside the tree, hash-checked before parsing, and
+not redistributed. Any other future external corpus must have its paths,
+hashes, origins, and licenses added here before it is copied, mutated, or used
+for a compatibility claim.
 
 Phase 5 oracle archives are created in unique temporary directories by
 `crates/unpackio/tests/phase5_reference.rs` from deterministic synthetic bytes,
@@ -530,13 +760,22 @@ packed data, Deflate64 solid/non-solid and encrypted-header data, and separately
 authored five-part encrypted and unencrypted Swap4 archives.
 
 The same policy applies to `crates/unpackio/tests/generated_oracle.rs`. It creates
-synthetic source bytes and temporary stock-method, AES, and synthetic-prefix
-SFX archives with the selected exact `7zz` 26.02, compares them through the
+synthetic source bytes and temporary stock-method, AES, synthetic-prefix SFX,
+ZIP XZ method-95, and ZIP PPMd method-98 archives with the selected exact
+`7zz` 26.02, compares them through the
 production Rust API, mutates packed data, and deletes the complete directory.
 The checksum-pinned Windows job continuously executes it and the Phase 5
 harness through the same black-box interface. The tests contain no 7-Zip
 source or SFX stub and the generated archives are not redistributed. This test
 evidence changes no decoder implementation origin in the ledgers above.
+
+The nine-byte ZIP method-98 vector and deterministic project wrapper have the
+exact command, properties, sizes, CRC, and hashes recorded in `CORPUS.md`.
+Only the packed bytes are retained as source literals in Rust, Python, and the
+archive-format fuzz target. The in-crate fixture encoder is compiled only under
+`cfg(test)` and its order-2/1-MiB/Restart output must equal that independent
+black-box vector exactly; it neither enters the library artifact nor creates a
+public writer surface.
 
 The embedded raw LZMA EOS regression is the deterministic output of XZ Utils
 5.8.3 for the synthetic three-byte input `abc` using raw LZMA1 with a 4 KiB

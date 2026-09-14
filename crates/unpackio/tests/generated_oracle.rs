@@ -10,7 +10,9 @@ use std::{
 };
 
 use sha2::{Digest, Sha256};
-use unpackio::{Archive, CancellationToken, ErrorKind, Limits, WorkBudget};
+use unpackio::{
+    Archive, CancellationToken, ErrorKind, Limits, WorkBudget, ZipArchive, ZipCompressionMethod,
+};
 
 const PASSWORD: &str = "generated-oracle-password";
 
@@ -1231,6 +1233,124 @@ fn generated_core_methods_match_7zz() -> Result<(), Box<dyn StdError>> {
             assert_corruption_fails(&archive, None)
                 .map_err(|error| format!("{name} corruption check failed: {error}"))?;
         }
+        Ok(())
+    })();
+    let cleanup = fs::remove_dir_all(&directory);
+    result?;
+    cleanup?;
+    Ok(())
+}
+
+#[test]
+#[ignore = "requires stock 7zz 26.02"]
+fn generated_zip_xz_method_95_matches_7zz() -> Result<(), Box<dyn StdError>> {
+    require_exact_7zz()?;
+    let directory = temporary_directory("zip-xz-method-95")?;
+    let result = (|| -> Result<(), Box<dyn StdError>> {
+        let source_name = "method-95.bin";
+        let payload = repeated_pattern(b"unpackio ZIP XZ differential payload\n", 4096)?;
+        fs::write(directory.join(source_name), &payload)?;
+        let path = directory.join("method-95.zip");
+        let output = oracle_command()
+            .current_dir(&directory)
+            .args(["a", "-y", "-tzip", "-mm=XZ", "-mx=9"])
+            .arg(&path)
+            .arg(source_name)
+            .output()?;
+        if !output.status.success() {
+            return Err(command_failure("7zz ZIP XZ fixture creation", &output).into());
+        }
+        let oracle = oracle_metadata(&path, None)?;
+        let oracle_entry = oracle
+            .first()
+            .filter(|_| oracle.len() == 1)
+            .ok_or_else(|| String::from("7zz ZIP XZ fixture has the wrong entry count"))?;
+        if !oracle_entry
+            .method
+            .as_deref()
+            .is_some_and(|method| method.eq_ignore_ascii_case("xz"))
+        {
+            return Err(String::from("7zz did not select ZIP XZ method 95").into());
+        }
+
+        let cancellation = CancellationToken::new();
+        let mut budget = WorkBudget::unlimited();
+        let archive = ZipArchive::open_path(&path, Limits::default(), &cancellation, &mut budget)?;
+        let entry = archive
+            .entries()
+            .first()
+            .ok_or_else(|| String::from("Rust ZIP XZ metadata is missing"))?;
+        if entry.compression_method() != ZipCompressionMethod::Xz || entry.version_needed() != 20 {
+            return Err(String::from("Rust ZIP XZ method/version metadata differs").into());
+        }
+        let mut decoded = Vec::new();
+        let mut budget = WorkBudget::unlimited();
+        archive.extract_entry_to(0, &mut decoded, &cancellation, &mut budget)?;
+        let oracle_decoded = oracle_member(&path, source_name, None)?;
+        if decoded != payload || decoded != oracle_decoded {
+            return Err(String::from("Rust and 7zz ZIP XZ output differs").into());
+        }
+        let mut budget = WorkBudget::unlimited();
+        archive.verify(&cancellation, &mut budget)?;
+        Ok(())
+    })();
+    let cleanup = fs::remove_dir_all(&directory);
+    result?;
+    cleanup?;
+    Ok(())
+}
+
+#[test]
+#[ignore = "requires stock 7zz 26.02"]
+fn generated_zip_ppmd_method_98_matches_7zz() -> Result<(), Box<dyn StdError>> {
+    require_exact_7zz()?;
+    let directory = temporary_directory("zip-ppmd-method-98")?;
+    let result = (|| -> Result<(), Box<dyn StdError>> {
+        let source_name = "method-98.bin";
+        let payload = repeated_pattern(b"unpackio ZIP PPMd-I differential payload\n", 4096)?;
+        fs::write(directory.join(source_name), &payload)?;
+        let path = directory.join("method-98.zip");
+        let output = oracle_command()
+            .current_dir(&directory)
+            .args(["a", "-y", "-tzip", "-mm=PPMd", "-mx=9"])
+            .arg(&path)
+            .arg(source_name)
+            .output()?;
+        if !output.status.success() {
+            return Err(command_failure("7zz ZIP PPMd fixture creation", &output).into());
+        }
+        let oracle = oracle_metadata(&path, None)?;
+        let oracle_entry = oracle
+            .first()
+            .filter(|_| oracle.len() == 1)
+            .ok_or_else(|| String::from("7zz ZIP PPMd fixture has the wrong entry count"))?;
+        if !oracle_entry
+            .method
+            .as_deref()
+            .is_some_and(|method| method.eq_ignore_ascii_case("ppmd"))
+        {
+            return Err(String::from("7zz did not select ZIP PPMd method 98").into());
+        }
+
+        let cancellation = CancellationToken::new();
+        let mut budget = WorkBudget::unlimited();
+        let archive = ZipArchive::open_path(&path, Limits::default(), &cancellation, &mut budget)?;
+        let entry = archive
+            .entries()
+            .first()
+            .ok_or_else(|| String::from("Rust ZIP PPMd metadata is missing"))?;
+        if entry.compression_method() != ZipCompressionMethod::Ppmd || entry.version_needed() < 20 {
+            return Err(String::from("Rust ZIP PPMd method/version metadata differs").into());
+        }
+        let mut decoded = Vec::new();
+        let mut budget = WorkBudget::unlimited();
+        archive.extract_entry_to(0, &mut decoded, &cancellation, &mut budget)?;
+        let oracle_decoded = oracle_member(&path, source_name, None)?;
+        if decoded != payload || decoded != oracle_decoded {
+            return Err(String::from("Rust and 7zz ZIP PPMd output differs").into());
+        }
+        let mut budget = WorkBudget::unlimited();
+        archive.verify(&cancellation, &mut budget)?;
         Ok(())
     })();
     let cleanup = fs::remove_dir_all(&directory);

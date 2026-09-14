@@ -70,6 +70,13 @@ CPIO payload. `CpioArchive` and `ArjArchive` report their retained source;
 `DebArchive` separately reports the source, decoded control tar, and decoded
 data tar. Temporary decoder state remains governed by `Limits`.
 
+ZIP compression metadata names Store, Deflate, Deflate64, BZip2, ZIP-LZMA,
+both Zstandard IDs, XZ (95), PPMd (98), and the registered-but-unsupported MP3
+(94), JPEG (96), and WavPack (97) IDs. XZ and PPMd extraction use the same
+writer/callback/batch API and typed limit/integrity errors as other supported
+methods. A metadata name is not a decoder claim: attempting 94, 96, or 97
+returns `UnsupportedMethod` with the original two-byte numeric identifier.
+
 The `unstable-internals` feature is a repository test/fuzz hook. Its hidden raw
 parser, validated wire model, folder graph, and envelope exports are not
 covered by compatibility promises and must not be used by applications. It is
@@ -241,5 +248,5 @@ CPython limited API for Python 3.9 and newer. CI builds explicit Linux,
 macOS, and Windows x86-64/ARM64 ABI3 wheels, then installs each artifact and
 runs the complete binding suite on Python 3.12, 3.13, and 3.14. The Rust
 binding retains the repository MSRV of 1.85. The Python adapter remains
-pre-alpha in `0.1.1`; compatibility claims remain exactly those in
+pre-alpha in `0.2.0`; compatibility claims remain exactly those in
 `COMPATIBILITY.md`.

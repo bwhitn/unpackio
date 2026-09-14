@@ -21,6 +21,10 @@ model; non-7z formats are not forced through the 7z coder graph.
 > Standalone streams do not become synthetic archives: they have no invented
 > member name, path, metadata, or CRC.
 
+Open compatibility research and implementation work is tracked in
+[TODO.md](TODO.md); completed review units remain in
+[PHASE_PLAN.md](PHASE_PLAN.md).
+
 The intended scope is reading, listing, verifying, decrypting where the format
 slice supports it, and decompressing archives plus reading and decompressing
 the three documented standalone stream formats. Archive/stream creation and
@@ -89,13 +93,19 @@ callbacks. No CLI or console script is shipped.
 The separate `ZipArchive` surface parses ordinary and ZIP64 central
 directories, bounded SFX prefixes, raw names/comments/extra fields, duplicate
 names, directories, Unix modes, and symlink metadata. Extraction supports
-Store, Deflate, Deflate64, BZip2, ZIP-LZMA, and both registered Zstandard method
-IDs. Traditional ZipCrypto and WinZip AES AE-1/AE-2 with 128-, 192-, or
-256-bit keys are supported with per-archive zeroized byte passwords. Local and
-central records, sizes, data descriptors, authentication codes, and applicable
-entry CRCs must agree before success. Split/spanned ZIP, PKWARE Strong
-Encryption, encrypted central directories, ZIP XZ, and ZIP PPMd remain typed
-unsupported.
+Store, Deflate, Deflate64, BZip2, ZIP-LZMA, both registered Zstandard method
+IDs, WinZip XZ method 95, and WinZip PPMd method 98. Traditional ZipCrypto and
+WinZip AES AE-1/AE-2 with 128-, 192-, or 256-bit keys are supported with
+per-archive zeroized byte passwords. Local and central records, sizes, data
+descriptors, authentication codes, and applicable entry CRCs must agree before
+success. XZ additionally requires the exact single-stream XZ 1.0.4 profile,
+Block/Index agreement, all declared XZ checks, and optional zero Stream
+Padding. PPMd admits only variant I revision 1, validates its two-byte
+order/model/restoration declaration before allocating the model, and requires
+both the range-coded end marker and the ZIP-declared size. Registered MP3 (94),
+JPEG (96), and WavPack (97) entries have stable metadata names but remain typed
+unsupported on extraction, as do split/spanned ZIP, PKWARE Strong Encryption,
+and encrypted central directories.
 
 The separate `RpmArchive` surface validates the lead, signature header, main
 header, typed index/store ranges, payload declaration, and the shared checked

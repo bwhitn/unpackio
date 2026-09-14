@@ -55,6 +55,9 @@ package.extract_entry_to(package.entries()[0].index, payload)
 `ZipEntry` exposes decoded/raw names, comments, extras, sizes, CRC, DOS
 timestamp, method, flags, creator/extractor versions, attributes, local-header
 offset, encryption kind, and directory metadata.
+Supported extraction includes ZIP XZ method 95 and PPMd-I revision-1 method
+98. The registered names `mp3`, `jpeg`, and `wavpack` are metadata-only and
+raise `UnsupportedMethodError` with IDs 94, 96, and 97 on extraction.
 Passwords are supplied when opening a `ZipArchive`; trying another password
 creates another per-archive session. Even a zero-length encrypted member must
 be extracted so its password verifier and authentication data are checked.
@@ -229,7 +232,7 @@ the release and Trusted Publisher procedure.
 For a local development build:
 
 ```text
-python -m pip install 'maturin==1.13.3'
+python -m pip install 'maturin==1.15.0'
 maturin develop --manifest-path bindings/python/Cargo.toml
 python -m unittest discover -s bindings/python/tests -v
 ```

@@ -102,6 +102,23 @@ CPIO alignment/checksums, ar/tar checksums, and ARJ header/member CRCs correct
 so mutations reach format-specific semantic and output boundaries instead of
 stopping at magic bytes.
 
+The ZIP generator also embeds a complete XZ 1.0.4 method-95 Stream around
+project-authored `abc` output. Every input drives the valid exact-output case,
+one input-selected XZ-byte mutation under an otherwise CRC-correct ZIP
+envelope, and one strict XZ-prefix truncation. This keeps Stream/Block/Index,
+filter-property, padding, Check, decoded-size, and member-CRC rejection paths
+reachable without invoking an external encoder or weakening production
+checks.
+
+It independently embeds the nine-byte stock-`7zz` 26.02 ZIP PPMd-I
+method-98 vector for project-authored `abc`. Every input first drives exact
+successful extraction, then an input-selected payload mutation and a strict
+prefix. Those cases retain a structurally and CRC-correct ZIP envelope so the
+fuzzer reaches property parsing, range normalization, model/context updates,
+allocator/restoration checks, early/missing end markers, exact input
+consumption, output-size reconciliation, and member CRC handling. The target
+never invokes the oracle or the test-only encoder.
+
 Normal tests complement fuzzing with exhaustive decoding of every one- and
 two-byte 7z integer encoding, all truncations of the nine-byte form, all split
 points of the standard CRC vector, all byte-prefix truncations of valid outer
@@ -236,6 +253,13 @@ it must not bypass the existing core fuzz targets.
   nested validation.
 - Seed graph fuzzing with small valid multi-input and non-declaration-order
   graphs, then mutate counts, bindings, and packed indices.
+- Keep the embedded ZIP method-95 seed byte-for-byte tied to the generated
+  vector recorded in `CORPUS.md`; mutate and truncate it only inside the
+  in-process hostile wrapper.
+- Keep the method-98 seed byte-for-byte tied to the separately generated PPMd-I
+  vector in `CORPUS.md`; always run its exact positive case before the
+  input-selected mutation and prefix so a decoder regression cannot hide
+  behind permissive fuzz error handling.
 - Seed volume fuzzing with gaps, empty parts, short reads, exact-boundary reads,
   encrypted-block boundaries, and excessive totals.
 - Never place confidential archives, real passwords, decrypted headers, or
@@ -416,3 +440,35 @@ no failure, but emitted the expected missing-sanitizer/missing-instrumentation
 warnings because this host has neither cargo-fuzz nor rustup/nightly. This is a
 finite harness/no-panic smoke only; it does not replace the configured nightly
 coverage-guided AddressSanitizer run.
+
+On 2026-09-14, after adding the always-valid and hostile ZIP XZ method-95
+wrappers, the separately locked fuzz package's two deterministic tests and
+strict all-target Clippy passed. A fresh stable-built `archive_formats` binary
+then completed 10,000 executions from an empty corpus in three seconds with no
+failure and 28 MiB reported RSS. Every iteration first extracted the valid XZ
+member to exact `abc`; nonempty inputs also selected one XZ mutation and one
+strict prefix. The runner again reported missing sanitizer hooks and no
+coverage instrumentation because this host has neither `cargo-fuzz` nor a
+nightly toolchain. This is finite harness/no-panic evidence, not an ASan,
+coverage, throughput, or peak-memory claim; the configured nightly gate remains
+authoritative.
+
+After adding the corresponding exact-output and hostile ZIP PPMd method-98
+paths, the separately locked package again passed formatting, warning-denied
+all-target/all-feature Clippy, and both deterministic generator tests. A final
+stable-built `archive_formats` binary completed 10,000 seedless executions in
+99 seconds with seed `167906171`, no failure, and 41 MiB reported RSS. Every
+iteration verified exact XZ and PPMd extraction before selecting their hostile
+mutation and strict-prefix paths. The runner explicitly reported missing
+sanitizer hooks and missing coverage instrumentation on this Homebrew stable
+toolchain. This is finite invariant/no-panic evidence only; it does not replace
+the configured nightly AddressSanitizer and coverage-guided gates or establish
+a memory-performance bound.
+
+After the version 0.2.0 dependency refresh, the rebuilt stable
+`archive_formats` harness completed another 10,000 seedless executions in 92
+seconds with seed `2925986431`, no failure, and 49 MiB reported RSS. The same
+valid-XZ/PPMd-first invariants and hostile mutation/prefix paths ran against the
+updated dependency graph. The runner again reported no sanitizer or coverage
+instrumentation, so this remains finite invariant/no-panic evidence; nightly
+ASan coverage-guided fuzzing remains the authoritative CI gate.

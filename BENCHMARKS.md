@@ -22,6 +22,8 @@ warmup occur outside the timed loop.
 | 2026-07-21 | Uncommitted standalone-stream snapshot | LZ4, Zstandard, and Unix `.Z` extraction | Not benchmarked | Decoder dictionaries/windows are preflighted; process peak not measured | Exact native-tool differentials and bounded-memory tests are functional evidence only, not throughput measurements |
 | 2026-07-21 | Uncommitted release-profile audit | macOS x86-64 CPython ABI3 wheel | ThinLTO/O3 retained; 719,812-byte wheel | 1,424,240-byte native extension before installation metadata | FatLTO/O3 saved 2.0% but regressed Unix `.Z`; FatLTO/Oz saved 19.2% but materially regressed every measured decoder |
 | 2026-07-21 | Uncommitted CPIO/Debian/ARJ snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 964,108-byte Python-only wheel; 23 installed-wheel tests passed | Process peak not measured | No console entry point or Python runtime dependency; includes ZIP/RPM, three new readers, ARJ decoder dependency, fixtures' required notices, and all existing formats; a size observation, not a throughput benchmark |
+| 2026-09-14 | Superseded ZIP XZ method-95 snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 943,934-byte wheel; 24 installed-wheel tests passed | Process peak not measured | This initial snapshot used the dependency's aggregate XZ reader; the final allocation audit replaced it with the in-tree fallibly allocating LZMA2 path and disabled that dependency feature. The unrelated 7z release benchmark compiled but skipped because `UNPACKIO_7Z_TESTDATA` was unset; no ZIP throughput claim |
+| 2026-09-14 | Uncommitted ZIP XZ/PPMd method-95/98 completion snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 984,218-byte wheel; 26 installed-wheel tests passed | Process peak not measured | The source distribution rebuilt into a separately hashed 984,299-byte wheel and passed the same installed suite. The natural-order 7z release benchmark compiled warning-free and again skipped without `UNPACKIO_7Z_TESTDATA`; the optimized PPMd restoration-pressure correctness matrix passed, but no ZIP timing or peak-memory claim is made |
 
 The exact Git object for these historical measurements was not recorded. The
 `Pre-commit` labels preserve that limitation; the rows must not be attributed
@@ -95,6 +97,27 @@ not benchmarks. Any future result must report container/method/encryption,
 entry count, compressed and decoded bytes, retained archive state, temporary
 decoder memory, work allowance, sink cost, and whether package/member integrity
 was fully verified.
+
+For ZIP XZ method 95, preflight walks the complete Stream/Block/Index layout
+before decoding, then materializes and checks each bounded Block before joining
+the verified member. The new tests establish exact output, work/cancellation,
+dictionary/output limits, and sink-finalization behavior; the 10,000-run fuzz
+smoke and 7zz differential are also correctness evidence, not performance
+measurements. A future ZIP XZ benchmark must report Block count and sizes,
+filter chain, Check type, LZMA2 dictionary, Stream Padding, ZIP encryption,
+compressed/output bytes, work units, temporary Block/member allocation, and
+sink cost.
+
+ZIP PPMd method 98 likewise has no throughput claim. The release-only pressure
+gate forces Restart, Cutoff, and Freeze restoration with an order-16, 1 MiB
+model and requires deterministic exact output, while ordinary tests establish
+work/cancellation, model/output limits, end-marker/input exactness, and
+integrity-before-sink behavior. A future timing result must report order,
+suballocator size, restoration mode and count, compressed/output bytes, model
+and temporary member allocation, work units, encryption wrapper, sink cost,
+sample distribution, and peak RSS. A small easily predicted PPMd input is not
+a representative throughput benchmark, and a faster decoder may not omit the
+end-marker, exact-consumption, size, or CRC gates.
 
 ## Release compilation profile audit
 

@@ -13,6 +13,17 @@ use unpackio::{
 const MAXIMUM_FUZZ_INPUT: usize = 256 * 1024;
 const MAXIMUM_GENERATED_PAYLOAD: usize = 255;
 const MEMBER_NAME: &[u8] = b"fuzz.bin";
+// XZ Utils 5.8.3 encoded the project-authored `abc` bytes as one method-95
+// compatible XZ stream with a 64 KiB dictionary and Check type NONE.
+const XZ_ABC: &[u8] = &[
+    0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00, 0x00, 0x00, 0xff, 0x12, 0xd9, 0x41, 0x02, 0x00, 0x21, 0x01,
+    0x08, 0x00, 0x00, 0x00, 0xd8, 0x0f, 0x23, 0x13, 0x01, 0x00, 0x02, 0x61, 0x62, 0x63, 0x00, 0x00,
+    0x00, 0x01, 0x13, 0x03, 0x03, 0xa5, 0x60, 0xd8, 0x06, 0x72, 0x9e, 0x7a, 0x01, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x59, 0x5a,
+];
+// Stock 7zz 26.02 encoded the project-authored `abc` bytes with ZIP PPMd-I,
+// order 2, 1 MiB, and Restart restoration.
+const PPMD_ABC: &[u8] = &[0x01, 0x00, 0x61, 0x03, 0x6e, 0x81, 0x2d, 0x4c, 0x00];
 
 fn limits() -> Limits {
     Limits::builder()
@@ -78,21 +89,22 @@ fn append_le_u32(output: &mut Vec<u8>, value: u32) {
     output.extend_from_slice(&value.to_le_bytes());
 }
 
-fn stored_zip(payload: &[u8]) -> Option<Vec<u8>> {
+fn encoded_zip(payload: &[u8], decoded: &[u8], method: u16, version: u16) -> Option<Vec<u8>> {
     let payload_size = u32::try_from(payload.len()).ok()?;
+    let decoded_size = u32::try_from(decoded.len()).ok()?;
     let name_size = u16::try_from(MEMBER_NAME.len()).ok()?;
-    let checksum = support::crc32(payload);
+    let checksum = support::crc32(decoded);
     let mut output = Vec::new();
 
     append_le_u32(&mut output, 0x0403_4b50);
-    append_le_u16(&mut output, 20);
+    append_le_u16(&mut output, version);
     append_le_u16(&mut output, 0);
-    append_le_u16(&mut output, 0);
+    append_le_u16(&mut output, method);
     append_le_u16(&mut output, 0);
     append_le_u16(&mut output, 0);
     append_le_u32(&mut output, checksum);
     append_le_u32(&mut output, payload_size);
-    append_le_u32(&mut output, payload_size);
+    append_le_u32(&mut output, decoded_size);
     append_le_u16(&mut output, name_size);
     append_le_u16(&mut output, 0);
     output.extend_from_slice(MEMBER_NAME);
@@ -101,14 +113,14 @@ fn stored_zip(payload: &[u8]) -> Option<Vec<u8>> {
     let directory_offset = u32::try_from(output.len()).ok()?;
     append_le_u32(&mut output, 0x0201_4b50);
     append_le_u16(&mut output, 0x031e);
-    append_le_u16(&mut output, 20);
+    append_le_u16(&mut output, version);
     append_le_u16(&mut output, 0);
-    append_le_u16(&mut output, 0);
+    append_le_u16(&mut output, method);
     append_le_u16(&mut output, 0);
     append_le_u16(&mut output, 0);
     append_le_u32(&mut output, checksum);
     append_le_u32(&mut output, payload_size);
-    append_le_u32(&mut output, payload_size);
+    append_le_u32(&mut output, decoded_size);
     append_le_u16(&mut output, name_size);
     append_le_u16(&mut output, 0);
     append_le_u16(&mut output, 0);
@@ -129,6 +141,10 @@ fn stored_zip(payload: &[u8]) -> Option<Vec<u8>> {
     append_le_u32(&mut output, directory_offset);
     append_le_u16(&mut output, 0);
     Some(output)
+}
+
+fn stored_zip(payload: &[u8]) -> Option<Vec<u8>> {
+    encoded_zip(payload, payload, 0, 20)
 }
 
 fn append_be_u32(output: &mut Vec<u8>, value: u32) {
@@ -459,6 +475,51 @@ fuzz_target!(|data: &[u8]| {
     };
     if let Some(zip) = stored_zip(payload) {
         exercise_generated_zip(zip, payload);
+    }
+    if let Some(zip) = encoded_zip(XZ_ABC, b"abc", 95, 20) {
+        exercise_generated_zip(zip, b"abc");
+    }
+    if let Some(zip) = encoded_zip(PPMD_ABC, b"abc", 98, 20) {
+        exercise_generated_zip(zip, b"abc");
+    }
+    if !arbitrary.is_empty() {
+        let mut hostile_xz = XZ_ABC.to_vec();
+        let selector = match arbitrary.first() {
+            Some(value) => *value,
+            None => 0,
+        };
+        let offset = usize::from(selector) % hostile_xz.len();
+        let mask = match arbitrary.get(1) {
+            Some(value) => (*value).max(1),
+            None => 1,
+        };
+        if let Some(byte) = hostile_xz.get_mut(offset) {
+            *byte ^= mask;
+        }
+        if let Some(zip) = encoded_zip(&hostile_xz, b"abc", 95, 20) {
+            exercise_zip(zip);
+        }
+        let prefix_size = usize::from(selector) % XZ_ABC.len();
+        if let Some(prefix) = XZ_ABC.get(..prefix_size) {
+            if let Some(zip) = encoded_zip(prefix, b"abc", 95, 20) {
+                exercise_zip(zip);
+            }
+        }
+
+        let mut hostile_ppmd = PPMD_ABC.to_vec();
+        let ppmd_offset = usize::from(selector) % hostile_ppmd.len();
+        if let Some(byte) = hostile_ppmd.get_mut(ppmd_offset) {
+            *byte ^= mask;
+        }
+        if let Some(zip) = encoded_zip(&hostile_ppmd, b"abc", 98, 20) {
+            exercise_zip(zip);
+        }
+        let ppmd_prefix_size = usize::from(selector) % PPMD_ABC.len();
+        if let Some(prefix) = PPMD_ABC.get(..ppmd_prefix_size) {
+            if let Some(zip) = encoded_zip(prefix, b"abc", 98, 20) {
+                exercise_zip(zip);
+            }
+        }
     }
     if let Some(rpm) = uncompressed_rpm(payload) {
         exercise_generated_rpm(rpm, payload);

@@ -4,7 +4,10 @@ use super::{ZipCompressionMethod, ZipEncryption, ZipEntry, crypto::ZipPassword};
 use crate::{
     ChecksumScope, Error, LimitKind, Limits, Result,
     checksum::Crc32,
-    decode::{decode_bzip2, decode_deflate, decode_deflate64, decode_lzma, decode_zstd},
+    decode::{
+        XzProfile, decode_bzip2, decode_deflate, decode_deflate64, decode_lzma, decode_xz,
+        decode_zip_ppmd, decode_zstd,
+    },
     parse_util::{
         CONTROL_CHUNK_SIZE, ParseControl, check_limit, checked_range, try_reserve, usize_to_u64,
     },
@@ -46,6 +49,15 @@ pub(super) fn decode_entry(
         return Err(Error::UnsupportedFeature {
             feature: String::from("zip-strong-encryption"),
         });
+    }
+    if matches!(
+        entry.compression,
+        ZipCompressionMethod::Mp3
+            | ZipCompressionMethod::Jpeg
+            | ZipCompressionMethod::WavPack
+            | ZipCompressionMethod::Unknown(_)
+    ) {
+        return Err(unsupported_method(entry.compression));
     }
     let encrypted = checked_range(
         archive,
@@ -93,7 +105,7 @@ pub(super) fn decode_entry(
                 error
             } else {
                 match error {
-                    Error::Format { .. } => Error::WrongPasswordOrCorrupt,
+                    Error::Format { .. } | Error::Checksum { .. } => Error::WrongPasswordOrCorrupt,
                     other => other,
                 }
             }
@@ -153,14 +165,37 @@ fn decode_compressed(
         ZipCompressionMethod::Zstandard | ZipCompressionMethod::ZstandardDeprecated => {
             decode_zstd(input, expected, maximum, limits, control)
         }
-        ZipCompressionMethod::Xz
-        | ZipCompressionMethod::Ppmd
-        | ZipCompressionMethod::Unknown(_) => {
-            let method = entry.compression.id().to_le_bytes();
-            Err(Error::UnsupportedMethod {
-                method_id: Box::from(method),
-            })
+        ZipCompressionMethod::Xz => {
+            if entry.version_needed < 20 {
+                return Err(zip_format("XZ entries require ZIP version 2.0 or later"));
+            }
+            decode_xz(
+                input,
+                expected,
+                maximum,
+                limits,
+                control,
+                XzProfile::ZipMember {
+                    member_index: entry.index,
+                },
+            )
         }
+        ZipCompressionMethod::Ppmd => {
+            if entry.version_needed < 20 {
+                return Err(zip_format("PPMd entries require ZIP version 2.0 or later"));
+            }
+            decode_zip_ppmd(input, entry.uncompressed_size, maximum, limits, control)
+        }
+        ZipCompressionMethod::Mp3
+        | ZipCompressionMethod::Jpeg
+        | ZipCompressionMethod::WavPack
+        | ZipCompressionMethod::Unknown(_) => Err(unsupported_method(entry.compression)),
+    }
+}
+
+fn unsupported_method(method: ZipCompressionMethod) -> Error {
+    Error::UnsupportedMethod {
+        method_id: Box::from(method.id().to_le_bytes()),
     }
 }
 

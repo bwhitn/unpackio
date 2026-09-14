@@ -1,10 +1,10 @@
 [build-system]
-requires = ["maturin==1.13.3"]
+requires = ["maturin==1.15.0"]
 build-backend = "maturin"
 
 [project]
 name = "unpackio"
-version = "0.1.1"
+version = "0.2.0"
 description = "Security-focused, unpack-only multi-format archive and compressed-stream reader"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -38,3 +38,4 @@ features = ["extension-module"]
 module-name = "unpackio._native"
 python-source = "python"
 strip = true
+exclude = [{ path = "dist*/**", format = "sdist" }]

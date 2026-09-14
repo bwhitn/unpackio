@@ -27,6 +27,17 @@ Copyright (c) 2022 Clayton Stangeland and Copyright (c) 2014 Adam Hathcock,
 MIT. Its exact notice is reproduced in LICENSES/MIT-stangelandcl-ppmd.txt. Exact
 files, hashes, and adaptation details are recorded in PROVENANCE.md.
 
+The safe Rust ZIP PPMd-I revision-1 decoder adapts Dmitry Shkarin's original
+PPMII variant-I sources (written and distributed to the public domain,
+1997 and 1999-2002) and Dmitry Subbotin's public-domain carryless range coder
+(1999). The canonical source archive, exact mirror revision and file hashes,
+excluded mirror-specific additions, and safe-Rust adaptation scope are
+recorded in PROVENANCE.md. No PPMd source derived from 7-Zip, p7zip, or an SDK
+is used. Packed-layout and control-flow behavior was cross-checked against
+SharpCompress's managed I1 port by Michael Bone at commit
+e04d51176c5d87668c4c8779825342230c33aa74, Copyright (c) 2014 Adam
+Hathcock, MIT; its notice is reproduced in LICENSES/MIT-SharpCompress.txt.
+
 No AES or SHA-256 algorithm implementation is handwritten. Runtime AES-256-CBC
 and SHA-256 are supplied by the RustCrypto `aes`, `cbc`, `cipher`, and `sha2`
 crates. Deflate, BZip2, Brotli, LZ4, and Zstandard decoding is supplied by the
@@ -62,8 +73,8 @@ Copyright (c) 2015 Sean Ross-Ross, MIT. Its notice is reproduced in
 LICENSES/MIT-rpmfile.txt. No rpmfile parser, decoder, or filesystem implementation
 is copied or used at runtime.
 
-ARJ methods 1 through 3 use `delharc` 0.6.1 at commit
-969e19d90ddf0a8e93598ac5cf117dfd8d1c2b7d, Copyright 2023 Rafal
+ARJ methods 1 through 3 use `delharc` 0.6.2 at commit
+737ab3fc9913dad0a4fb9965f0bcd95a013f5a28, Copyright 2023 Rafal
 Michalski, licensed MIT OR Apache-2.0. The dependency is used only for its
 static LH6 payload decoder; exact scope and audit details are recorded in
 DEPENDENCIES.md and PROVENANCE.md.

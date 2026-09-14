@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import binascii
+import hashlib
 import importlib.metadata
 import io
 import pathlib
@@ -29,6 +30,14 @@ AES256_AE2_ARCHIVE = bytes.fromhex(
     "0199070002004145030000504b0506000000000100010040000000610000"
     "000000"
 )
+XZ_METHOD_95_ABC = bytes.fromhex(
+    "fd377a585a000000ff12d9410200210108000000d80f2313"
+    "01000261626300000001130303a560d806729e7a01000000"
+    "0000595a"
+)
+# Stock 7zz 26.02 encoded b"abc" with method 98, order 2, 1 MiB,
+# and Restart restoration. CORPUS.md records the command and hashes.
+PPMD_METHOD_98_ABC = bytes.fromhex("010061036e812d4c00")
 
 
 def raw_lz4_frame(payload: bytes) -> bytes:
@@ -73,6 +82,70 @@ def zip_archive(entries: list[tuple[str, bytes]], compression: int) -> bytes:
             for name, payload in entries:
                 archive.writestr(name, payload)
     return output.getvalue()
+
+
+def encoded_zip_archive(
+    entries: list[tuple[bytes, bytes, bytes, int, int]],
+) -> bytes:
+    local = bytearray()
+    central_records: list[tuple[bytes, bytes, int, int, int, int, int]] = []
+    for name, decoded, encoded, method, version in entries:
+        checksum = crc32(decoded)
+        offset = len(local)
+        local += struct.pack(
+            "<I5H3I2H",
+            0x0403_4B50,
+            version,
+            0,
+            method,
+            0,
+            0x5021,
+            checksum,
+            len(encoded),
+            len(decoded),
+            len(name),
+            0,
+        )
+        local += name + encoded
+        central_records.append(
+            (name, encoded, method, version, checksum, offset, len(decoded))
+        )
+
+    central = bytearray()
+    for name, encoded, method, version, checksum, offset, decoded_size in central_records:
+        central += struct.pack(
+            "<I6H3I5H2I",
+            0x0201_4B50,
+            (3 << 8) | 63,
+            version,
+            0,
+            method,
+            0,
+            0x5021,
+            checksum,
+            len(encoded),
+            decoded_size,
+            len(name),
+            0,
+            0,
+            0,
+            0,
+            0o100644 << 16,
+            offset,
+        )
+        central += name
+    end = struct.pack(
+        "<I4H2IH",
+        0x0605_4B50,
+        0,
+        0,
+        len(entries),
+        len(entries),
+        len(central),
+        len(local),
+        0,
+    )
+    return bytes(local + central + end)
 
 
 def zip_metadata_archive() -> bytes:
@@ -562,7 +635,7 @@ class CollectEntrySink:
 class BindingTests(unittest.TestCase):
     def test_distribution_and_native_module_names(self) -> None:
         distribution = importlib.metadata.distribution("unpackio")
-        self.assertEqual(distribution.version, "0.1.1")
+        self.assertEqual(distribution.version, "0.2.0")
         self.assertFalse(distribution.requires)
         self.assertEqual(len(distribution.entry_points), 0)
         self.assertEqual(distribution.metadata["License-Expression"], "MIT")
@@ -574,13 +647,14 @@ class BindingTests(unittest.TestCase):
                 "LICENSES/BSD-3-Clause-bodgit-sevenzip.txt",
                 "LICENSES/BSD-3-Clause-netbsd-zopen.txt",
                 "LICENSES/BSD-3-Clause-ulikunitz-xz.txt",
+                "LICENSES/MIT-SharpCompress.txt",
                 "LICENSES/MIT-rpmfile.txt",
                 "LICENSES/MIT-stangelandcl-ppmd.txt",
                 "LICENSES/README.md",
                 "NOTICE",
             },
         )
-        self.assertEqual(unpackio.__version__, "0.1.1")
+        self.assertEqual(unpackio.__version__, "0.2.0")
         self.assertEqual(native.__name__, "unpackio._native")
         self.assertEqual(unpackio.Archive.__module__, "unpackio._native")
         self.assertEqual(unpackio.CompressedStream.__module__, "unpackio._native")
@@ -680,6 +754,201 @@ class BindingTests(unittest.TestCase):
                 zip_archive([("large", b"three")], zipfile.ZIP_STORED),
                 limits=limited,
             )
+
+    def test_zip_xz_method_95_metadata_output_callbacks_and_errors(self) -> None:
+        encoded = encoded_zip_archive(
+            [
+                (b"xz.bin", b"abc", XZ_METHOD_95_ABC, 95, 20),
+                (b"stored.bin", b"ok", b"ok", 0, 20),
+            ]
+        )
+        archive = unpackio.open_zip_bytes(encoded)
+        entry = archive.entry(0)
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.compression_method, "xz")
+        self.assertEqual(entry.compression_method_id, 95)
+        self.assertEqual(entry.version_needed, 20)
+
+        writer = io.BytesIO()
+        self.assertEqual(archive.extract_entry_to(0, writer), 3)
+        self.assertEqual(writer.getvalue(), b"abc")
+        chunks: list[bytes] = []
+        self.assertEqual(archive.stream_entry(0, chunks.append), 3)
+        self.assertEqual(b"".join(chunks), b"abc")
+        sink = CollectEntrySink()
+        self.assertEqual(archive.extract_entries_to(sink), 5)
+        self.assertEqual(bytes(sink.entries[0]), b"abc")
+        self.assertEqual(bytes(sink.entries[1]), b"ok")
+        archive.verify()
+
+        limited = unpackio.open_zip_bytes(
+            encoded,
+            limits=unpackio.Limits(max_dictionary_bytes=65_535),
+        )
+        with self.assertRaises(unpackio.LimitExceededError) as dictionary:
+            limited.extract_entry_to(0, io.BytesIO())
+        self.assertEqual(dictionary.exception.limit, "dictionary_bytes")
+        with self.assertRaises(unpackio.LimitExceededError) as work:
+            archive.extract_entry_to(0, io.BytesIO(), max_work_units=0)
+        self.assertEqual(work.exception.limit, "work_units")
+        token = unpackio.CancellationToken()
+        token.cancel()
+        with self.assertRaises(unpackio.CancelledError):
+            archive.extract_entry_to(0, io.BytesIO(), cancellation=token)
+
+        bad_padding = bytearray(XZ_METHOD_95_ABC)
+        bad_padding[31] ^= 1
+        corrupt = unpackio.open_zip_bytes(
+            encoded_zip_archive(
+                [
+                    (b"bad.bin", b"abc", bytes(bad_padding), 95, 20),
+                    (b"healthy.bin", b"ok", b"ok", 0, 20),
+                ]
+            )
+        )
+        untouched = io.BytesIO()
+        with self.assertRaises(unpackio.FormatError):
+            corrupt.extract_entry_to(0, untouched)
+        self.assertEqual(untouched.getvalue(), b"")
+        corrupt_sink = CollectEntrySink()
+        with self.assertRaises(unpackio.FormatError):
+            corrupt.extract_entries_to(corrupt_sink)
+        self.assertEqual(corrupt_sink.events, [])
+        healthy = io.BytesIO()
+        self.assertEqual(corrupt.extract_entry_to(1, healthy), 2)
+        self.assertEqual(healthy.getvalue(), b"ok")
+
+        crc_mismatch = bytearray(
+            encoded_zip_archive([(b"xz.bin", b"abc", XZ_METHOD_95_ABC, 95, 20)])
+        )
+        wrong_crc = crc32(b"abc") ^ 1
+        struct.pack_into("<I", crc_mismatch, 14, wrong_crc)
+        central_offset = 30 + len(b"xz.bin") + len(XZ_METHOD_95_ABC)
+        struct.pack_into("<I", crc_mismatch, central_offset + 16, wrong_crc)
+        mismatched = unpackio.open_zip_bytes(bytes(crc_mismatch))
+        with self.assertRaises(unpackio.ChecksumError):
+            mismatched.extract_entry_to(0, io.BytesIO())
+
+        with self.assertRaises(unpackio.LimitExceededError) as output:
+            unpackio.open_zip_bytes(
+                encoded,
+                limits=unpackio.Limits(max_entry_output_bytes=2),
+            )
+        self.assertEqual(output.exception.limit, "entry_output_bytes")
+
+    def test_zip_ppmd_method_98_metadata_output_callbacks_and_errors(self) -> None:
+        encoded = encoded_zip_archive(
+            [
+                (b"ppmd.bin", b"abc", PPMD_METHOD_98_ABC, 98, 20),
+                (b"stored.bin", b"ok", b"ok", 0, 20),
+            ]
+        )
+        one_entry = encoded_zip_archive(
+            [(b"ppmd.bin", b"abc", PPMD_METHOD_98_ABC, 98, 20)]
+        )
+        self.assertEqual(
+            hashlib.sha256(one_entry).hexdigest(),
+            "2539bd7777b9d5fb4d91805001f4e652b11d1b3505889421a6f460941a409bf8",
+        )
+        archive = unpackio.open_zip_bytes(encoded)
+        entry = archive.entry(0)
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.compression_method, "ppmd")
+        self.assertEqual(entry.compression_method_id, 98)
+        self.assertEqual(entry.version_needed, 20)
+
+        writer = io.BytesIO()
+        self.assertEqual(archive.extract_entry_to(0, writer), 3)
+        self.assertEqual(writer.getvalue(), b"abc")
+        chunks: list[bytes] = []
+        self.assertEqual(archive.stream_entry(0, chunks.append), 3)
+        self.assertEqual(b"".join(chunks), b"abc")
+        sink = CollectEntrySink()
+        self.assertEqual(archive.extract_entries_to(sink), 5)
+        self.assertEqual(bytes(sink.entries[0]), b"abc")
+        self.assertEqual(bytes(sink.entries[1]), b"ok")
+        archive.verify()
+
+        for limits, expected_limit in [
+            (unpackio.Limits(max_dictionary_bytes=(1 << 20) - 1), "dictionary_bytes"),
+            (unpackio.Limits(max_coder_property_bytes=1), "coder_property_bytes"),
+        ]:
+            limited = unpackio.open_zip_bytes(encoded, limits=limits)
+            untouched = io.BytesIO()
+            with self.assertRaises(unpackio.LimitExceededError) as raised:
+                limited.extract_entry_to(0, untouched)
+            self.assertEqual(raised.exception.limit, expected_limit)
+            self.assertEqual(untouched.getvalue(), b"")
+
+        with self.assertRaises(unpackio.LimitExceededError) as work:
+            archive.extract_entry_to(0, io.BytesIO(), max_work_units=0)
+        self.assertEqual(work.exception.limit, "work_units")
+        empty_sink = CollectEntrySink()
+        with self.assertRaises(unpackio.LimitExceededError):
+            archive.extract_entries_to(empty_sink, max_work_units=0)
+        self.assertEqual(empty_sink.events, [])
+
+        token = unpackio.CancellationToken()
+        token.cancel()
+        with self.assertRaises(unpackio.CancelledError):
+            archive.extract_entry_to(0, io.BytesIO(), cancellation=token)
+
+        invalid_properties = bytearray(PPMD_METHOD_98_ABC)
+        invalid_properties[1] = 0x30
+        corrupt = unpackio.open_zip_bytes(
+            encoded_zip_archive(
+                [
+                    (b"bad.bin", b"abc", bytes(invalid_properties), 98, 20),
+                    (b"healthy.bin", b"ok", b"ok", 0, 20),
+                ]
+            )
+        )
+        untouched = io.BytesIO()
+        with self.assertRaises(unpackio.FormatError):
+            corrupt.extract_entry_to(0, untouched)
+        self.assertEqual(untouched.getvalue(), b"")
+        corrupt_sink = CollectEntrySink()
+        with self.assertRaises(unpackio.FormatError):
+            corrupt.extract_entries_to(corrupt_sink)
+        self.assertEqual(corrupt_sink.events, [])
+        healthy = io.BytesIO()
+        self.assertEqual(corrupt.extract_entry_to(1, healthy), 2)
+        self.assertEqual(healthy.getvalue(), b"ok")
+
+        crc_mismatch = bytearray(
+            encoded_zip_archive(
+                [(b"ppmd.bin", b"abc", PPMD_METHOD_98_ABC, 98, 20)]
+            )
+        )
+        wrong_crc = crc32(b"abc") ^ 1
+        struct.pack_into("<I", crc_mismatch, 14, wrong_crc)
+        central_offset = 30 + len(b"ppmd.bin") + len(PPMD_METHOD_98_ABC)
+        struct.pack_into("<I", crc_mismatch, central_offset + 16, wrong_crc)
+        mismatched = unpackio.open_zip_bytes(bytes(crc_mismatch))
+        with self.assertRaises(unpackio.ChecksumError):
+            mismatched.extract_entry_to(0, io.BytesIO())
+
+        with self.assertRaises(unpackio.LimitExceededError) as output:
+            unpackio.open_zip_bytes(
+                encoded,
+                limits=unpackio.Limits(max_entry_output_bytes=2),
+            )
+        self.assertEqual(output.exception.limit, "entry_output_bytes")
+
+    def test_zip_registered_recompression_method_names_remain_unsupported(self) -> None:
+        for method_id, method_name in [(94, "mp3"), (96, "jpeg"), (97, "wavpack")]:
+            with self.subTest(method=method_name):
+                encoded = encoded_zip_archive(
+                    [(b"registered.bin", b"not decoded", b"\x00", method_id, 20)]
+                )
+                archive = unpackio.open_zip_bytes(encoded)
+                entry = archive.entry(0)
+                self.assertIsNotNone(entry)
+                self.assertEqual(entry.compression_method, method_name)
+                self.assertEqual(entry.compression_method_id, method_id)
+                with self.assertRaises(unpackio.UnsupportedMethodError) as raised:
+                    archive.extract_entry_to(0, io.BytesIO())
+                self.assertEqual(raised.exception.method_id, struct.pack("<H", method_id))
 
     def test_rpm_headers_metadata_batch_integrity_and_callbacks(self) -> None:
         encoded = rpm_archive()

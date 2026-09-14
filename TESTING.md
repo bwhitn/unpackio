@@ -45,9 +45,20 @@ paths and make no automatic archive-name-based extraction decisions.
 The ordinary core suite includes generated ZIP, RPM, CPIO, Debian, and ARJ
 coverage. ZIP tests
 exercise ordinary/ZIP64/SFX structure; Store, Deflate, Deflate64, BZip2,
-ZIP-LZMA, and both Zstandard IDs; ZipCrypto; WinZip AES AE-1/AE-2 at every key
-size; duplicate/empty/CP437 names; password, authentication, CRC, descriptor,
-truncation, overlap, SFX, dictionary, output, work, and cancellation failures.
+ZIP-LZMA, both Zstandard IDs, XZ method 95, and PPMd method 98; ZipCrypto;
+WinZip AES AE-1/AE-2
+at every key size; duplicate/empty/CP437 names; password, authentication, CRC,
+descriptor, truncation, overlap, SFX, dictionary, output, work, and cancellation
+failures. Method-95 cases cover all XZ 1.0.4 Checks and permitted prefilters,
+multiple Blocks, Stream Padding, every strict payload prefix, CRC-correct
+header/property/Index mutations, exact Index records, encryption composition,
+and failure before writer or batch-sink finalization.
+Method-98 cases cover every legal property restoration value, order/model
+endpoints, end-marker/exact-input rules, a forced allocator-pressure pass for
+Restart/Cutoff/Freeze, every strict packed prefix, corrupt properties/range
+state/trailing data, declared size/CRC/version disagreement, encryption
+composition, unrelated-entry selection, and failure before writer or batch
+sink delivery.
 RPM tests exercise typed headers, shared-value allocation amplification,
 uncompressed/gzip/BZip2/XZ/LZMA/Zstandard payloads, newc/CRC-newc metadata,
 supported package digests, duplicates/empty members, truncation, corruption,
@@ -64,11 +75,14 @@ method 1--4 archives, exact output SHA-256, main/local/extended and member CRCs,
 encrypted/unknown/split boundaries, packed corruption/truncation, and SFX/
 dictionary/output/work/cancellation limits.
 
-The Python suite creates ZIPs with the standard library and complete RPM,
-CPIO, Debian, and stored-ARJ inputs in memory. It checks format-specific
+The Python suite creates ZIPs with the standard library and project-authored
+in-memory serializers, plus complete RPM, CPIO, Debian, and stored-ARJ inputs.
+It checks format-specific
 metadata, duplicate and empty entries, unsafe paths, one-entry and batch
 callback boundaries, corruption, cancellation, limits, password-required
-classification, and exception preservation through an installed ABI3 wheel.
+classification, XZ method-95 and PPMd method-98 metadata/extraction/errors,
+registered method-94/96/97 names with typed unsupported errors, and exception
+preservation through an installed ABI3 wheel.
 Python test authors never write an archive member name to the filesystem.
 
 A separate Windows oracle job downloads the official stock 7-Zip 26.02
@@ -162,8 +176,9 @@ cargo test -p unpackio --test capability_probe \
 ```
 
 The first command generates Copy, LZMA, LZMA2, Delta, BCJ, BCJ2, PPC, ARM,
-ARM64, SPARC, Deflate, BZip2, PPMd, AES, and synthetic-prefix SFX cases in a
-temporary directory. It compares bytes, SHA-256, size, CRC, method, and name,
+ARM64, SPARC, Deflate, BZip2, PPMd, AES, synthetic-prefix SFX, ZIP XZ
+method-95, and ZIP PPMd method-98 cases in a temporary directory. It compares
+bytes, SHA-256, size, CRC, method, name, and the ZIP version-needed field,
 checks transforming filter input, and rejects packed-data corruption. Its
 exact-version property test additionally generates 24 archives spanning
 decoder-visible dictionary/model/probability/distance/block properties,
@@ -189,6 +204,21 @@ packed/folder/substream checksum scopes, AES password states, shared
 output/work/cancellation limits, and plain/encrypted three-part volume behavior.
 No generated archive is retained.
 
+The separately pinned local-only WinZip/SharpCompress sample set is optional:
+
+```text
+UNPACKIO_WINZIP_TESTDATA=/path/to/pinned/SharpCompress/tests/TestArchives/Archives \
+  cargo test -p unpackio --test winzip_reference --locked -- --ignored --nocapture
+```
+
+`CORPUS.md` records the exact acquisition revision, archive and output hashes,
+method/version/encryption inventory, and redistribution decision. The test
+refuses a changed archive before parsing and then extracts and verifies every
+regular member. Four filenames/upstream tests attest WinZip 26/27 BZip2,
+ZIP-LZMA, XZ, and Zstandard output. The supplemental PPMd sample has no recorded
+producer, tool version, or command and is explicitly not counted as WinZip
+method-98 evidence.
+
 The capability-probe command requires the exact 26.02 oracle and prints
 machine-readable `UNPACKIO_7ZZ_PROBE` TSV records. It distinguishes authoring,
 oracle reading, Rust reading, and platform applicability; the synthetic
@@ -204,9 +234,11 @@ positive compatibility fixtures. The executable override is consumed only by the
 generated differential and capability integration-test harnesses; production
 crates never inspect it or spawn the oracle.
 
-No result is claimed for the literal `<CORPUS>` or `<MALFORMED_CORPUS>`
-placeholders; the owner confirmed that no such external sets are available.
-See `CORPUS.md` and `COMPATIBILITY.md` for the generated-evidence boundary.
+No result is claimed for the historical literal `<CORPUS>` or
+`<MALFORMED_CORPUS>` placeholders; the owner confirmed that no general 7z sets
+are available. The opt-in checksum-pinned ZIPX set above is narrower and stays
+outside the repository. See `CORPUS.md` and `COMPATIBILITY.md` for each
+generated/external evidence boundary.
 
 Standalone stream differentials use native tools only to author temporary
 test input; runtime code never invokes them. Supply one format at a time:
@@ -312,6 +344,12 @@ LibFuzzer counter/feature observations from the subsequent 100,000-execution
 decoder campaign and 50,000-execution campaigns for the other targets are
 recorded, with their sanitizer limitation, in `FUZZING.md`.
 
+The `archive_formats` target additionally creates a valid ZIP method-95/XZ
+and method-98/PPMd member on every input and drives input-selected corruption
+and strict truncation through the same public open/verify/extract path. Every
+iteration requires both fixed streams to extract to the expected `abc` output
+before the hostile variants run.
+
 The twentieth and twenty-first profiles use a fixed stock-`7zz` 26.02 PPMd
 order-6/64-KiB vector
 whose exact command and hashes are recorded in `CORPUS.md`. A core unit test
@@ -369,7 +407,7 @@ mode on platforms which deliberately leave CPython symbols for the loader.
 Build and test the actual package, not an in-tree Python shim:
 
 ```text
-python -m pip install 'maturin==1.13.3'
+python -m pip install 'maturin==1.15.0'
 maturin build --manifest-path bindings/python/Cargo.toml \
   --release --locked --compatibility pypi --out bindings/python/dist
 python -m pip install --force-reinstall bindings/python/dist/unpackio-*.whl
@@ -449,6 +487,23 @@ separate core regression proves that an empty AE-2 member succeeds only with
 an intact authentication tag. They use generated repository-owned
 ZIP/ZipCrypto/WinZip-AES/RPM/CPIO bytes.
 
+On 2026-09-14, the ZIP XZ method-95 review unit passed root/fuzz/binding format
+checks, strict all-target/all-feature Clippy, 227 non-ignored root Rust tests
+plus three doctests, two binding Rust tests, both deterministic fuzz-package
+tests, and cargo-deny 0.20.2 for all three locked dependency graphs. The focused
+ignored differential passed against stock `7zz` 26.02, and the stable-built
+archive-format fuzzer completed 10,000 finite runs with the limitations in
+`FUZZING.md`. An optimized `cp39-abi3` macOS x86-64 wheel built with pinned
+maturin 1.13.3, installed into a clean CPython 3.12.10 environment, and passed
+all 24 installed-package tests. Its SHA-256 is
+`598440040aa065f23dd41a7245d441281454c0f9432cd046e0587ea1ca80dda3`, its
+size is 943,934 bytes, and its installed metadata has neither `Requires-Dist`
+nor entry points. The release benchmark target compiled, but the historical
+7z benchmark run correctly skipped because `UNPACKIO_7Z_TESTDATA` was not set;
+no ZIP throughput or peak-memory claim is made. Miri, Rust 1.85 execution, and
+nightly ASan fuzzing are unavailable on this stable-only host and remain CI
+gates.
+
 The ordinary core coverage pass used cargo-llvm-cov 0.8.7 and Homebrew LLVM
 22.1.8. It measured 76.22% total core line coverage. The new ZIP files measured
 73.39% (`zip/mod.rs`), 77.49% (`zip/parse.rs`), 84.25% (`zip/crypto.rs`), and
@@ -489,3 +544,107 @@ ar parser, and 72.30% for its tar parser; and 66.94% for ARJ orchestration plus
 claims. Miri, 32-bit execution, Rust 1.85, sanitizer-backed fuzzing, and hosted
 Linux/macOS/Windows wheel runs remain configured CI gates rather than local
 evidence on this stable Intel macOS host.
+
+### 2026-09-14 ZIP methods 95 and 98 completion gate
+
+The final locked root workspace runs passed 238 non-ignored Rust tests and
+three doctests in both development and optimized profiles; 25 environment- or
+corpus-dependent tests remained intentionally ignored in each ordinary run.
+Root formatting, warning-denied all-target/
+all-feature Clippy, and warning-denied rustdoc passed. The separately locked
+Python adapter passed formatting, warning-denied all-target/all-feature Clippy,
+warning-denied rustdoc, its all-feature compile check, and both no-default-
+feature Rust tests. The separately locked fuzz package passed formatting,
+warning-denied all-target/all-feature Clippy, and both deterministic generator
+tests. Cargo-deny 0.20.2 reported advisories, bans, licenses, and sources clean
+for all three graphs.
+
+The focused stock-`7zz` 26.02 method-95 and method-98 differentials both
+passed. The checksum-pinned, local-only SharpCompress corpus test passed all
+five archives: four WinZip-labelled BZip2, ZIP-LZMA, XZ, and Zstandard samples,
+plus the explicitly unattributed PPMd sample. The release-only PPMd matrix
+forced Restart, Cutoff, and Freeze restoration under allocator pressure and
+passed exact decoding. The natural-order release benchmark target compiled
+warning-free and then explicitly skipped because `UNPACKIO_7Z_TESTDATA` was not
+set; no ZIP throughput or peak-memory result is inferred from that check.
+
+An ordinary cargo-llvm-cov 0.7.0 run using Homebrew LLVM 22.1.8 measured
+77.11% total core line coverage, 73.91% region coverage, and 44.74% function
+coverage. New-file line coverage was 76.80% for `decode/ppmd_i.rs`, 83.48% for
+`decode/xz.rs`, 80.72% for `zip/decode.rs`, and 83.64% for `zip/mod.rs`. These
+numbers are diagnostic; the corruption, prefix, exact-output, restoration,
+resource-limit, cancellation, encryption-wrapper, and integrity-before-sink
+assertions are the compatibility evidence.
+
+Pinned maturin 1.13.3 built
+`unpackio-0.1.1-cp39-abi3-macosx_10_12_x86_64.whl` with an ABI3 Python 3.14
+build interpreter. The 984,218-byte wheel has SHA-256
+`f6fd5901f5b7f86af91926495e48fb9279bd1ae2707b41cbe6387cd64e9a8b20` and
+passed all 26 tests after installation into a clean CPython 3.12.10 virtual
+environment. Its metadata has no Python runtime dependency or entry point, and
+its license
+payload includes `MIT-SharpCompress.txt`. The 377,921-byte source distribution
+has SHA-256
+`b04feb6ec3fd2368fb2c551e24450c4902f65b1fd5fddb15bf9fdccfc4e467e7`;
+an isolated PEP 517 rebuild produced a distinct 984,299-byte wheel with SHA-256
+`0c2838343e3419f78ac47268c704381d724a21041afe8170dc1f22e22d8aa82f`,
+and that wheel also passed all 26 installed-package tests in a second clean
+environment. The source archive was inspected for both new decoder modules,
+both notices, both SharpCompress license copies, and the binding lockfile.
+
+The final stable-built `archive_formats` harness completed 10,000 seedless
+executions in 99 seconds with no failure and 41 MiB reported RSS, while
+requiring valid method-95 and method-98 extraction before hostile variants.
+This host has neither cargo-fuzz nor rustup/nightly, and the runner reported no
+sanitizer or coverage instrumentation; the run is therefore finite no-panic
+evidence only. Miri is not installed. Rust 1.85, Miri, sanitizer-backed fuzzing,
+32-bit execution, and hosted multi-platform wheel execution remain configured
+CI gates rather than local evidence; the local gates used Homebrew rustc 1.97.0
+and LLVM 22.1.8.
+
+### 2026-09-14 version 0.2.0 dependency and packaging gate
+
+Fresh `cargo update --dry-run --verbose` checks for the root, Python binding,
+and fuzz manifests each selected zero additional Rust-1.85-compatible updates.
+The only newer direct releases are deliberately held: `aes` 0.9.3 requires
+Rust 1.89, `delharc` 0.7/0.8 require Rust 1.93/1.95, and `ruzstd` 0.8.2 uses
+integer APIs absent from Rust 1.85 while 0.9 requires Rust 1.87. Exact selected
+versions, features, checksums, source revisions, and licenses are recorded in
+`DEPENDENCIES.md` and `PROVENANCE.md`. Cargo-deny 0.20.2 reported advisories,
+bans, licenses, and sources clean for all three refreshed lockfiles.
+
+The final development-profile root run passed 238 non-ignored Rust tests plus
+three doctests; 25 external-corpus/environment tests remained intentionally
+ignored. Root formatting, warning-denied all-target/all-feature Clippy, and
+warning-denied rustdoc passed. The separate binding passed formatting,
+warning-denied Clippy/rustdoc, its all-feature compile check, and both Rust
+tests; the fuzz package passed formatting, warning-denied Clippy, and both
+deterministic generator tests. The complete root suite and all-feature binding
+check also passed in the official Rust 1.85.0 Docker image
+(`sha256:1829c432be4a592f3021501334d3fcca24f238432b13306a4e62669dec538e52`).
+The stock-`7zz` 26.02 XZ/PPMd differentials and generated method matrix, plus
+the optimized PPMd restoration-pressure checks, remained clean. The release
+benchmark target compiled. Miri is not installed locally; nightly Miri,
+sanitizer fuzzing, 32-bit execution, and hosted platform wheels remain CI
+gates.
+
+Pinned maturin 1.15.0 built a clean direct
+`unpackio-0.2.0-cp39-abi3-macosx_10_12_x86_64.whl` (997,723 bytes, SHA-256
+`df6344c18d1087125c789fe1461e2bec82650a3efbf4140c438977eaf4912dd1`).
+The corrected 378,041-byte sdist has SHA-256
+`b908265de22cd710eaad4e76661193682eedf573e7be310860e449440bb71dd9`;
+all 119 entries were inspected and none is a nested wheel or distribution
+output; a second build with a populated local `dist-0.2.0` directory proved
+the explicit exclusion rather than relying on a clean tree. An isolated PEP
+517 rebuild produced a 997,877-byte wheel with SHA-256
+`c2613a35a5b178ae751dbaab7dbfe25ff2f718a20aee214e51fcad0298d32612`.
+The direct and rebuilt wheels each installed into a separate clean CPython
+3.12.10 environment and passed all 26 binding tests. Both report version
+0.2.0, no `Requires-Dist`, no entry point, and the complete license/notice
+payload. Checksum-pinned actionlint 1.7.12 and Ruby's YAML parser accepted all
+three updated workflows.
+
+Finally, the refreshed stable `archive_formats` harness completed 10,000
+seedless executions in 92 seconds with seed `2925986431`, no failure, and 49
+MiB reported RSS. Its missing-sanitizer/missing-coverage warnings make this a
+finite no-panic check only; the configured nightly ASan run remains required.

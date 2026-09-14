@@ -21,7 +21,7 @@ input, preserve raw member names and format metadata, and send decoded bytes
 only to a caller-selected writer. Existing 7z `Archive` and standalone
 `CompressedStream` behavior remain unchanged.
 
-ZIP structure is read through exact-version `rawzip` 0.4.4. It is admitted as
+ZIP structure is read through exact-version `rawzip` 0.5.1. It is admitted as
 an internal, safe-Rust, zero-dependency, MIT structural parser; no writer type
 is re-exported. `unpackio` remains responsible for entry-count/name/input/output
 limits, overlap and local-header validation, compression dispatch, passwords,

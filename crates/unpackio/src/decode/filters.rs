@@ -363,22 +363,32 @@ pub(crate) fn decode_filter(
     mut bytes: Vec<u8>,
     control: &mut ParseControl<'_>,
 ) -> Result<Vec<u8>> {
-    if method == METHOD_DELTA {
-        decode_delta(&mut bytes, properties, control)?;
-    } else if method == METHOD_BCJ {
-        decode_x86_bcj(&mut bytes, properties, control)?;
-    } else if method == METHOD_PPC {
-        decode_ppc(&mut bytes, properties, control)?;
-    } else if method == METHOD_ARM {
-        decode_arm(&mut bytes, properties, control)?;
-    } else if method == METHOD_ARM64 {
-        decode_arm64(&mut bytes, properties, control)?;
-    } else if method == METHOD_SPARC {
-        decode_sparc(&mut bytes, properties, control)?;
-    } else {
-        decode_phase5_filter(method, properties, &mut bytes, control)?;
-    }
+    decode_filter_in_place(method, properties, &mut bytes, control)?;
     Ok(bytes)
+}
+
+pub(crate) fn decode_filter_in_place(
+    method: &[u8],
+    properties: &[u8],
+    bytes: &mut [u8],
+    control: &mut ParseControl<'_>,
+) -> Result<()> {
+    if method == METHOD_DELTA {
+        decode_delta(bytes, properties, control)?;
+    } else if method == METHOD_BCJ {
+        decode_x86_bcj(bytes, properties, control)?;
+    } else if method == METHOD_PPC {
+        decode_ppc(bytes, properties, control)?;
+    } else if method == METHOD_ARM {
+        decode_arm(bytes, properties, control)?;
+    } else if method == METHOD_ARM64 {
+        decode_arm64(bytes, properties, control)?;
+    } else if method == METHOD_SPARC {
+        decode_sparc(bytes, properties, control)?;
+    } else {
+        decode_phase5_filter(method, properties, bytes, control)?;
+    }
+    Ok(())
 }
 
 struct Bcj2Cursor<'input> {

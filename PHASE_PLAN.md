@@ -325,7 +325,9 @@ gates passed.
 1. **Implemented:** created a workspace-excluded, separately locked
    `bindings/python` package using PyO3 0.29.0 and maturin 1.13.3. The PyPI
    distribution/import name is `unpackio`; the limited-API native module is
-   `unpackio._native`; the core has no Python dependency.
+   `unpackio._native`; the core has no Python dependency. The 0.2.0 dependency
+   refresh later updated that isolated graph to PyO3 0.29.2 and maturin 1.15.0
+   without changing the adapter architecture.
 2. **Implemented:** mapped the stable path, bytes, and sequential-volume open
    forms; archive-order metadata; limits, cancellation, work budgets, resource
    accounting, verification, writer extraction, and bounded callback streaming

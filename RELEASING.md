@@ -68,10 +68,10 @@ Do not configure a password or API-token secret for this workflow.
    agree.
 2. Commit and push the reviewed release state. Ensure ordinary branch checks
    are green.
-3. Create and push the matching immutable version tag, for example `v0.1.1`.
+3. Create and push the matching immutable version tag, for example `v0.2.0`.
 4. In GitHub Actions, choose **release-pypi**, select that tag in the “Use
    workflow from” selector, and dispatch the workflow. The equivalent command
-   is `gh workflow run release.yml --ref v0.1.1`.
+   is `gh workflow run release.yml --ref v0.2.0`.
 5. Wait for the complete core gates, cargo-deny, MSRV/32-bit/Miri/fuzz jobs,
    six wheel builds, 18 native wheel smoke jobs, sdist rebuild, artifact-set
    validation, and SHA-256 manifest generation to pass.

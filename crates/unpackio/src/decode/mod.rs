@@ -7,6 +7,8 @@ mod filters;
 mod lzma;
 mod phase5_filters;
 mod ppmd;
+mod ppmd_i;
+mod xz;
 
 pub(crate) use aes::decode_aes;
 pub(crate) use codecs::{
@@ -14,9 +16,13 @@ pub(crate) use codecs::{
     decode_zstd,
 };
 pub(crate) use deflate64::decode_deflate64;
-pub(crate) use filters::{decode_bcj2, decode_filter};
+pub(crate) use filters::{decode_bcj2, decode_filter, decode_filter_in_place};
 pub(crate) use lzma::{decode_lzma, decode_lzma2};
 pub(crate) use ppmd::decode_ppmd;
+pub(crate) use ppmd_i::decode_zip_ppmd;
+#[cfg(test)]
+pub(crate) use ppmd_i::encode_zip_ppmd_fixture_for_test;
+pub(crate) use xz::{XzProfile, decode_xz};
 
 /// 7z Copy method identifier.
 pub(crate) const METHOD_COPY: &[u8] = &[0x00];

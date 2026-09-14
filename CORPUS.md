@@ -37,7 +37,7 @@ serializers are test code, not runtime writer APIs. Every generated case is
 extracted by index, so duplicates and unsafe names never become filesystem
 destinations.
 
-The ZIP codec regression embeds four compressed byte strings. Python 3.12
+The original ZIP codec regression embeds four compressed byte strings. Python 3.12
 standard-library `zipfile` generated the BZip2 and ZIP-LZMA streams from 576
 bytes of repeated project text; Zstandard CLI 1.5.7 generated the Zstandard
 frame; the Deflate64 value is a hand-assembled specification-defined stored
@@ -57,6 +57,130 @@ CP437/Unicode names, duplicate/empty entries, ZipCrypto, and WinZip AES
 fixtures are deterministic in-process project serializers. AES passwords,
 salts, and payloads are public test data. Corruption and truncation are derived
 in memory and never retained as redistributable files.
+
+The method-95 regression adds deterministic XZ streams created on 2026-09-14
+from that same 576-byte project text by XZ Utils 5.8.3/liblzma 5.8.3 and Perl
+5.34.1. The baseline command was
+`perl -e 'print "zip codec payload\n" x 32' | xz --format=xz --check=none
+--stdout --lzma2=dict=64KiB`; the local default threaded encoder emitted the
+optional Block Compressed Size and Uncompressed Size fields. Matrix vectors
+added `--threads=1` and, between `--stdout` and `--lzma2=dict=64KiB`, the Check
+and optional prefilter shown below. The nine-Block vector used
+`--check=none --block-size=64`. Only compressed bytes are embedded; XZ Utils is
+a test-only generator/oracle and is not invoked by the package.
+The empty-Stream vector used
+`printf '' | xz --format=xz --threads=1 --check=none
+--lzma2=dict=64KiB --stdout` and contains zero Blocks.
+
+| ZIP XZ method-95 vector | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Empty Stream/NONE | 32 | `42552ae5ec08bdd8101b2057524a81cd8355474226603ac9829be426170ae731` |
+| LZMA2/NONE with optional Block sizes | 88 | `35b398330dbc0c27e62a67ded1cfa6e4ce84dd5c8af04c7489ec5ad8d9d8eb34` |
+| LZMA2/NONE without optional Block sizes | 84 | `748e6669738148cf00a4f0a7b78e2b412551e0ea60ab38109179c4e18eb369d3` |
+| Delta/CRC32 | 92 | `93bc42516a1aaaf756a5ec058407fe6a7b6a8449a7816e6716d2066141a61c5d` |
+| x86/CRC64 | 92 | `c20ff15d6f301b422b4e8ca9dff960a3cd30d8291e669cdd0d18b412b8473e4c` |
+| PowerPC/SHA-256 | 116 | `2e36a2542304ae224568dd90763e942043cceb3effb789f2b3b7fe3f95e71759` |
+| IA64/NONE | 84 | `614c6d077dabe923e87a2a31bb8e610ef2e7045dd1c36a162705f4662ac444ac` |
+| ARM/NONE | 84 | `e989013d93ae1f18fdd89a1c9ef34c4adc1140e29bb3231183bcb22a30581998` |
+| ARM Thumb/NONE | 84 | `81e3b07bad4ae36cd40d1940e87644fd82b3ba733a5091851edc984445a4344d` |
+| SPARC/NONE | 84 | `87c241ee248e1d426cae8f7ffa654c313f098230738d17196c01ffa14245d894` |
+| Nine Blocks/NONE | 480 | `464e2fec4209442e751cc0c8259c82df5e8267bb12baa803c24452fe3c12dffc` |
+
+The fuzz target and Python binding test embed a smaller 52-byte LZMA2/NONE
+stream for project-authored `abc`, generated with
+`printf abc | xz --format=xz --threads=1 --check=none
+--lzma2=dict=64KiB --stdout`. Its SHA-256 is
+`4f1fee78a8bbb91dfc06cd8752d2be2647ae196972c83a5ebc2d0a7ada33f59f`;
+its seven-byte Compressed Data requires one zero Block Padding byte, which is
+also the basis of the CRC-correct padding-corruption regressions. All ZIP
+wrappers, Index/property/header mutations, truncations, declared-size changes,
+and encryption envelopes are project-authored in-memory test derivations under
+the repository's MIT test-fixture terms.
+
+The method-98 fixed vector was created on 2026-09-14 by the locally installed
+black-box `7-Zip (z) 26.02 (x64)` with:
+
+```text
+printf abc | 7zz a -y -tzip '-m0=PPMd:o=2:mem=1m' method98.zip -siabc.bin
+7zz t method98.zip
+```
+
+The resulting method-98 payload is the exact nine bytes
+`01 00 61 03 6e 81 2d 4c 00`: two properties bytes for order 2, 1 MiB, Restart,
+followed by the PPMd-I revision-1 range stream and end marker. Its SHA-256 is
+`b619a182e5da04391b9daf32fb2452abd2d0838e9a5663237bff35dc831fcf86`.
+The decoded bytes are project-authored `abc`, CRC-32 `352441C2`, SHA-256
+`ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad`.
+The oracle emitted version-needed 6.3; the generated regression also exercises
+the specification's minimum 2.0. The executable and full timestamp-bearing
+oracle archive are not retained. A deterministic one-entry project serializer
+around those bytes is 123 bytes with SHA-256
+`2539bd7777b9d5fb4d91805001f4e652b11d1b3505889421a6f460941a409bf8`.
+Only source literals and in-process serialization are committed.
+
+Normal Rust tests also contain a `cfg(test)`-only PPMd-I encoder derived under
+the exact provenance in `PROVENANCE.md`. It creates all legal order endpoints,
+model sizes, and Restart/Cutoff/Freeze cases without exposing a writer in a
+normal build. The fixed `abc` assertion ties it byte-for-byte to the independent
+stock-`7zz` vector. A release-only pressure test forces all three memory
+restoration algorithms in a 1 MiB model. Every strict packed prefix and the
+property/range/trailing/size/CRC/version/limit/cancellation mutations are
+derived in memory and are not retained as archive files.
+
+### Local-only WinZip ZIPX interoperability set
+
+No proprietary-tool sample is committed. On 2026-09-14 a sparse local clone of
+SharpCompress at commit
+`e04d51176c5d87668c4c8779825342230c33aa74` supplied four archives whose
+upstream filenames and tests identify WinZip 26 or 27. Their source commits do
+not record a WinZip command-line or GUI recipe, so the producer command cannot
+be reproduced from the available provenance and is not invented here. The
+archives also contain pre-existing executable/JPEG/text sample content whose
+redistribution provenance is not complete; the deliberate decision is
+local-test-only, never commit or package.
+
+| Local sample | Upstream introduction | Archive SHA-256 | Entries | Method / version needed | Encryption |
+| --- | --- | --- | ---: | --- | --- |
+| `WinZip26_BZip2.zipx` | `224614312fa7992e98f4cab9136c2723892ca103` | `9348eec1f46601bd0d238a15373d60e8f0815f81da76d23c6671e7f54f3c98fe` | 5 | BZip2 (12) / 4.6 | none |
+| `WinZip26_LZMA.zipx` | `224614312fa7992e98f4cab9136c2723892ca103` | `1ecd6aaf943f80f5fbd12225f24877f52676527ce8353946b94c5a579cd6fcf2` | 5 | ZIP-LZMA (14) / 6.3 | none |
+| `WinZip27_XZ.zipx` | `b9d019561f8be6c7195bfeab482824284617f351` | `4a88881c8e5aa3c45d67991969023af3572c910602248061ce3b049080c6c069` | 3 | XZ (95) / 2.0 | none |
+| `WinZip27_ZSTD.zipx` | `92df1ecd5f7579a88a1c5a7d30744a091de95b2a` | `d2bd5d90448b15a9c7450edbc7e5afae66d75482f5a48c74918c74898d8d75ea` | 3 | Zstandard (93) / 2.0 | none |
+
+Every archive has the same three regular-file outputs (the two WinZip 26
+archives additionally retain two directory entries):
+
+| Output bytes | CRC-32 | SHA-256 |
+| ---: | --- | --- |
+| 45,056 | `CFB109C8` | `8557928804f57ecc340b3bb38b095a3607474ec8deb0076f316fcfe02b562106` |
+| 40,372 | `088814E3` | `b251c7501fb0f55dd4a92feabe0a6f5733bc40a02679498155fae9b30138fc53` |
+| 15,498 | `9BD160FA` | `4d581d93d369f6e1c9b295ff38d82dabd577f927dfaf0c35818c015c85e322d9` |
+
+The same pinned corpus includes `Zip.ppmd.zip`, SHA-256
+`957ad400590021536ba46ad494eaf60f2daa134c188c14b63175f9bfba9a4f5a`,
+with six entries and the same three regular outputs encoded as PPMd method 98,
+version-needed 6.3, without encryption. Its history reaches the SharpCompress
+initial commit, but no producer/tool version or command is recorded and its
+name does not attest WinZip. It is therefore an independent local method-98
+sample, not evidence that the outstanding WinZip-PPMd provenance requirement
+has been met.
+
+The local corpus can be reacquired and checked with:
+
+```text
+git clone --filter=blob:none --no-checkout \
+  https://github.com/adamhathcock/sharpcompress.git <local-sharpcompress>
+git -C <local-sharpcompress> sparse-checkout init --cone
+git -C <local-sharpcompress> sparse-checkout set tests/TestArchives/Archives
+git -C <local-sharpcompress> checkout \
+  e04d51176c5d87668c4c8779825342230c33aa74
+UNPACKIO_WINZIP_TESTDATA=<local-sharpcompress>/tests/TestArchives/Archives \
+  cargo test -p unpackio --test winzip_reference --locked -- --ignored --nocapture
+```
+
+The opt-in test checks every archive hash before parsing, then checks entry
+count, method, version, no-encryption state, decoded size, CRC, output SHA-256,
+and full archive verification. The samples remain outside the repository and
+are never used by runtime code.
 
 The RPM compressor regression wraps one deterministic generated CPIO payload
 containing project-authored `first`, `second`, and empty members. Local `bzip2`

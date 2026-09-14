@@ -1,6 +1,6 @@
 # Threat model
 
-Status: Phase 7 Python-FFI review, 2026-07-18. Revisit whenever a provider,
+Status: ZIP XZ/PPMd method-95/98 review, 2026-09-14. Revisit whenever a provider,
 decoder, cryptographic/password layer, filesystem adapter, cache, callback, or
 unsafe boundary is added.
 
@@ -21,8 +21,10 @@ checksums, UTF-16 names, timestamps/attributes/modes, encryption parameters,
 password prompts, standalone LZ4/Zstandard frame fields, and Unix `.Z` codes.
 They may also control ZIP SFX prefixes, end records, central/local/ZIP64 fields,
 extras, descriptors, raw byte names, compression/encryption declarations,
-ZipCrypto/AES ciphertext, and RPM leads, typed header indexes/stores, digest
-tags, payload compressor data, CPIO headers/names/alignment/checksums.
+ZipCrypto/AES ciphertext, XZ Stream/Block/Index/filter/check fields, PPMd-I
+order/model/restoration declarations, range bytes, context transitions, and RPM
+leads, typed header indexes/stores, digest tags, payload compressor data, CPIO
+headers/names/alignment/checksums.
 They may additionally control standalone CPIO layout/endianness, Debian ar
 member order and tar/pax/GNU records, every Debian compression wrapper, ARJ
 SFX prefixes and main/local/extended headers, ARJ method streams, flags,
@@ -62,7 +64,11 @@ policy.
 10. **ZIP boundary:** a located central directory is independently reconciled
     with local headers, extras, data descriptors, ranges, and the exact archive
     end before becoming `ZipEntry`; crypto and decoding consume only that
-    model.
+    model. Method-95 bytes additionally become an XZ Block plan only after the
+    one-Stream profile, Index records, filters, checks, and padding agree.
+    Method-98 bytes become a PPMd-I model only after its exact two-byte
+    properties and declared output have passed limits; the end marker, exact
+    input consumption, size, and CRC remain independent success conditions.
 11. **RPM boundary:** bounded lead/signature/main headers become typed ordered
     values before digest selection; only a verified, bounded decoded payload
     reaches the exact CPIO parser.
@@ -102,6 +108,17 @@ decoder construction. Dictionary and working memory are charged before
 allocation, and allocations use fallible reservation where size remains
 attacker-controlled.
 
+For ZIP XZ, the backward Index is bounded as header data before its Block-plan
+vector is reserved. Its Block count, filter count/properties, total coder count,
+LZMA2 dictionaries, and aggregate declared output are all preflighted before
+the corresponding decoder or output allocation.
+
+For ZIP PPMd, the two-byte declaration is decoded without allocating. Order,
+restoration, coder/property counts, model memory, and declared output are
+validated first. The suballocator is one fallibly reserved bounded byte heap;
+every modeled address and free-list/context transition uses checked offsets.
+Restoration never authorizes growth beyond that heap.
+
 Retained state is also observable. `ArchiveResources` reports checked logical
 input, validated metadata payload, zeroizing password storage, and their sum.
 `MemberReader::retained_bytes` reports the complete decoded folder allocation
@@ -118,6 +135,18 @@ KDF power, parser loops, decoder loops, graph size, output size, and SFX scans
 are bounded. Cancellation and work-budget checkpoints occur between input reads
 and inside decoder loops. Per-entry and total output are charged before bytes
 are released. EOS streams do not bypass output accounting.
+
+Method-95 XZ parsing, each bounded LZMA2 Block decode, reverse prefilter scan,
+and CRC-32/CRC-64/SHA-256 pass share the caller's work budget and cancellation
+token. The Index fixes every Block's compressed and uncompressed extent, and
+exact decoder consumption prevents trailing compressed bytes from becoming an
+unmetered second stream.
+
+Method-98 range normalization, model updates, context/suffix walks, allocator
+maintenance, restart/cutoff/freeze restoration, emitted bytes, and final marker
+checks all consume the caller's work budget and observe cancellation. Context
+and free-list walks have explicit model/order or heap-derived bounds, so a
+cyclic or corrupt modeled address cannot become an unmetered loop.
 
 Deflate64 adds attacker-controlled Huffman trees, matches up to 65,538 bytes,
 and distances up to 65,536 bytes. Code counts are bounded and checked for
@@ -168,6 +197,17 @@ treated as a missing failed check because authentication is its integrity
 boundary. Local/central contradictions and descriptor mismatches are format
 errors, not permission to select whichever value is convenient.
 
+XZ's structural CRCs do not replace its per-Block Check or the ZIP member CRC.
+The implementation reconciles each Index record with its Block, validates the
+declared XZ Check before joining Block output, and then applies the normal ZIP
+decoded-size and CRC boundary. Corruption cannot finalize a writer or batch
+sink entry, including when method 95 is wrapped in ZipCrypto or WinZip AES.
+
+PPMd's end marker does not replace the ZIP size or CRC. All three must agree,
+and exact range-input consumption rejects both concatenated and trailing data.
+The complete entry is decoded and checked before writer/callback delivery, so
+a method-98 failure cannot finalize or partially write a ZIP sink boundary.
+
 RPM signatures and digests are distinct. SHA-1/SHA-256 header digests and
 supported SHA-256 payload digests are integrity checks, not publisher identity.
 OpenPGP blobs remain explicitly unverified metadata until a future trust-store
@@ -209,6 +249,29 @@ must reach their declared length. A terminal missing suffix is accepted only
 after logical archive bounds prove the bytes complete. Reads remain bounded
 when encrypted blocks or packed streams cross a boundary.
 
+Split/spanned ZIP remains unsupported, but its future trust boundary is now
+defined. It must use a ZIP-specific, caller-supplied provider keyed by the
+zero-based disk number and expected canonical segment name; it must not reuse
+7z `.001` naming or discover files/network resources. The final `.zip` disk is
+located explicitly, its EOCD/ZIP64 records fix the last disk, central-directory
+start disk, and per-disk/total entry counts, and only then may the reader request
+disk `0..=last` exactly once in order. Missing, repeated, differently named, or
+provider-changing responses are typed volume errors. Every disk length, count,
+aggregate input, conversion, marker, and logical concatenation offset is
+checked under `max_volumes` and the existing input/header/count limits.
+
+Ranges would be represented as checked `(disk, offset, length)` spans rather
+than flattened offsets. Local and central header records must fit wholly on one
+disk, while compressed data and its descriptor may traverse an ordered sequence
+of disks. The central directory may traverse disks only at record boundaries.
+The first-disk `0x08074b50` spanning marker and single-segment `0x30304b50`
+temporary marker are position-sensitive and cannot be confused with a data
+descriptor. All volume fetches, span walks, checksum/decryption/decompression,
+and missing-volume handling must share one work budget and cancellation token.
+No bytes may become an entry model until disk-number fields, names, markers,
+cross-disk ranges, local/central agreement, and exact final physical end all
+reconcile. This design record is not an implementation claim.
+
 ### SFX false positives
 
 Executable prefixes may contain fake signatures or overflow subsequent ranges.
@@ -236,6 +299,31 @@ passwords are byte sequences, stored per `ZipArchive`, zeroized on drop, and
 never recoded, logged, or cached. Wrong-password and corrupt-encrypted-data
 states use the typed password/corruption errors available at the point of
 detection.
+
+PKWARE Strong Encryption and encrypted central directories remain unsupported
+after a separate format review. A future parser would first require general
+purpose bits 0 and 6, reconcile central-only extra field `0x0017` format 2 with
+the per-file decryption header format 3, and bound every IV, encrypted-random,
+certificate-reserved, validation, recipient, and hash field before allocation.
+It would validate the declared algorithm ID/key length/flags as a closed pair
+before choosing any primitive. The registered set includes legacy RC2, RC4,
+DES, and 3DES plus AES, Blowfish, and Twofish; block ciphers use CBC, and the
+master/file-session construction uses SHA-1-derived key material. Password and
+certificate paths are separate trust models and cannot silently fall back to
+one another.
+
+Encrypted-central-directory support would additionally require ZIP64 EOCD
+version-2 fields, version-needed 62, the Archive Decryption Header, optional
+central compression, checked masking of local name/CRC/size/method fields, and
+withholding every member name and count until the directory is decrypted and
+its declared hash/integrity policy succeeds. Random access and streaming cannot
+be claimed for that layout. Any future password KDF must have explicit byte,
+round, memory, work, and cancellation bounds; secrets remain per archive and
+zeroized. Certificate recipient counts and blobs need independent count/size/
+recursion limits and an explicit trust-store policy. No cryptographic crate or
+certificate stack is admitted yet: the specification's proprietary/patent
+warning, legacy algorithms, broad certificate surface, and absence of audited
+redistributable fixtures leave the current typed-unsupported result mandatory.
 
 ### RPM header and payload amplification
 
@@ -269,6 +357,12 @@ source policy, while manual admission reviews packaged notices, origins,
 features, unsafe code, and algorithm provenance. Official 7-Zip/p7zip source is
 never inspected or used; `7zz` is executable test-oracle input only.
 
+The version 0.2.0 refresh compares direct packages with their authoritative
+registries, retains newer releases only when they satisfy the tested Rust 1.85
+floor and admission policy, and records exact checksums/source revisions for
+material decoder/parser updates. All three independent lockfiles remain
+subject to advisory, ban, license, and source checks.
+
 Release workflow code is another supply-chain input. Publication is restricted
 to a manually dispatched version tag whose Rust/Python metadata agrees with the
 tag. Six platform wheels and the sdist are produced in jobs without OIDC
@@ -276,8 +370,10 @@ publishing permission, installed and tested on CPython 3.12--3.14 for every
 native target, assembled as a fixed seven-file set, and hashed before approval.
 The publish job has no checkout or build step, downloads only that aggregate
 artifact, and receives `id-token: write` only after the protected `pypi`
-environment is approved. The official publishing action and maturin action are
-commit-pinned; PyPI credentials are short-lived and no reusable secret exists.
+environment is approved. Every third-party workflow action is commit-pinned;
+PyPI credentials are short-lived and no reusable secret exists. The sdist
+builder excludes local distribution directories, and CI inspects the archive
+for nested wheels/build output before rebuilding it in isolation.
 
 ### Python callbacks, reentrancy, and unwinds
 
@@ -461,6 +557,16 @@ and methods explicitly marked unsupported in `COMPATIBILITY.md` return typed
 errors or remain preserved bounded raw metadata; they are not compatibility
 claims.
 
+ZIP method identifiers 94 (MP3), 96 (JPEG), and 97 (WavPack) are recognized
+for metadata only and fail with `UnsupportedMethod` before a codec parser or
+allocation is entered. Method 96's published container adds bundled metadata,
+an inner LZMA stream, JPEG marker/scan parsing, arithmetic coding, and exact
+reconstruction; method 97 requires a WavPack bitstream plus preservation of
+the original RIFF wrapper and unused sample bits. Method 94 has no public
+payload-framing specification located by this review. Those surfaces require
+their own parser, recursion/count/memory/work models, fixtures, and admissible
+safe decoders; numeric registration alone is not sufficient.
+
 The opt-in stock-`7zz` capability suite executes only in integration tests and
 uses unique temporary paths. Its result classifications never enter runtime
 feature selection. Oracle acceptance without semantic evidence does not relax
@@ -510,12 +616,19 @@ the parser must reach the changed packed-size or property declaration. They do
 not alter production validation, and encrypted inner headers are never treated
 as plaintext merely to manufacture coverage.
 
-The deterministic PPMd seed retains only a 49-byte packed test vector authored
+The deterministic 7z PPMd seed retains only a 49-byte packed test vector authored
 by exact stock `7zz` 26.02 from project text. It is never runtime input or a
 decoder fallback. Its positive path is paired with every-prefix truncation,
 meaningful corruption, property, CRC, dictionary/output/work, and cancellation
 regressions, so oracle authorship does not confer trust or bypass any resource
 or integrity boundary.
+
+ZIP PPMd method 98 is independent of that 7z seed. Its normal tests use a
+test-only in-crate encoder and a checksum-pinned nine-byte black-box `7zz`
+vector, while the ignored differential creates a fresh method-98 archive and
+requires both decoders to agree. The test encoder is absent from non-test
+builds and exposes no creation API. A local-only, hash-pinned external corpus
+adds method-98 interoperability evidence without being packaged or trusted.
 
 Archive creation, modification, automatic filesystem extraction, downstream
 application integration, network volume fetching, and isolation from a hostile
