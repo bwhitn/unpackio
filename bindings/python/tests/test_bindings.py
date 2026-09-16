@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import binascii
 import hashlib
 import importlib.metadata
@@ -38,6 +39,229 @@ XZ_METHOD_95_ABC = bytes.fromhex(
 # Stock 7zz 26.02 encoded b"abc" with method 98, order 2, 1 MiB,
 # and Restart restoration. CORPUS.md records the command and hashes.
 PPMD_METHOD_98_ABC = bytes.fromhex("010061036e812d4c00")
+# WavPack 4.80.0 `-hh` encoded the deterministic project-authored 8-bit
+# mono RIFF/WAVE vector recorded in CORPUS.md.
+WAVPACK_METHOD_97_PCM8 = bytes.fromhex(
+    "7776706bc40000000704000041000000000000004100000004189c00283e317e"
+    "2116524946468000000057415645666d74201000000001000100401f0000401f"
+    "0000010008006461746141000000020857574748465747494c4a484b4d465747"
+    "43070a0afef6040301fb0c01fc0201000402eaf7cff705035e09e109af0a6502"
+    "180000008a2200007f632e3acf39e026af6ddad19aac4b3d5140cdb6689798d6"
+    "70d331c56e185e31cb31b9e20d6b99c3b85aed76d794615b8e76a37394415c8"
+    "d72a33700a05d8ddf88d1fdff7776706b360000000704000041000000000000"
+    "00000000000000000000000000620e004c49535411000000494e464f6d657468"
+    "6f6439372d70636d380000"
+)
+WAVPACK_METHOD_97_PCM8_WAVE = bytes.fromhex(
+    "524946468000000057415645666d74201000000001000100401f0000401f0000"
+    "0100080064617461410000000b30557a9fc4e90e33587da2c7ec11365b80a5ca"
+    "ef14395e83a8cdf2173c6186abd0f51a3f6489aed3f81d42678cb1d6fb20456a"
+    "8fb4d9fe23486d92b7dc01264b004c49535411000000494e464f6d6574686f64"
+    "39372d70636d3800"
+)
+METHOD96_JPEG = base64.b64decode(
+    """/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkI
+CQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQ
+EBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAGAAgADAREA
+AhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAQI/8QAGRABAQEBAQEAAAAAAAAAAAAAABNhARJR
+/8QAGQEBAQEBAQEAAAAAAAAAAAAAAAIDAQUG/8QAFhEBAQEAAAAAAAAAAAAAAAAAABES/9oADAMB
+AAIRAxEAPwDAE32NeJCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJ
+lITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUh
+MpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlIpnjKqhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ
+4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCk
+J4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPC
+kJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkJ4UhPCkUzxmqE8CE8CE8CE8CE8CE8CE8CE8CE8CE
+8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8
+CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8CE8C
+E8CE8CE8CKZs6uEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmU
+hMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEy
+kJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKRT41nVQ8aUh40pDxpSHjSkPGlIeNKQ8aUh40
+pDxpSHjSkPGlIeNKQ8aUh40pDxpSHjSkPGlIeNKQ8aUh40pDxpSHjSkPGlIeNKQ8aUh40pDxpSHj
+SkPGlIeNKQ8aUh40pDxpSHjSkPGlIeNKQ8aUh40pDxpSHjSkPGlIeNKQ8aUh40pDxpSHjSkPGlIe
+NKQ8aUh40pDxpSHjSkPGlIeNKQ8aUh40pDxpSHjSkPGlIeNKQ8aUh40pDxpSKps6uEykJlITKQmU
+hMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEy
+kJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQm
+UhMpCZSEykJlITKRTLGVUSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoS
+woSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSw
+oSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwoSwopnz51npcJ8+dNEJ8+d
+NEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8
++dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNE
+J8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+d
+NEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8
++dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEJ8+dNEVTxnVE8KE8KE
+8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8
+KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8K
+E8KE8KE8KE8KE8KE8KE8KE8KE8KE8KKZ9+M6qE+/CkJ9+FIT78KQn34UhPvwpCffhSE+/CkJ9+FI
+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
+QmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZ
+SEykJlITKQmUhMpCZSEykUzZrhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhM
+ITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwh
+MITCEwhMITCEwhMITCEwinxrOunjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNK
+HjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40
+oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHj
+Sh40oeNKKZs2kJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmE
+JhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQm
+EJhCYQmEUTZ10mUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQ
+mUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZ
+QmUJlCZRT41lpcPGmiHjTRDxpoh400Q8aaIeNNEPGmiHjTRDxpoh400Q8aaIeNNEPGmiHjTRDxpo
+h400Q8aaIeNNEPGmiHjTRDxpoh400Q8aaIeNNEPGmiHjTRDxpoh400Q8aaIeNNEPGmiHjTRDxpoh
+400Q8aaIeNNEPGmiHjTRDxpoh400Q8aaIeNNEPGmiHjTRDxpoh400Q8aaIeNNEPGmiHjTRDxpoh4
+00Q8aaIeNNEPGmiHjTRDxpoh400Q8aaIeNNEPGmiHjTRDxpoiqSKskUJFCRQkUJFCRQkUJFCRQkU
+JFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQk
+UJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRQkUJFCRRRPGWnYTw0QnhohPDRCeGiE8NEJ4a
+ITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0Qnh
+ohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCe
+GiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRFc8Z6XCeG
+iE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4
+aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0Qn
+hohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRC
+eGiE8NEJ4aIqmzqoTKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpC
+ZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlI
+TKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpFE2a4TCEwhMITCEwhMITCEwhMITCEwhMIT
+CEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMI
+TCEwhMITCEwhMITCEwhMITCEwhMITCEwhMITCEwhMIqn1nVE+lCfShPpQn0oT6UJ9KE+lCfShPpQ
+n0oT6UJ9KE+lCfShPpQn0oT6UJ9KE+lCfShPpQn0oT6UJ9KE+lCfShPpQn0oT6UJ9KE+lCfShPpQ
+n0oT6UJ9KE+lCfShPpQn0oT6UJ9KE+lCfShPpQn0oT6UJ9KE+lCfShPpQn0oT6UJ9KE+lCfShPpQ
+n0oT6UJ9KE+lCfShPpRRNkomBMCYEwJgTAmBMCYEwJgTAmBMCYEwJgTAmBMCYEwJgTAmBMCYEwJg
+TAmBMCYEwJgTAmBMCYEwJgTAmBMCYEwJgTAmBMCYEwJgTAmBMCYEwJgTAmBMCYKZ4zqyeFCeFCeF
+CeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFC
+eFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCeFCe
+FCeFCeFCeFCeFCeFCeFCeFCeFCeFFM+s9KJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpo
+J9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPp
+oJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBPpoJ9NBP
+poJ9NBPpoJ9NBPpoJ9NBPpoJ9NCmaKsmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJ
+lCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmU
+JlCZQmUJlCZQmUJlCZQmUJlCZRTPGWlQnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw
+0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohP
+DRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE
+8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiKp9+cZ6VCffnDRCffnDRCffnDRCffnD
+RCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCff
+nDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRC
+ffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnD
+RCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCff
+nDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRCffnDRFMsZ1UJYUhLCkJYUhLCkJYUhL
+CkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUh
+LCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYU
+hLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUhLCkJYUiqbNcJhCYQmEJhCYQmEJhCYQmEJ
+hCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmE
+JhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEJhCYQmEU+NZ1R40oeNKHjSh40oeNKHjSh4
+0oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKH
+jSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSh40o
+eNKHjSh40oeNKHjSh40oeNKHjSh40oeNKHjSimbKrJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmU
+JlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQm
+UJlCZQmUJlCZQmUJlCZQmUJlCZQmUJlCZQmUUzxnVE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8
+KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8K
+E8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE8KE
+8KKZ4z0qE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeG
+iE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4
+aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0QnhohPDRCeGiE8NEJ4aITw0Qn
+hohPDRCeGiE8NEJ4aITw0RTNnVQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlIT
+KQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpC
+ZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSKZ4yq4TwpCeFITwpCeFITwp
+CeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITw
+pCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFIT
+wpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpCeFITwpFM2dVCZSEykJlITKQmUhMpCZS
+EykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITK
+QmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZSEykJlITKQmUhMpCZ
+SEykJlIplxnVwlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJ
+cKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCk
+JcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXCkJcKQlwpCXC
+kJcKQlwpCXCkJcKR/9k="""
+)
+METHOD96_ARCHIVE = base64.b64decode(
+    """UEsDBBQAAABgAFuoL11Z/iJ0UwwAAI8eAAAdAAAAbWV0aG9kOTYtcHJvamVjdC1hdXRob3JlZC5q
+cGcEEAEIJQGZAAB/thvt8IRAWOOR3hAnVoocjtI2ZxoIIquli19HItKehD3/s5On6RhvpY8aCmv6
+8bQ2HGGP6PL0peHo4d8cI5ncYWirWvnsM3oohdQ7iQ8uYYC6Hze3XZCcdY9nCW9jX3KmZuLmltEy
+P1T1z7Yi2dPe1XniAqtpL/T02yEKeAclGNb4cJOK+n+92JdB54CaTlJC28sg1AQAAAuW5byOnGLx
+i8YvGLxi8YvGLxi8YvGLuqAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACTxzrFq7/O9Pgp2Dr27vOO7
+kYosYanpTLHj3GuKthcTbq0N34aAZ6KTlYIy7wSfAAm1/BR5Rlytb/6EGvvJtQAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAmJkVQAAAAAAAAAAAAAAAAAAAAACQwDNSLZbHBkebf+0cXlPRvxhoqJp/HE
+pRAAAAZ/qG8PdOQcmc/BONAS3swcTovcwTXr0RJdzuo//8iG+yPW/P6+BxDhmJiAAABILPzHHQyJ
+8uB0blxwN6UFn9b31IvtQAAAAMvQTbMvwTHtfjcdoU82Jowtffh1iTg3mF8nTunPJgL7GyF2qane
+/hRdhppk9RWk4AAAAAAAAAFc5XyGwGizLNzj+UFNhPLut8lL7V8jL2RwsDFsV268bX6LNPNCDUkh
+hZAsoMUc0RAWW/HhKVOswrbvwQBOZZF3U0ivIWRlPwAAAAAAAAAAAAAAAG4tgJOdNZPF56xPSP7j
+6vijAAAAAnl8KuHyWmZjz764yV+CLvwKhDXJQPG1AAAAAAAAAAAAARpQyfmdwpfUVB5MEVKLM3W0
+7z5UkJyG0DKriIWmBn2O38JWrFJPdK30KY/zdzLXrx/NH3dhbAAAAANYHAZ8rnh+bEhZlsO775D0
+AAABaXydlVSlyT8x6aTA1uyuXNVYCuLGBjjigRQXvOJm3+gAAAAB27Q+YPEywjQ+Ob4a2O/FgAAA
+ADJiaStNVcCNoQY0MpuSoAANuSwAAAph9aWc1M6NKa4mzcA5XLQZZKdZYL2o8AAAO3TgLiy7h3K+
+Ln9SjteQpDFV3xN/kBM12QflX6lbmpnPQak4Mbqs8dsFkz66RY+czSbEMbNO+3AAAAQPNB7A91AQ
+QSmJXQGHAAAAAFKWz/owa1z92yGxx6PXplxjh5H9dH0gjcf0JqlXXtHSrucAAIR6ErpGA96bHSeE
+vKJl++6bPvLgAAAAAAA4skAAAAXzYBHdVLk88exrc225Yrf22YH9k8v2R2naFSNDTCyrLy+p/Rpk
+Ouh5ZGxwAAOn/SUHUwkqMv1jB1fsPIAA0K2iTJ1vmOcik8qIAAAAUBUyMC2br+p6B1y3hUUlPYKY
+FzHmtFbpQYAAB2ezZzJ17aKgWqRKjUNdvyvTYuz9+YogeNHNhN8oATKgAAAAFus2xUKxyyOERR4n
+x76+ZUtnfuO7zNIiAAAAABioZm3sTXOQuAvDQ43SPzk9Ip3Vb1FDIfoFKjeVbOIV8CAAAAAAAAPl
+55Qp3o0KkM52tJEu8AAAAAAAzRJCT1t/mxdchiFQAAA3EYC1YwrBYb8URMiStvOashfFUOSrPoCD
+aYK9GQpjpUvpUP5i54AABf3U2He7d+dhLb8rSsUb/horApe/gAAVSqbUC6rkUr5dW1kj/vFiK0HA
+GgxnUQAAH2/FucGB503+Ekvfut+5czq4q9QWsH4YyAAAAAFaSSfGf2y74VLRoBa8tHAACRAbmBd6
+45+EXNiHo2cAACEubB3UK41SqP0CLJF+Crd1jhdqUdsUffeha11/sVI+WQMKLu9B6Q5Ti7AAABGN
+R2TvzHB/W5T0YxDuWtxuSwcm7nezUiuIAw2xpm1/9i6hSeUN2PF0AAtyfFibKWp+adW/nNPrEhuR
+24WroyKCyhHx0ZaUyAAE+QvbpfPEmND+22QAAAD3tGm5rYYIvBeHpPu/EgAAUjKJp0LXALQyxVzb
+91wAAHLGPmlwtWOh7mRKLcuAXeQ62eCAAABVUi9DnSauC5nx7vTydivSZqLUQAXLmhYAANAKh+1M
+RM96RHbEQO+pQABeqsZlSR6ufbor2mnqYAAIgsAy8pHMiiPswtGkz47GcTa+xycetImGUecXhKXW
+3j8CN3MgDmMvDtChURlIYAAAAAAIfbxDRQFAUBQFAUBQFAUBP9AAAAAAAAAAAAAAAAAAAAI0FYB8
+unnS1bJRKcM6TcIrt3JuQAAAAAAAAAAF3glVugrkgllADR60NbL7PKYupxw4opDyv74AAAAAEWPb
+PPuQAlMdq5LoxLcuAAADQMAAAAjCgAAHRewAGtnFZ/3GZdhl/ZZt32jWZAAAAAAAAAAAAAAAAAAA
+AAAd49RPtYIV4AM23y2fFJlPCFStU9ceeYAAAOG3GSb9jnbNQ09FmVVAAA8XwgAS7QKRfWKrsYIn
+fq6lGDjkl1qFo9mAqX9+8BXNpJAAAAewB8Dxb2Fk+w/51KWNZedAGtZBA+d9zhlAPqCQAAAAAIl2
+K+MnP4Nlxynj1BiMAAXnhxiSBCWk+EKjIC+8AE+3QAAK25mEMWixJ9bhC4AM9Kp7UPLB60AAgDmJ
+AAAAAEg/+dcZEf59crWTn06zc7tp+3fczj9JEJ32gAAAAAAAASuMNHNKCkYi+nKVcAAAEAkHUj0t
+nH6Qi1fot/bKs5lW4xi3u4EAAAACKr7qDQGD1+Q22atLAAAWmXzPI1Q7u+RoeOC5JAARjxeABipk
+vJ21Ixs+nRd+pDGqf4noa3AOMsABcF78cDS7dqi4GI21zdGW8Us2XhQADQu8roFJ9UG/AAy3nfz5
+TBDWm4loqJsAAMkV/7lEQUBxts6GgBTUACje/ihxa9M7olDTATysJA7BnwMins/r6Ua787jm+wJ7
+niPmSdgAAADtyEqwFNax65AlbPUCQAzWSOoESE0GAwuHhKIADpNanjCBvgebOzjfkcn+r2qPWCEU
+QADPN5sjxuMPDDdV6AACkO+LKlDtv/gABNn16pcWk46zHMi3jT8nxbLS7Y4AAAArnR8TkQEToU7h
+hIb2YgACfacUjAIESBxVWUVFmsjTIAL24N8/wAAqhx8ubA8cgfgAXvwhZnPo2oOaYdCqgAAAB3yD
+EeYviyei/1CtoWwvCa3o1HFQAEhOWR65i4YNoABmbAAAAAl8jM2WhaFoWhaFoWhaFoWfKAAAAAAA
+AAAAAAAAAAAAABArAAAAAAAADNQAqaQABnDBUMgAXZwpVtZX3WTvfQygJmaT2nEt80eLT3UyIiRl
+AkfEAAADtiVKWcirbh22RgAAQILWX64JPLQKkIC4okAASXKFediAjlF3RyLHXkAETFU3rAUq+TBK
+tSWEYABpm1if0Nw/58pERKlADnQe1pFOz1IXnKpHdiuv0WWXuzM03mWTP6D75gQAAHcx9Gcpkf/9
+phi9jN32tWMzE5bA3QCCxdlNJ+igQAAAAAjU529J65aT1VYurOTrAAAiO5CRjhNlZfb9UuwsAABr
+ZOIUaHuDvPINcL6CQAIJ3930WJTjFxoYrWoAAi/X0QPfTiYwO25D4IADjoAlw/ctAWw+iNIjxi54
+xc8XpZvYcgAxAE3WwKcFY56iDsoAKfNq5v9E8vtaiXe2+N4y4zJXK7nQqp4a56+mwQIK4xV/2F2g
+PXgABghK0BJJKs0XUN63YWqABYHyH+Ut4ceZKlniwAAGXWVWRKqVJXekB/02tAHLOI8kJA+uezLe
+s7rv2tBphT2MNl+HWgAAAsDpICG36D5+DqE14fUGOxmVV4M7kvmmpIQ/ZIW1AAOJBk/KpvZEm2AA
+B5QkCTeGhQLTrwHCQCUH6vFQHri3HtCvEYAze6CLb/Es32HUjEfF0y6RUjYSvsAABBKAAAAAAAAA
+AAAAAAAA0YCABOTJTgDDMGfV41lEiYBDFwzvTOAzrtAQAAAAFLsCECY+vNSz26WaQAGswhpzSGms
+Ky8J7l61QAA6RRY4bTkXzQAjCGn2QAENYX4uRG8+kphjZwAAGT5tE7BfGrPXHEw6Fyky5LJ1uCKM
+DXwGq4tHQTxT7AvWGmPo/Mqu/xkZY882Wtzl9tpkAAAA+Rq6HZhLsylyobPouwAAtZMuU96WHexf
+/h8BABUxN1LmxkBQ5q2ygVCwAMKLu2afHklPTHwEAAAkB0JlLvh5L8ppmHSAMPD2ovpeZHU04giE
+AcPgE/04hUn2ENAvMAAAAAIAAAD/2VBLAQIUABQAAABgAFuoL11Z/iJ0UwwAAI8eAAAdACQAAAAA
+AAAAIAAAAAAAAABtZXRob2Q5Ni1wcm9qZWN0LWF1dGhvcmVkLmpwZwoAIAAAAAAAAQAYAMAsdhp3
+Rd0BwCx2GndF3QGwBXYad0XdAVBLBQYAAAAAAQABAG8AAACODAAAAAA="""
+)
+METHOD96_PAYLOAD = METHOD96_ARCHIVE[59 : 59 + 3_155]
+
 
 
 def raw_lz4_frame(payload: bytes) -> bytes:
@@ -647,9 +871,12 @@ class BindingTests(unittest.TestCase):
                 "LICENSES/BSD-3-Clause-bodgit-sevenzip.txt",
                 "LICENSES/BSD-3-Clause-netbsd-zopen.txt",
                 "LICENSES/BSD-3-Clause-ulikunitz-xz.txt",
+                "LICENSES/BSD-3-Clause-wavpack.txt",
                 "LICENSES/MIT-SharpCompress.txt",
                 "LICENSES/MIT-rpmfile.txt",
                 "LICENSES/MIT-stangelandcl-ppmd.txt",
+                "LICENSES/MIT-wavicle.txt",
+                "LICENSES/MIT-xarchive.txt",
                 "LICENSES/README.md",
                 "NOTICE",
             },
@@ -935,20 +1162,209 @@ class BindingTests(unittest.TestCase):
             )
         self.assertEqual(output.exception.limit, "entry_output_bytes")
 
-    def test_zip_registered_recompression_method_names_remain_unsupported(self) -> None:
-        for method_id, method_name in [(94, "mp3"), (96, "jpeg"), (97, "wavpack")]:
-            with self.subTest(method=method_name):
-                encoded = encoded_zip_archive(
-                    [(b"registered.bin", b"not decoded", b"\x00", method_id, 20)]
-                )
-                archive = unpackio.open_zip_bytes(encoded)
-                entry = archive.entry(0)
-                self.assertIsNotNone(entry)
-                self.assertEqual(entry.compression_method, method_name)
-                self.assertEqual(entry.compression_method_id, method_id)
-                with self.assertRaises(unpackio.UnsupportedMethodError) as raised:
-                    archive.extract_entry_to(0, io.BytesIO())
-                self.assertEqual(raised.exception.method_id, struct.pack("<H", method_id))
+    def test_zip_wavpack_method_97_output_limits_and_errors(self) -> None:
+        encoded = encoded_zip_archive(
+            [
+                (
+                    b"method97.wav",
+                    WAVPACK_METHOD_97_PCM8_WAVE,
+                    WAVPACK_METHOD_97_PCM8,
+                    97,
+                    20,
+                ),
+                (b"stored.bin", b"ok", b"ok", 0, 20),
+            ]
+        )
+        archive = unpackio.open_zip_bytes(encoded)
+        entry = archive.entry(0)
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.compression_method, "wavpack")
+        self.assertEqual(entry.compression_method_id, 97)
+        self.assertEqual(entry.version_needed, 20)
+
+        writer = io.BytesIO()
+        self.assertEqual(
+            archive.extract_entry_to(0, writer), len(WAVPACK_METHOD_97_PCM8_WAVE)
+        )
+        self.assertEqual(writer.getvalue(), WAVPACK_METHOD_97_PCM8_WAVE)
+        chunks: list[bytes] = []
+        self.assertEqual(
+            archive.stream_entry(0, chunks.append), len(WAVPACK_METHOD_97_PCM8_WAVE)
+        )
+        self.assertEqual(b"".join(chunks), WAVPACK_METHOD_97_PCM8_WAVE)
+        sink = CollectEntrySink()
+        self.assertEqual(
+            archive.extract_entries_to(sink), len(WAVPACK_METHOD_97_PCM8_WAVE) + 2
+        )
+        self.assertEqual(bytes(sink.entries[0]), WAVPACK_METHOD_97_PCM8_WAVE)
+        self.assertEqual(bytes(sink.entries[1]), b"ok")
+        archive.verify()
+
+        for limits, expected_limit in [
+            (unpackio.Limits(max_dictionary_bytes=0), "dictionary_bytes"),
+            (unpackio.Limits(max_coder_property_bytes=1), "coder_property_bytes"),
+            (unpackio.Limits(max_stream_frames=1), "stream_frames"),
+        ]:
+            limited = unpackio.open_zip_bytes(encoded, limits=limits)
+            untouched = io.BytesIO()
+            with self.assertRaises(unpackio.LimitExceededError) as raised:
+                limited.extract_entry_to(0, untouched)
+            self.assertEqual(raised.exception.limit, expected_limit)
+            self.assertEqual(untouched.getvalue(), b"")
+
+        with self.assertRaises(unpackio.LimitExceededError) as work:
+            archive.extract_entry_to(0, io.BytesIO(), max_work_units=0)
+        self.assertEqual(work.exception.limit, "work_units")
+        token = unpackio.CancellationToken()
+        token.cancel()
+        with self.assertRaises(unpackio.CancelledError):
+            archive.extract_entry_to(0, io.BytesIO(), cancellation=token)
+
+        corrupt_payload = bytearray(WAVPACK_METHOD_97_PCM8)
+        corrupt_payload[28] ^= 1
+        corrupt = unpackio.open_zip_bytes(
+            encoded_zip_archive(
+                [
+                    (
+                        b"bad.wav",
+                        WAVPACK_METHOD_97_PCM8_WAVE,
+                        bytes(corrupt_payload),
+                        97,
+                        20,
+                    ),
+                    (b"healthy.bin", b"ok", b"ok", 0, 20),
+                ]
+            )
+        )
+        untouched = io.BytesIO()
+        with self.assertRaises(unpackio.ChecksumError):
+            corrupt.extract_entry_to(0, untouched)
+        self.assertEqual(untouched.getvalue(), b"")
+        corrupt_sink = CollectEntrySink()
+        with self.assertRaises(unpackio.ChecksumError):
+            corrupt.extract_entries_to(corrupt_sink)
+        self.assertEqual(corrupt_sink.events, [])
+        healthy = io.BytesIO()
+        self.assertEqual(corrupt.extract_entry_to(1, healthy), 2)
+        self.assertEqual(healthy.getvalue(), b"ok")
+
+        newer_payload = bytearray(WAVPACK_METHOD_97_PCM8)
+        newer_payload[8] = 8
+        newer = unpackio.open_zip_bytes(
+            encoded_zip_archive(
+                [
+                    (
+                        b"newer.wav",
+                        WAVPACK_METHOD_97_PCM8_WAVE,
+                        bytes(newer_payload),
+                        97,
+                        20,
+                    )
+                ]
+            )
+        )
+        with self.assertRaises(unpackio.UnsupportedFeatureError):
+            newer.extract_entry_to(0, io.BytesIO())
+
+    def test_zip_jpeg_method_96_output_limits_and_errors(self) -> None:
+        self.assertEqual(len(METHOD96_JPEG), 7_823)
+        self.assertEqual(len(METHOD96_PAYLOAD), 3_155)
+        archive = unpackio.open_zip_bytes(METHOD96_ARCHIVE)
+        entry = archive.entry(0)
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.compression_method, "jpeg")
+        self.assertEqual(entry.compression_method_id, 96)
+        self.assertEqual(entry.version_needed, 20)
+
+        writer = io.BytesIO()
+        self.assertEqual(archive.extract_entry_to(0, writer), len(METHOD96_JPEG))
+        self.assertEqual(writer.getvalue(), METHOD96_JPEG)
+        chunks: list[bytes] = []
+        self.assertEqual(archive.stream_entry(0, chunks.append), len(METHOD96_JPEG))
+        self.assertEqual(b"".join(chunks), METHOD96_JPEG)
+        archive.verify()
+
+        encoded = encoded_zip_archive(
+            [
+                (
+                    b"method96.jpg",
+                    METHOD96_JPEG,
+                    METHOD96_PAYLOAD,
+                    96,
+                    20,
+                ),
+                (b"stored.bin", b"ok", b"ok", 0, 20),
+            ]
+        )
+        for limits, expected_limit in [
+            (unpackio.Limits(max_header_bytes=292), "header_bytes"),
+            (unpackio.Limits(max_dictionary_bytes=0), "dictionary_bytes"),
+            (unpackio.Limits(max_stream_frames=1), "stream_frames"),
+        ]:
+            limited = unpackio.open_zip_bytes(encoded, limits=limits)
+            untouched = io.BytesIO()
+            with self.assertRaises(unpackio.LimitExceededError) as raised:
+                limited.extract_entry_to(0, untouched)
+            self.assertEqual(raised.exception.limit, expected_limit)
+            self.assertEqual(untouched.getvalue(), b"")
+
+        with self.assertRaises(unpackio.LimitExceededError) as work:
+            archive.extract_entry_to(0, io.BytesIO(), max_work_units=0)
+        self.assertEqual(work.exception.limit, "work_units")
+        token = unpackio.CancellationToken()
+        token.cancel()
+        with self.assertRaises(unpackio.CancelledError):
+            archive.extract_entry_to(0, io.BytesIO(), cancellation=token)
+
+        corrupt_payload = bytearray(METHOD96_PAYLOAD)
+        corrupt_payload[1_500] ^= 0x20
+        corrupt = unpackio.open_zip_bytes(
+            encoded_zip_archive(
+                [
+                    (
+                        b"bad.jpg",
+                        METHOD96_JPEG,
+                        bytes(corrupt_payload),
+                        96,
+                        20,
+                    ),
+                    (b"healthy.bin", b"ok", b"ok", 0, 20),
+                ]
+            )
+        )
+        untouched = io.BytesIO()
+        with self.assertRaises((unpackio.FormatError, unpackio.ChecksumError)):
+            corrupt.extract_entry_to(0, untouched)
+        self.assertEqual(untouched.getvalue(), b"")
+        corrupt_sink = CollectEntrySink()
+        with self.assertRaises((unpackio.FormatError, unpackio.ChecksumError)):
+            corrupt.extract_entries_to(corrupt_sink)
+        self.assertEqual(corrupt_sink.events, [])
+        healthy = io.BytesIO()
+        self.assertEqual(corrupt.extract_entry_to(1, healthy), 2)
+        self.assertEqual(healthy.getvalue(), b"ok")
+
+        old_version = unpackio.open_zip_bytes(
+            encoded_zip_archive(
+                [(b"old.jpg", METHOD96_JPEG, METHOD96_PAYLOAD, 96, 19)]
+            )
+        )
+        with self.assertRaises(unpackio.FormatError):
+            old_version.extract_entry_to(0, io.BytesIO())
+
+    def test_zip_registered_mp3_recompression_remains_unsupported(self) -> None:
+        method_id = 94
+        encoded = encoded_zip_archive(
+            [(b"registered.bin", b"not decoded", b"\x00", method_id, 20)]
+        )
+        archive = unpackio.open_zip_bytes(encoded)
+        entry = archive.entry(0)
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.compression_method, "mp3")
+        self.assertEqual(entry.compression_method_id, method_id)
+        with self.assertRaises(unpackio.UnsupportedMethodError) as raised:
+            archive.extract_entry_to(0, io.BytesIO())
+        self.assertEqual(raised.exception.method_id, struct.pack("<H", method_id))
 
     def test_rpm_headers_metadata_batch_integrity_and_callbacks(self) -> None:
         encoded = rpm_archive()

@@ -587,11 +587,368 @@ Libarchive 3.8.9 at commit
 `27cbc7827172698143e440801fc0ba39ccb4f1f5` was also checked. Its BSD-licensed
 C ZIP reader recognizes these numeric identifiers but implements neither the
 WinZip JPEG nor WavPack payload decoder; its broad unsafe native parser is not
-an admissible fallback. No safe, permissively licensed, bounded method-94,
-method-96, or method-97 implementation and no provenance-complete deterministic
-encoder/fixture set was found. The verified public names are therefore exposed
-only as stable metadata enum values, while extraction returns the numeric typed
-`UnsupportedMethod` error before codec allocation.
+an admissible fallback. At the end of that 2026-09-14 pass, no safe,
+permissively licensed, bounded method-94, method-96, or method-97
+implementation and no provenance-complete deterministic encoder/fixture set
+had been found, so all three registrations remained metadata-only.
+
+The 2026-09-15 follow-up narrowed method 94 substantially without admitting
+code. The packMP3 v1.0g repository was pinned at commit
+`e61c11941552f4ffe6e219a847f441d9520d2e50`; its `LICENSE` SHA-256 is
+`97628afebc60f026f5c2b25d7491c46a5c4ee61f693e7cfa07fbd2c03605979b` and
+its `Readme.txt` SHA-256 is
+`12dfcba7cb77a7050844171e484a812d9b9547d0b0eb1c2dd1830f4d05e5b67c`.
+Both identify LGPL-3.0-or-later, which prohibits a dependency or adaptation;
+the readme invites case-by-case requests for different terms but grants none
+to this project. It was built and executed only as an external oracle. Command
+`packMP3 -ver -v2 -np` transformed a project-authored MPEG-1 Layer III input
+with SHA-256
+`372d875979967b2d95b48c2ded842a2a6bbd295c50d2455f8ad9829d2826aa0e`
+into a 216-byte PMP stream with SHA-256
+`e348bb86122aaf35d1f4c136a0be6e025bf3ce2b5304aa1f17c962b5fff81de6`;
+an independent oracle invocation reconstructed the original input byte for
+byte.
+
+The 2026-09-16 clean-room follow-up created a differential corpus rather than
+reading or translating that implementation. The original MIT fixture script
+`crates/unpackio/tests/fixtures/method94/generate.rb`, SHA-256
+`d91eb0b2162112327f49651d66d8a9d8358b0d39f0267b4f6cb31645033d6209`,
+generates deterministic integer-PCM RIFF/WAVE signals and invokes external
+tools with argument arrays. It used the official LAME 4.0 source archive at
+`https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz`,
+SHA-256 `3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb`,
+under LGPL-2.0-or-later. The source was built only in temporary storage with
+`--disable-decoder --disable-shared --enable-static`; the macOS frontend build
+used `-include locale.h` without changing upstream source. The resulting local
+`LAME 64bits version 4.0` encoder SHA-256 was
+`14f9f7a8ff90807b1626800cd1b57a764bf1e7abaa70d5d87d275496add715ae`.
+It is neither committed nor a package dependency.
+
+The same pinned packMP3 v1.0g binary identified above converted each generated
+MP3 as a black-box oracle and verified an internal encode/decode comparison. A
+second independent oracle invocation decoded every PMP and was compared to the
+source MP3 byte for byte. In addition to 53 LAME-generated inputs, the script
+constructs one five-frame zero-main-data MPEG-1 Layer III stream directly from
+the public frame and side-information grammar so intensity stereo is positively
+exercised without importing codec code. The 54 accepted and unique pairs cover every MPEG-1
+Layer III bitrate (32 through 320 kbit/s), 32/44.1/48 kHz, mono and stereo
+modes, CRC-protected and unprotected frames, enabled and disabled reservoirs,
+copyright/original/emphasis flags, ID3v1 and ID3v2 metadata, short/normal/long
+streams, deterministic silence/impulse/tones/noise/transient/stereo signals,
+intensity stereo, and CBR/ABR/VBR with and without LAME tags. Their decoded
+totals are 974,445 MP3 bytes and 679,297 PMP bytes. A fresh second generation
+left all original 53 records and 106 base64 files byte-identical and produced
+the additional pair deterministically.
+
+The corpus manifest at
+`crates/unpackio/tests/fixtures/method94/research/manifest.json`, SHA-256
+`7f4eb2efae2e17b9fe4b8b2476492a7aa6af2e911674de0bfe465ff1d440d85e`,
+records every PCM profile, complete encoder argument list, source size/hash,
+MP3 size/hash, PMP size/hash, oracle result, and tool identity. The independent
+MIT verifier `crates/unpackio/tests/fixtures/method94/verify.rb`, SHA-256
+`712ec88579631886202287f7308d2f0a196e2bfd3c694bedb333525031cb73b8`,
+checks exact file-set agreement, base64 decoding, sizes, SHA-256 values,
+MP3/PMP signatures, oracle acceptance, and round-trip assertions without
+invoking an external tool. The corpus creates independently observable format
+evidence; it is not itself a public grammar, does not admit LGPL expression,
+and does not change method 94's typed-unsupported product boundary.
+
+The 2026-09-16 public-document follow-up found no admissible payload grammar.
+The upstream [packMP3 README](https://github.com/packjpg/packMP3/blob/master/Readme.txt)
+documents invocation, incompatible PMP generations, and LGPL licensing, but
+not field ordering, probability models, or termination. The University of
+Regensburg catalog record for Matthias Stirner's
+[*Weitere verlustfreie Kompression von MP3-Dateien*](https://epub.uni-regensburg.de/28161/)
+marks the work unpublished and exposes no format text. Official WinZip method
+documentation registers MP3 method 94 and product behavior but likewise does
+not specify the PMP payload. No packMP3 source was read or adapted during this
+search or analysis.
+
+The original MIT clean-room analyzer
+`crates/unpackio/tests/fixtures/method94/analyze.rb`, SHA-256
+`276d81fa59db660dbcfb67d60b23196b541950424998911bf3fd683efe036522`,
+parses the 54 MP3 inputs using standard MPEG-1 Layer III framing and side
+information and compares
+only observable PMP bytes. It proves the three-byte signature, the packed
+sample-rate/channel-mode/fixed-bitrate descriptor, global CRC/original/
+copyright/emphasis/ID3 flags, reservoir marker, and big-endian frame count. It
+also mechanically proves header byte 4 as a feature-presence bitmap: padding,
+mid/side stereo, intensity stereo, switched blocks, nonzero subblock gain,
+SCFSI scalefactor sharing, preflag, and scalefac-scale in descending bit order.
+The arithmetic/entropy stream begins at byte 11, but its symbol
+alphabet, field sequence, models, state initialization, termination, and error
+rules remain opaque. Consequently, implementing even the verified envelope
+would not produce a decoder and would create no safe extraction claim; method
+94 remains typed unsupported.
+
+A checksum-pinned WinZip 21.0 installer with SHA-256
+`9f05084542ebe3194b42fa4163fa30b8bceb4ac37b99ff15715112f56611d3b7`
+was inspected as proprietary test-oracle evidence only. Its embedded
+`WINZIP64.EXE`, SHA-256
+`f0c9a57449a27c50146e15666c9dfa2f16e9b7cdf48d1ff2ac84220a974c24a1`,
+contains the adjacent identifiers `packMP3`, `01/22/2016`, and
+`Matthias Stirner`, matching packMP3 v1.0g, plus the C++ class names
+`WzPackMP3` and `WzUnpackMP3`. This was strong evidence that WinZip 21 embeds
+that codec, but did not by itself prove the ZIP payload boundary. Wrapping
+the oracle PMP bytes in a minimal method-94 ZIP produced SHA-256
+`703c4dc08435470eaab0f1a3b44ad5569050d189b994cc6b11f9d44e0fce1796`;
+`7zz` recognizes the member as method 94 but cannot decode it. That synthetic
+archive remains an uncommitted experiment; the later controlled WinZip fixture
+below supersedes its fixture role. No proprietary or LGPL source was copied,
+translated, or admitted.
+
+For method 96, the earlier independent implementation author's published
+[*WinZip JPEG Errata*](https://github.com/mietek/theunarchiver/wiki/WinZipJpegErrata)
+records specification omissions and errors that prevent a complete decoder
+without reverse engineering, including still-unresolved coding details. The
+prohibited LGPL-2.1 XADMaster source identified above remains unusable.
+
+A later search found a separate MIT implementation in XArchive, pinned at
+commit `c17ca22a2ae75f1d6f97d0a56725655c49b97295`. Its repository `LICENSE`
+SHA-256 is
+`abdeb212f229d2b93a5c315763df4d7201c7d74f580ad9dc77d77dec7cbc6c69`.
+The method-96 decoder first appears as 2,205 new lines across three files in
+commit `0d071ffcd6b48ffcf39eefb434d431b6bb985a5a`, relative to parent
+`b95039d5200ad4870d32c931d0d5d970441053fd`; the initial C++ file SHA-256 is
+`a3e9f9e61f1ff24511dd72cc71405edb4368d27085e213a4d1d5dbf2f65d270e`.
+Commit `8ee96bb93ab9c7e65451de979c4215b0eb36f4b9` then makes only a 15-line
+addition/16-line deletion reformat. At the pinned revision, the C++, header,
+and arithmetic-table file SHA-256 values are respectively
+`5c6a7b7dfd34e519d90bed845f8a63a8213e86539ab5bba709d7f4f74040f6fe`,
+`c4b8034c8e10b6a22768fe2a05da54862a34e1d6b2de1d0b92867a4817450dbe`,
+and `7520d2355c70c04d8ebe8519b27a452af341d8756ea2f68d612e73acc2f9eff7`.
+The source identifies the official 2008 specification and expired U.S. patent
+4,791,403 as its basis and records five stream-verified specification
+corrections. The three files and their introduction commit carry no XAD
+attribution or license marker; this is positive declared-provenance evidence,
+not proof beyond the published history.
+
+The XFileUnpacker 0.1.0 Beta Ubuntu package was retained only as an external
+binary oracle. Its SHA-256 is
+`060fd956663da7177d03b1fb7d364e3de5f2597f9b9d5ad06182900d8c245cf6`.
+In a read-only, network-disabled container with strict one-member and 1 MB
+output limits, it decoded the known method-96 archive to a 57,105-byte JPEG
+with SHA-256
+`1bd83e1af9ff68f664eb01e66d02abba23e7edb0fd12adee6182af3e6f496c63`
+and ZIP CRC-32 `D30F1F39`. That output matches an independent `unar` oracle byte
+for byte. This validates the candidate on a real stream, but the source is not
+admissible unchanged: it depends directly on C++/Qt and native LZMA, allocates
+as much as 512 MiB per scan component rather than under an aggregate project
+limit, does not reject zero or missing quantization tables before divisions,
+does not require exact inner-LZMA or outer method-payload consumption, and has
+no explicit bundle-count or total decode-work budget. A Rust adaptation must
+replace all allocation and arithmetic with checked project primitives, validate
+JPEG table presence and values before decode, apply aggregate input/output/
+memory/work/cancellation limits, and require exact payload consumption.
+
+The 2026-09-16 admission implements those requirements in safe Rust without
+linking XArchive, Qt, native LZMA, or any external process. The exact adaptation
+map is:
+
+- XArchive probability constants, `WZJPEG_BIN`, `WZJPEG_BAC`, and
+  `wzjpegBac*` functions map to `Bin`, `ArithmeticDecoder`, `q_smaller`,
+  `q_bigger`, `log_x`, and `antilog_x` in
+  `crates/unpackio/src/decode/winzip_jpeg.rs`;
+- `WZJPEG_METADATA`, `wzjpegParseMetadata`, and its DHT/DQT/DRI/SOF/SOS
+  branches map to `Metadata` and `parse_metadata` plus the marker-specific
+  helpers, with added exact segment sizing, canonical Huffman validation,
+  duplicate detection, table-presence checks, and nonzero quantizers;
+- the zigzag facts and `wzjpegSum`/`Average`/`BDR`, binarization, AC/DC sign,
+  magnitude, prediction, and block routines map to the checked coefficient and
+  `decode_*` functions; all hostile arithmetic is widened and checked before
+  narrowing to JPEG coefficient storage;
+- the nine model arrays map to one fallibly allocated, bounds-indexed `Models`
+  vector with the same 28,328-bin layout; `wzjpegDecodeSlice`, Huffman output,
+  restart handling, and `wzjpegProcessStream` map to `decode_slice`,
+  `ScanWriter`, `encode_slice`, and `decode_zip_jpeg`;
+- `xwinzipjpegdecoder_tables.inc` maps value-for-value to
+  `winzip_jpeg_tables.rs`. These finite-precision coder tables retain the
+  upstream MIT attribution and exact notice in `LICENSES/MIT-xarchive.txt`.
+
+The resulting admitted Rust files have SHA-256 values
+`0f3953679e2338231a619adc8ec601b2fdd6b49b96e799c882c877aa94fa7229`
+for `crates/unpackio/src/decode/winzip_jpeg.rs` and
+`c2bb18173dbc54dec9813e1266aad35aa19eebd5d31ec7a2c39390b2be493c82`
+for `crates/unpackio/src/decode/winzip_jpeg_tables.rs`. The copied MIT notice
+has SHA-256
+`abdeb212f229d2b93a5c315763df4d7201c7d74f580ad9dc77d77dec7cbc6c69`.
+These hashes pin the reviewed adaptation state; any later source change
+requires a new review and hash update.
+
+The rewrite replaces per-component 512 MiB allocation with an aggregate
+`max_dictionary_bytes` preflight for models and all active slice buffers,
+charges aggregate bundle metadata and bundle/slice counts to
+`max_header_bytes` and `max_stream_frames`, checks entry/total output before
+growth, and charges cancellation/work throughout input, arithmetic, and output
+loops. Compressed metadata uses the existing safe LZMA decoder with a dedicated
+known-size exact-input mode. EOI must consume the complete outer method payload,
+and the normal ZIP size/CRC gate precedes writer or batch delivery. All new
+original safety/integration code is MIT; no XADMaster or 7-Zip/p7zip expression
+was used.
+
+The WinZip-labelled `zipdetails` sample at current repository commit
+`7adb025fe52a22e80f82b3def18c070872f9cb20`, path
+`t/files/0003-winzip/jpeg/winzip-jpeg.zipx`, has SHA-256
+`59f4d04d0ba7a9b06830ae82599c125eef8d104e1fd7fb246bbc6530e1d7a3cf`
+and was introduced by commit
+`3fb43446f347688befadc102a5f102b99a815686`. Neither that commit nor the
+corpus documentation identifies an exact WinZip version, authoring command,
+original-input provenance, or redistribution terms, so the archive is not an
+admissible committed positive fixture. The later controlled fixture below
+supersedes that evidence gap; the admitted rewrite above closes the XArchive
+safety requirements without admitting that sample.
+
+A subsequent controlled WinZip run on 2026-09-15 completed the missing
+positive-fixture and redistribution record for both methods. It used a clean,
+network-isolated Windows 11 Enterprise evaluation VM and WinZip 21.0.12288
+64-bit evaluation. The installer SHA-256 is
+`9f05084542ebe3194b42fa4163fa30b8bceb4ac37b99ff15715112f56611d3b7`,
+the extracted `WINZIP210-64.MSI` SHA-256 is
+`ed8e850f6a2e97aebc44ebcff6c91232e4b6b06eab71fdea1bbeb75fc0db04a8`,
+and the installed `WINZIP64.EXE` SHA-256 is
+`f0c9a57449a27c50146e15666c9dfa2f16e9b7cdf48d1ff2ac84220a974c24a1`.
+The executable reports product version 21.0 (12288), file version 31.0
+64-bit, and a valid Authenticode signature from WinZip Computing LLC.
+
+WinZip's official [default-compression documentation](https://kb.winzip.com/en/130351),
+[ZIPX description](https://kb.winzip.com/en/130326), and
+[General-options documentation](https://kb.winzip.com/en/130829) describe the
+automatic Best-method selection and `.zipx` default. The recorded GUI recipe
+enabled **Settings > WinZip Options > General > Create new Zip files using the
+(.zipx) file type**, retained **Best method**, created a new archive, added
+exactly one local source through **Create/Share > From PC or Cloud**, left
+conversion/encryption/watermarking disabled, and saved as `.zipx`. Each final
+archive was made in one uninterrupted run.
+
+The method-94 archive has SHA-256
+`4cb0f2e7d5fae6f13d708ad79cf4721064675a50f6582d936aa41573e308a841`.
+Its sole unencrypted version-2.0 member is the 55,587-byte project-authored MP3
+with CRC-32 `E6CDB0AC` and SHA-256
+`372d875979967b2d95b48c2ded842a2a6bbd295c50d2455f8ad9829d2826aa0e`.
+The 216-byte payload SHA-256 is
+`e348bb86122aaf35d1f4c136a0be6e025bf3ce2b5304aa1f17c962b5fff81de6`:
+it is byte-identical to the pinned packMP3 PMP oracle, and the locally built
+packMP3 binary (SHA-256
+`09a51dd32c8c9940409769c5f32219ce704941a9531fa26182363cca6a8cb429`)
+decoded it back to the source byte for byte. This proves the WinZip payload
+boundary without admitting the LGPL implementation.
+
+The method-96 archive has SHA-256
+`47454618f65cef060c2ba1d96b8b36d8028681ac693f9be3d57e791ec57c15e1`.
+Its sole unencrypted version-2.0 member is the 7,823-byte project-authored JPEG
+with CRC-32 `7422FE59` and SHA-256
+`95ef01838a55308006fabf6d2e512123a37916067cce58dd5076c89da43e2244`.
+The 3,155-byte payload SHA-256 is
+`b8c58ce398a10deae01f74e0632971765f9d6a1df53148584bf91c44e52dc091`.
+The checksum-pinned XFileUnpacker package decoded that archive to the source
+byte for byte while isolated with a read-only filesystem, no network, dropped
+capabilities, `no-new-privileges`, UID/GID 65534, one CPU, 512 MiB memory, 64
+PIDs, read-only input, and a 1 MiB output-file cap.
+
+Both source files contain only project-authored test patterns and are released
+under the repository's MIT test-fixture terms. The exact originals and archives
+are committed as base64 text; `CORPUS.md` records their complete sizes, hashes,
+recipe, and oracle use. The proprietary WinZip artifacts, LGPL packMP3 source
+and binary, and XFileUnpacker binary/container are not committed or linked and
+cannot become runtime fallbacks. Method 94 still has no admissible
+implementation source and remains typed unsupported. Method 96's fixture is
+the authoritative positive regression for the admitted bounded checked
+safe-Rust rewrite above; extraction and verification reproduce the committed
+source byte for byte.
+
+For method 97, the archived official WinZip compression-method page
+([2009-04-14 snapshot](https://web.archive.org/web/20090414225734/http:/www.winzip.com/comp_info.htm))
+adds that the embedded stream must be compatible with WavPack 4.32, but no
+public method-97 archive with a complete producer/version/command/input record
+was located during that research pass. The fresh WinZip 21 evidence created on
+2026-09-16 and recorded below subsequently closed that product-oracle gap. The
+official WavPack 4.80 encoder and 5.9 decoder additionally generate and
+independently verify the byte stream that APPNOTE places directly in method 97.
+
+The exact crates.io `wavicle` 0.1.0 release was admitted as the source of the
+decoder-only local fork in `vendor/wavicle-decoder` after the follow-up audit.
+The source crate checksum is
+`1e312eaf22b4a7e5b7bf038edb3a7e4703c7b86dfabaea49d17af85e55eb76ab`,
+its VCS commit is `4ac1134efe7a85a0b8c5921afc7c124160d179f2`, it has no normal dependency,
+forbids unsafe code, and is available under `MIT OR Apache-2.0`; this project
+selects MIT. Its published `PROVENANCE.md` maps the decoder to official
+WavPack 5.9.0, although its stale `ATTRIBUTION.md` still says no port had
+landed and omits the full BSD notice. The repository therefore carries both
+exact notices and the independent file-level audit instead of relying on that
+stale statement. The fork copies only decoder-reachable source and records all
+changes in `vendor/wavicle-decoder/PATCHES.md`:
+
+| `wavicle` 0.1.0 file | Upstream SHA-256 | Vendored SHA-256 | Declared WavPack 5.9.0 derivation / local change |
+| --- | --- | --- | --- |
+| `src/format.rs` | `d7c191d056b2e671aee2c2226c2e50fc9e5a514249c3806b99471d13d66f4515` | `923c3a16ed8e57272a11d18c2c2df029cf416bc9e5f3985d4515c903b5b935c3` | `include/wavpack.h`, `src/wavpack_local.h` constants; checked sample-rate lookup and decoder-only wording |
+| `src/block.rs` | `5792a066d9429ba86e547367ef0a35016d632b41266a4230a5ffe5a09ad1bee5` | `269aea44472429d68bc78c477872fa9976c884238ceb0317bcf4b0377c209ded` | header and `read_next_header` bounds; checked field/range access and length arithmetic, plus corrected legacy 40-bit sample count |
+| `src/metadata.rs` | `d10b3435a1b13985970f8244ce6783f7a0eebe0d78f329f9ce04ee15d18d4562` | `f76c1b14ff61cf852b5450dcb7f49bdeb249f33a6a781ca7a18613b4ea025a1f` | metadata framing; checked word-count arithmetic and slicing |
+| `src/bitstream.rs` | `c4d3154d9822e9c25fb58a8efc8d8d7147eae929575b3eb865a121c2473ab490` | `53c98f298184b9b3df0c563d8a0e0e30cc9ea33b2928b9cdcfeb59555279d843` | bit-reader macros, `open_utils.c`, `read_words.c`; encoder bit writer removed and read widths/conversions checked |
+| `src/entropy.rs` | `71cec5762c25893db45a93c9c82d9a2e27429acd8a459f6ffd04320c1575516d` | `e57e2b67ff108d28ad30809126e00d8442112e322ba20aa50035d91a31f70339` | `read_words.c`, `entropy_utils.c`, median macros; encoder removed, checked dynamic access, and explicit wrapping arithmetic |
+| `src/decorr.rs` | `a0a70cb66f5680756730a27b6507d3355ea5a263c7ddf131bfb8c2cdf622c379` | `c239ef1626e1e2cc1fe2d0cabc822deab29f96af624d7490863d6e1a5819101a` | `decorr_utils.c`, `unpack.c`, weight macros; forward encoder passes removed, fallible pass allocation, and checked histories/terms |
+| `src/float.rs` | `cda18ad5b38cbe96abc86c0e4c59582849a04f15c9ba0fc361393065c30d0b6a` | `b1b594c233db64211681f14c4f6396b1b2ed292f9b84fefe23900625802cfc0f` | `unpack_floats.c`, float/WVX helpers; encoder removed and signed/unsigned bit conversions made explicit |
+| `src/decode.rs` | `2b2896bd956dadbc48513662e81a0e4136b8c9c5ca54aa3602270da93ba90f42` | `3a1caa6bb4f75428dd1e0d70f4f7b8b4ab56225417108939b25bdebab475ab2e` | lossless `unpack.c` driver, CRC, integer and float fixup; Rust 1.85 parity checks, fallible growth, checked slicing/indexing, and explicit bit-preserving conversions |
+| `src/error.rs` | `3a87372c2ab1ef397667dee10af74261e53cbc93947853acbd01b2aae69b7638` | `ef1ddde7f9a27533cc38505c1b1d63c46c930bdb6c6137e0500b2086bb76e7b7` | original error model plus typed allocation failure |
+| `src/lib.rs` | `8e42755a64e67dae1bbdb5da62b9c4fd9dcff2fbad365e72efb2d2ccfd12abcd` | `086ed33fc9cae593c6203465c8f67726c8d19ef6af68acae0a230956129e0b3e` | decoder-only documentation and exports; no encoder feature or API |
+
+The dependency's `PROVENANCE.md` and stale `ATTRIBUTION.md` hashes are
+`57ae47dc861355a99a3f38b5acb22f0b5b39085936da1253e5634acdd40d1332`
+and `ebf42172d52780b7f023132e04964a62b9e2d9bb248f0ff60a49faf5803764f2`.
+Its MIT text hashes to
+`11b8ecad18b2b8e26bab1bdf2e17464d681a6a7ec8ca5bedd296e3d694eb298e`
+and is reproduced in `LICENSES/MIT-wavicle.txt`. The local package is renamed
+`unpackio-wavicle-decoder`, declares Rust 1.85, has no encoder module, and
+adds no dependency. Its new manifest and patch documentation are MIT; copied
+upstream source retains its original grant and derived-source notice. The
+local `Cargo.toml` SHA-256 is
+`7c2e2de71e2f6015b1ea7153fff9a5a46f0acd5888503d954b4a54987fd1bf0e`
+and `PATCHES.md` is
+`cfd8cb0c087d7b336932a638155c779f0ca6155098d78ae5132bd3ee08ed2950`.
+
+The mapped official source is WavPack tag 5.9.0, commit
+`5803634a030e2a11dba602ba057b89cc34486c67`, BSD-3-Clause. Audited file
+SHA-256 values are: `include/wavpack.h`
+`3c61d65511e258c5dc120a6daaee626d6a1051f3254ca9b67ac654a8f6212a97`;
+`src/wavpack_local.h`
+`51e187bb5ddb91723808a37c570e661b258e99947dd986481163a27d8f12fd01`;
+`src/open_utils.c`
+`d1d198ba6d0b6efd11745856dd8a988bf770bccf659ca6aaea557a110c6acaee`;
+`src/unpack.c`
+`bba495a5c33f432d8acd82a36a52d79d0d2ff7d05a1a5bc6e110ab7a92a9391c`;
+`src/read_words.c`
+`f35764aebeb8f0a304b453b4a86b4193093551f629f9c5cc8dcb4f444ff6cc1b`;
+`src/entropy_utils.c`
+`3d750a714829230d09a09701943c40ac10d8d3a8e4145fe9ca353205a18320d1`;
+`src/decorr_utils.c`
+`3dc93ee065ed9459dfc534614112dcf420c0aa59d222b743157128f4df166110`;
+and `src/unpack_floats.c`
+`d4b7c9664d43bc284909835cf38e0a70c3a518f7eb10dc4f92e78d559505b3d1`.
+The exact upstream notice, SHA-256
+`1703dd391c9b422910287add8483a27d9bead0b0b5ccd6d5017e995a7192b3e2`,
+is reproduced in `LICENSES/BSD-3-Clause-wavpack.txt`.
+
+`crates/unpackio/src/decode/wavpack.rs` is original MIT adapter code. It uses
+the public APPNOTE/WavPack layout to preparse and bound every block and
+metadata record, enforce the legacy lossless RIFF/WAVE profile and format
+maxima, reconstruct wrapper bytes, interleave legacy multichannel blocks, and
+integrate project limits, work, cancellation, panic containment, WavPack CRCs,
+and ZIP size/CRC finalization. It calls the local decoder fork one already-bounded
+audio block at a time. No encoder module or WavPack C code is linked or
+translated into the adapter.
+
+The deterministic committed inputs are project-authored by
+`crates/unpackio/tests/fixtures/method97/generate.rb`. Exact official WavPack
+4.80 at commit `8256af6b90958f190cf70dfeb7afaed13649776e` (BSD-3-Clause) generated
+their legacy `-hh` streams, and exact official WavPack 5.9.0 at the commit
+above independently decoded them byte-for-byte. Both executables are test
+oracles only. `CORPUS.md` records every command, byte count, and hash.
+Upstream `wavicle` commit `3b5938b21b0a52b9224573eef1ae32665dc5add5`
+fixes its attribution but changes future source to MPL-2.0; it is not used,
+and the local fork remains pinned to the exact permissive 0.1.0 source. The GPL
+`symphonia-codec-wavpack`, unreleased `oxideav-wavpack`, native C WavPack,
+and incomplete `wavpack-rs` remain rejected as runtime implementations for
+the reasons in `DEPENDENCIES.md`. Method 94 remains metadata-only and typed
+unsupported; method 96 is independently admitted as described above.
 
 ### Deferred ZIP structure and encryption research
 
@@ -650,12 +1007,75 @@ producer version. It is therefore supplemental PPMd interoperability evidence,
 not counted as a WinZip-produced archive. Exact hashes, inventory, reproduction
 command, and the no-redistribution decision are in `CORPUS.md`.
 
+The 2026-09-15 history follow-up mapped the four labelled samples to
+SharpCompress pull requests
+[#661](https://github.com/adamhathcock/sharpcompress/pull/661),
+[#722](https://github.com/adamhathcock/sharpcompress/pull/722), and
+[#723](https://github.com/adamhathcock/sharpcompress/pull/723). Their commit,
+pull-request, issue, and review text describes WinZip authorship but supplies no
+exact GUI recipe or command, so the missing record cannot be recovered from
+that public history.
+
+Two more public PPMd archives were evaluated as local-only evidence. A
+[Launchpad unzip report](https://bugs.launchpad.net/ubuntu/+source/unzip/+bug/393987)
+from 2009-06-30 states that its attachment was made on Windows with WinZip, and
+the `zipdetails` WinZip corpus contains
+`t/files/0003-winzip/el-ppmd/winzip-el-ppmd.zip` at current commit
+`7adb025fe52a22e80f82b3def18c070872f9cb20`. Both decode and pass integrity
+checks, but neither source records the exact WinZip version and authoring
+command. Their input redistribution provenance is also incomplete. They were
+therefore not committed and did not by themselves satisfy the
+reproducible WinZip-PPMd requirement; their byte-level evidence is recorded in
+`CORPUS.md`.
+
+That requirement and the four command-incomplete evidence roles were closed on
+2026-09-16 with fresh archives from explicitly versioned official WinZip
+installations in an offline Windows VM. WinZip 21.0 build 12288, identified by
+the already pinned signed `WINZIP64.EXE` SHA-256
+`f0c9a57449a27c50146e15666c9dfa2f16e9b7cdf48d1ff2ac84220a974c24a1`,
+created one PPMd method-98 archive and one Best-Method-selected WavPack
+method-97 archive from project-authored inputs. Their archive SHA-256 values
+are respectively
+`7ce980e5e69c83416ef0b010318212498203146128cb1f7ef3f3bf8a98fa8dbb`
+and
+`f4ac3979e467ab6da8204448e5c4c9023e7708c53e38b8f222978d803d0f16fd`.
+
+WinZip's official legacy-download page supplied `winzip240.exe` over HTTPS.
+The download had SHA-256
+`d0ba9969dbf653e8be5e09e653eab3dc0cf9229992e805a7ccdea57ba4f8372d`
+and a valid Corel Corporation Authenticode signature. Its embedded signed
+64-bit MSI had SHA-256
+`5cf5ebc086513f314165d97876c2727b9e0bf687eab4ce897202a443b54b3bd8`.
+The installed signed executable reports product version `24.0 (14033)`, file
+version `33.0 (64-bit)`, and SHA-256
+`53c8ef7c606e2ff38ebd116216642e2d489fc424d52c058536985dc80f0e12ab`.
+It created BZip2, ZIP-LZMA, XZ, and Zstandard ZIPX archives with SHA-256 values
+`b9e29b673894538ac684f5969bf7a1b659261c6c7a4b6e44493a921bdd2a6a69`,
+`99f5fde3b733db5f29c45b4ad93abca595c41c8896043006aca19d94a162133f`,
+`730a78de0a36a82a2dbcd258a0ab1e65f385c6ba36f2f4c53ba9c7877fd27257`,
+and
+`49d159dd440832a05ba7e4ff3807b0c432d2c6af766547e525eb6a8f30c1401e`.
+
+`CORPUS.md` records the exact input identities, GUI selections, member
+inventories, hashes, and local-only decision. Stock `7zz` 26.02 independently
+validated the PPMd and four replacement archives; it identifies but cannot
+decode method 97. The production Rust decoder extracted every input exactly
+and completed full verification through three ignored harnesses in
+`winzip_reference`. No WinZip installer, executable, MSI, archive, or VM image
+is committed, linked, invoked at runtime, or used as a fallback.
+
 | Component | Exact origin/revision | License | Use and adaptation status |
 | --- | --- | --- | --- |
 | ZIP records, ZIP64, descriptors, method IDs, flags, extras, and traditional encryption facts | PKWARE APPNOTE 6.3.10 (2022-11-01), official `APPNOTE.TXT`, retrieved 2026-07-21 | Specification; no source code imported | Independently expressed checked parser/model and legacy ZipCrypto state machine; MIT project code |
 | ZIP XZ method 95 | WinZip *Additional Compression Methods Specification* 3.1 (2014-04-14), Internet Archive snapshot `20150121121519id_`, SHA-256 `8f584a40114fb5ec9c440f7a7f6a5e4200def378d6b564e1a434410cb1328c6e`; PKWARE APPNOTE 6.3.10, SHA-256 `0b993022a7d320a0bf704e6980bea36fafd17a6066ab994db0a0c16278a50cd6`; retrieved 2026-09-14 | Format specifications; no source code imported | Exact one-Stream XZ 1.0.4 profile, optional zero padding, Deflate-equivalent version-needed rule, per-Block/Index exactness, and ZIP member-integrity integration independently expressed in MIT Rust |
+| ZIP MP3/JPEG methods 94/96 fixture evidence | Project-authored source media and fresh WinZip 21.0.12288 one-member archives created 2026-09-15; exact source, payload, archive, installer, MSI, and executable hashes plus the GUI recipe are recorded above and in `CORPUS.md` | Source media and generated fixture selection under MIT project test-fixture terms; proprietary WinZip, LGPL packMP3, and XFileUnpacker are external oracles only | Committed metadata/payload/output vectors. Method 94 remains typed unsupported; method 96 is a byte-exact positive decoder regression. No oracle binary/source, runtime process, or fallback is admitted |
+| ZIP MP3 method-94 clean-room differential corpus | Original deterministic integer-PCM generator, one directly constructed standards-based intensity-stereo input, and 54 MPEG-1 Layer III inputs created 2026-09-16; official LAME 4.0 source archive SHA-256 `3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb`; pinned packMP3 v1.0g oracle binary SHA-256 `09a51dd32c8c9940409769c5f32219ce704941a9531fa26182363cca6a8cb429`; complete per-case hashes and commands in the committed manifest | Generator, waveform selection, generated media, and independent envelope analyzer under MIT project test-fixture terms; LGPL LAME and packMP3 remain temporary external generator/oracle tools only | 54 unique MP3/PMP known-input pairs, 108 base64 files, byte-exact independent oracle round trips, repeat-generation identity, and mechanical proof of observable envelope bytes 0..10 including all byte-4 feature bits. The byte-11 entropy stream remains unresolved; no external source/binary/process is shipped and method 94 remains typed unsupported |
+| ZIP JPEG method 96 decoder | XArchive commit `c17ca22a2ae75f1d6f97d0a56725655c49b97295`, introduced at `0d071ffcd6b48ffcf39eefb434d431b6bb985a5a`; exact upstream file hashes and symbol-to-Rust mapping recorded above | MIT; exact notice in `LICENSES/MIT-xarchive.txt`; new safety/integration code MIT | Safe in-tree adaptation with checked allocation/arithmetic, canonical/table validation, aggregate limits, work/cancellation, exact inner declared-byte and outer payload consumption, supported sequential-profile classification, and normal ZIP size/CRC/encryption integration; no C++/Qt/native dependency, writer, or fallback |
+| ZIP WavPack method 97 framing and adapter | PKWARE APPNOTE 6.3.10 section 5.9; official *WavPack 5 Library Documentation* dated 2024-02-15, SHA-256 `8622c1b780788227d05602bda8fa8690f0ba425252c6d5ffee72e751329652ee`; archived official WinZip method page dated 2009-04-14; fresh WinZip 21.0.12288 archive SHA-256 `f4ac3979e467ab6da8204448e5c4c9023e7708c53e38b8f222978d803d0f16fd` | Format/product documentation; no implementation source imported; adapter and project input MIT; proprietary archive local-only | Original checked legacy lossless RIFF/WAVE stream parser, wrapper reconstruction, multichannel orchestration, limits/work/cancellation, and ZIP integrity integration. Fresh Windows WinZip output passes byte-exact production extraction and full verification |
+| WavPack payload decoder | Local `unpackio-wavicle-decoder` fork of `wavicle` crates.io 0.1.0, source checksum `1e312eaf22b4a7e5b7bf038edb3a7e4703c7b86dfabaea49d17af85e55eb76ab`, commit `4ac1134efe7a85a0b8c5921afc7c124160d179f2`; upstream and vendored file hashes and its declared mapping to WavPack 5.9.0 commit `5803634a030e2a11dba602ba057b89cc34486c67` recorded above | Copied source MIT selected from MIT OR Apache-2.0; local patch code MIT; derived WavPack portions retain BSD-3-Clause notice | Decoder-only path dependency behind the method-97 checked adapter; patched for Rust 1.85, fallible allocation, checked hostile-input access/arithmetic, and exact legacy sample-count reconstruction; no encoder source/API, native FFI, archive parser, or command fallback. Exact MIT and WavPack BSD texts are shipped in `LICENSES/` |
 | ZIP PPMd method 98 framing | WinZip live *Additional Compression Methods* specification and PKWARE APPNOTE 6.3.10, retrieved 2026-09-14 | Format specifications; no source code imported | Exact two-byte property prefix, PPMd-I revision-1 selection, order/memory/restoration bounds, end-marker requirement, and Deflate-equivalent version-needed rule independently expressed in MIT Rust |
 | ZIP PPMd-I revision-1 decoder | Dmitry Shkarin `ppmdi1.rar`, SHA-256 `5a559300c26949fc5dd015983bfe680fd9a32c2b4afb85320dc9b38f90f8c5d6`; separately published original-source mirror files at OpenXRay commit `bcefa731baf3add37c33348ec709ab391a9032a2`; SharpCompress I1 port by Michael Bone at commit `e04d51176c5d87668c4c8779825342230c33aa74`; hashes above | Original sources state public domain; SharpCompress MIT; new Rust code MIT | Safe, fallible adaptation of the original context model, allocator, restoration modes, and Dmitry Subbotin carryless range coder, with managed layout/control-flow cross-checking; no OpenXRay trained-model extension and no 7-Zip-derived implementation used |
+| Fresh WinZip ZIPX interoperability evidence | WinZip 21.0.12288 signed executable and WinZip 24.0.14033 official signed installer/MSI/executable, exact hashes above; six local-only archives over project-authored inputs with complete GUI recipes and hashes in `CORPUS.md` | Project-authored inputs and ignored Rust harness MIT; proprietary WinZip tools and generated archives remain uncommitted external test evidence | Method 97 and 98 product parity plus reproducible BZip2, ZIP-LZMA, XZ, and Zstandard replacements; stock-`7zz` inventory/integrity where supported and production byte-exact extraction/full verification for all six; no runtime dependency or fallback |
 | XZ 1.0.4 container and checks | Tukaani *The .xz File Format* 1.0.4 (2009-08-27), SHA-256 `fada567e0ebd8b910d2c3210d13e74f3fcc8475d64e29e35db0fc05e3c6820f5`, retrieved 2026-09-14 | Public-domain format specification | Structural reference for checked Stream/Block/Index parsing, predefined filters, CRC-32/CRC-64/SHA-256 checks, exact padding, and size reconciliation; no XZ source copied or linked |
 | WinZip AES AE-1/AE-2 layout | WinZip AES Encryption Specification 1.04 (2009-01-30), official WinZip support document, retrieved 2026-07-21 | Specification; no source code imported | Independently expressed salt/verifier/layout/authentication adapter; AES/CTR/PBKDF2/HMAC/SHA-1 delegated to RustCrypto |
 | CP437 name mapping | Unicode Consortium `Public/MAPPINGS/VENDORS/MICSFT/PC/CP437.TXT`, retrieved 2026-07-21 | Unicode data-file license | Byte-to-Unicode display table only; raw ZIP names remain authoritative metadata |

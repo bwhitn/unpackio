@@ -26,6 +26,7 @@ features are disabled and `Cargo.lock` is committed.
 | `sha1` | 0.11.0 | MIT OR Apache-2.0 | `zeroize` | RustCrypto SHA-1 for the legacy WinZip AES PBKDF2/HMAC construction and verification of RPM's legacy SHA-1 header-digest field; never used as a modern signature primitive; `https://github.com/RustCrypto/hashes` |
 | `lzma-rust2` | 0.20.1 | Apache-2.0 | `std`; default `encoder`/`optimization` and optional `xz` container disabled | Safe-code legacy `.lzma` entropy decoder for RPM/Debian payloads; `https://github.com/hasenbanck/lzma-rust2` |
 | `delharc` | 0.6.2 | MIT OR Apache-2.0 | no default features | Only the LH6/LH7 static-Huffman payload decoder used for ARJ methods 1–3; crates.io checksum `3658b90877f637514897c3dcbd628e0d290bcc7fee551a398b3994ebdc62d51e`, source commit `737ab3fc9913dad0a4fb9965f0bcd95a013f5a28`; no dependency header parser or archive model is called; `https://github.com/royaltm/rust-delharc` |
+| `unpackio-wavicle-decoder` (`wavicle` library) | 0.1.0 | MIT OR Apache-2.0; MIT selected | `decode`; encoder source/API omitted | Local decoder-only fork of exact `wavicle` 0.1.0, used only behind the checked ZIP method-97 adapter; no normal dependency; source crates.io checksum `1e312eaf22b4a7e5b7bf038edb3a7e4703c7b86dfabaea49d17af85e55eb76ab`, source commit `4ac1134efe7a85a0b8c5921afc7c124160d179f2`; local patches restore Rust 1.85 compatibility, remove unchecked hostile-input access/arithmetic, and make reachable input-sized growth fallible; exact patches, derived-source notices, and hashes are carried in `vendor/wavicle-decoder/PATCHES.md`, `NOTICE`, `LICENSES/`, and `PROVENANCE.md`; `https://github.com/That3Percent/wavicle` |
 
 The complete normal/build transitive graph at this revision is:
 
@@ -46,7 +47,10 @@ separate audited boundary and do not satisfy that core lint. The admission
 audit found target-intrinsic/volatile or
 buffer implementations in RustCrypto/`zeroize` and `ruzstd`. `lz4_flex` is
 compiled with its checked, safe decoder features, and Brotli's optional unsafe
-feature is disabled. Each dependency decoder is wrapped by bounded input and
+feature is disabled. The local WavPack decoder fork forbids unsafe code, has no
+normal dependency, and contains no encoder source or API. Its reachable
+input-sized growth is fallible, and its decoder paths use checked access,
+length arithmetic, and integer conversion. Each dependency decoder is wrapped by bounded input and
 output accounting, cancellation/work checkpoints, a panic boundary, and a
 method-specific allocation preflight. BZip2 charges five times the advertised
 block size, Brotli charges 32 MiB, linked LZ4 charges 24 MiB plus 64 KiB, raw
@@ -85,6 +89,18 @@ PPMd-I revision-1 range decoder, model, and suballocator are an in-tree safe
 Rust adaptation with exact public-domain/MIT provenance in `PROVENANCE.md`.
 The existing 7z PPMd7 variant-H core is intentionally not reused because its
 model, properties, range stream, and restoration behavior are incompatible.
+Method 97 uses the local decoder-only `wavicle` fork only after the in-tree adapter has parsed every
+bounded block and metadata record, enforced the legacy lossless RIFF/WAVE
+profile, the 16-channel and 16-decorrelation-term format maxima, exact stream
+consumption, declared sample/output sizes, working-memory limits, work, and
+cancellation. The adapter invokes one at-most-131,072-frame, at-most-1-MiB
+block at a time behind a panic boundary, reconstructs wrapper bytes itself,
+and then relies on both the WavPack rolling CRC and the outer ZIP CRC. The
+fork's broad whole-stream API, wrapper interpretation, archive parsing, and
+any external command are not exposed; no encoder implementation is present.
+`cargo tree -e features` confirms that only its `decode` feature is enabled.
+Final cargo-deny checks report advisories, bans, licenses, and sources clean
+for the root, Python binding, fuzz, and standalone local-decoder graphs.
 WinZip AES uses only the listed RustCrypto `aes`, `ctr`,
 `pbkdf2`, `hmac`, and `sha1` primitives; the format adapter owns no primitive
 implementation. Traditional ZipCrypto is a small in-tree compatibility
@@ -261,9 +277,10 @@ The following exact candidates were inspected and rejected before admission:
   arithmetic, and declares `CC0-1.0 OR MIT-0`, none of which satisfies this
   repository's method-98 provenance, safety, or runtime-license boundary.
 - XADMaster 1.10.8 at commit
-  `881e0ec25e249c9ad5bbc1b6782ae8dcdf48a6ed` is the only complete independent
-  WinZip JPEG method-96 decoder located. It is LGPL-2.1 C/Objective-C with an
-  unsafe native parser and is prohibited as a dependency or adaptation source.
+  `881e0ec25e249c9ad5bbc1b6782ae8dcdf48a6ed` was the only complete independent
+  WinZip JPEG method-96 decoder located in that pass. It is LGPL-2.1
+  C/Objective-C with an unsafe native parser and is prohibited as a dependency
+  or adaptation source.
 - official WavPack 5.9.0 at commit
   `5803634a030e2a11dba602ba057b89cc34486c67` is BSD-licensed but is a native C
   implementation requiring an unsafe FFI boundary, and it exposes a broad
@@ -278,14 +295,103 @@ The following exact candidates were inspected and rejected before admission:
   and importing its broad unsafe archive parser would violate the layer and
   `forbid(unsafe_code)` boundaries.
 
-No complete public method-94 payload specification, admissible method-96/97
-decoder, or provenance-complete deterministic fixture generator was found.
+Pinned packMP3 v1.0g commit
+`e61c11941552f4ffe6e219a847f441d9520d2e50` is LGPL-3.0-or-later and therefore
+cannot be a dependency or adaptation source. Its external executable produced
+the exact 216-byte payload later found in the fresh WinZip 21 method-94 fixture
+and decoded it to the committed source MP3 byte for byte. That result validates
+the fixture and codec identity only; no packMP3 source, binary, library, or
+subprocess path is admitted.
+
+The clean-room method-94 research corpus uses two additional external fixture
+tools without adding a Cargo, Python, build, runtime, or shipped development
+dependency. LAME 4.0 source archive
+`https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz`,
+SHA-256 `3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb`,
+was built in temporary storage as an LGPL-2.0-or-later MP3 generator; the local
+encoder binary SHA-256 was
+`14f9f7a8ff90807b1626800cd1b57a764bf1e7abaa70d5d87d275496add715ae`.
+The pinned packMP3 binary above then served only as a black-box PMP oracle.
+Neither tool, its source, nor a subprocess invocation is present in the package;
+the repository retains only MIT project-authored media outputs, PMP oracle
+outputs, hashes, commands, and the generator/verifier recipes.
+
+The 2026-09-15 follow-up located a new method-96 candidate in XArchive at
+commit `c17ca22a2ae75f1d6f97d0a56725655c49b97295`. The three decoder files and
+the repository license carry MIT terms, and commit
+`0d071ffcd6b48ffcf39eefb434d431b6bb985a5a` introduces those files from
+scratch relative to its parent. A checksum-pinned XFileUnpacker Beta binary
+built from the same project family reproduced both the independently extracted
+public sample and the new project-authored WinZip 21 fixture byte for byte.
+XArchive is not a runtime dependency:
+its expression is C++/Qt, uses native allocation, permits up to 512 MiB per
+component slice buffer, and lacks several hostile-input checks required here.
+It is retained only as a pinned MIT adaptation reference. The admitted method-96
+decoder is an in-tree safe-Rust rewrite of the identified parser/model/formula
+and lookup-table scope; it adds checked arithmetic and fallible allocation,
+table completeness and canonical-code validation, aggregate header/frame/
+dictionary/output limits, work/cancellation, and exact outer consumption. The
+exact upstream notice is shipped in `LICENSES/MIT-xarchive.txt`; this admission
+adds no resolved package, Qt/native dependency, FFI, encoder, writer, process,
+or fallback.
+
+The 2026-09-15 follow-up found additional pure-Rust WavPack candidates. Exact
+`wavicle` 0.1.0 was admitted as the source for a decoder-only local fork only
+after a second source and provenance audit:
+
+- `wavicle` 0.1.0, crates.io checksum
+  `1e312eaf22b4a7e5b7bf038edb3a7e4703c7b86dfabaea49d17af85e55eb76ab`
+  and VCS commit `4ac1134efe7a85a0b8c5921afc7c124160d179f2`, declares
+  `MIT OR Apache-2.0`, has no normal dependency, and forbids unsafe code.
+  Its published attribution incorrectly says that no code has been ported
+  while its per-module source and `PROVENANCE.md` identify the exact WavPack
+  5.9.0 derivations, and the package omits the full WavPack BSD notice. This
+  repository compensates rather than obscures those defects: the exact
+  WavPack 5.9.0 notice is shipped in `LICENSES/BSD-3-Clause-wavpack.txt`, the
+  source release's MIT notice is shipped in `LICENSES/MIT-wavicle.txt`, and
+  `PROVENANCE.md` records both source trees and hashes. Its sample-returning,
+  whole-stream public function is narrowed by the checked block adapter and
+  project limits described above. Upstream commit
+  `3b5938b21b0a52b9224573eef1ae32665dc5add5` corrects the attribution but
+  relicenses future source to MPL-2.0, which this repository prohibits; the
+  source is therefore pinned exactly to the already-published permissive 0.1.0
+  crate and checksum. The published source uses two
+  `usize::is_multiple_of()` calls unavailable on the project's Rust 1.85 MSRV
+  and infallibly grows input-sized vectors. The local
+  `vendor/wavicle-decoder` fork omits the encoder, tests, fixtures, and
+  development dependency; replaces those two calls with equivalent remainder
+  checks; pre-reserves every reachable input-sized growth with
+  `try_reserve_exact()`; replaces input-derived unchecked access, casts, and
+  debug-overflow-sensitive arithmetic with checked or format-wrapping forms;
+  corrects legacy 40-bit sample-count reconstruction; and adds a typed
+  allocation error. Its complete patch record and upstream/local file hashes
+  are in `PATCHES.md` and `PROVENANCE.md`.
+- `symphonia-codec-wavpack` 0.1.1 is pure Rust but declares
+  `GPL-3.0-or-later`, so it is prohibited.
+- `oxideav-wavpack` at commit
+  `9ccafa8a09aed7c321f82940978dbbaba90cae6d` declares MIT and forbids unsafe
+  code, but has no usable non-yanked crates.io release and would require a Git
+  source that the cargo-deny source policy rejects. Its claimed staged
+  specification directory is absent from that revision, so the exact source,
+  revision, license, and derivation record cannot be verified. It also brings
+  a broad encoder/writer and framework surface and has no method-97 fixture or
+  adapter for the project's output, work, and cancellation budgets.
+
+No complete public method-94 payload specification or permissively licensed
+matching implementation was found. The project has fresh, redistributable
+WinZip 21 positive fixtures for methods 94 and 96; packMP3 remains an LGPL-only
+external method-94 oracle, while method 96 is now admitted through the bounded
+in-tree adaptation described above. Method 97 is admitted through the
+exact-source local decoder fork and
+project-authored, official-WavPack-verified fixture set above; a fresh Windows
+WinZip product oracle remains a separate deferred interoperability check rather
+than a runtime prerequisite.
 Likewise, no PKWARE Strong Encryption primitive/certificate stack has been
 admitted: the required legacy algorithms, password and certificate variants,
 record parser, KDF controls, and encrypted-directory integrity surface must be
-reviewed as a whole. These negative admissions are why methods 94, 96, and 97,
-Strong Encryption, and encrypted central directories still return typed
-unsupported errors; they are not an invitation to add subprocess fallbacks.
+reviewed as a whole. These negative admissions are why method 94, Strong
+Encryption, and encrypted central directories still return typed unsupported
+errors; they are not an invitation to add subprocess fallbacks.
 
 ## License allowlist
 
@@ -354,6 +460,7 @@ embedded or generated-code licensing facts.
 | BZip2 | permissive implementation without native linkage | `bzip2-rs` 0.1.2 admitted behind a bounded adapter |
 | 7z PPMd7 variant H | safe, explicitly memory-bounded permissive implementation | In-tree adaptation of `stangelandcl/ppmd` v0.1.1 admitted; exact MIT provenance in `PROVENANCE.md` |
 | ZIP PPMd-I revision 1 | safe, explicitly memory-bounded implementation of all three restoration modes | In-tree checked adaptation of Shkarin/Subbotin public-domain sources with SharpCompress MIT cross-check admitted; no runtime dependency |
+| ZIP WavPack | safe, decoder-only permissive implementation behind a checked adapter | Local `unpackio-wavicle-decoder` fork admitted for the documented lossless RIFF/WAVE method-97 profile; exact MIT/BSD-3-Clause provenance and patch hashes in `PROVENANCE.md` |
 | Brotli | safe permissive decoder | `brotli-decompressor` 6.0.0 admitted with unsafe and FFI features disabled |
 | LZ4 | safe permissive decoder | `lz4_flex` 0.14.0 admitted with checked/safe frame features |
 | Zstd | safe permissive decoder | `ruzstd` 0.8.1 admitted with frame-window preflight and dictionaries rejected |

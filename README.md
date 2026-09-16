@@ -94,7 +94,14 @@ The separate `ZipArchive` surface parses ordinary and ZIP64 central
 directories, bounded SFX prefixes, raw names/comments/extra fields, duplicate
 names, directories, Unix modes, and symlink metadata. Extraction supports
 Store, Deflate, Deflate64, BZip2, ZIP-LZMA, both registered Zstandard method
-IDs, WinZip XZ method 95, and WinZip PPMd method 98. Traditional ZipCrypto and
+IDs, WinZip XZ method 95, WinZip WavPack method 97 lossless RIFF/WAVE, and
+WinZip PPMd method 98.
+WavPack support covers legacy 4.x streams with exact RIFF wrapper recovery,
+8-/16-/24-/32-bit integer or 32-bit float samples, mono through 16 channels,
+odd and multichannel layouts, custom rates, and multiple audio blocks.
+Hybrid/lossy, mono-optimized newer streams, DSD,
+RF64/non-RIFF wrappers, v5-only metadata, and newer channel layouts return a
+typed unsupported-feature error. Traditional ZipCrypto and
 WinZip AES AE-1/AE-2 with 128-, 192-, or 256-bit keys are supported with
 per-archive zeroized byte passwords. Local and central records, sizes, data
 descriptors, authentication codes, and applicable entry CRCs must agree before
@@ -102,10 +109,13 @@ success. XZ additionally requires the exact single-stream XZ 1.0.4 profile,
 Block/Index agreement, all declared XZ checks, and optional zero Stream
 Padding. PPMd admits only variant I revision 1, validates its two-byte
 order/model/restoration declaration before allocating the model, and requires
-both the range-coded end marker and the ZIP-declared size. Registered MP3 (94),
-JPEG (96), and WavPack (97) entries have stable metadata names but remain typed
-unsupported on extraction, as do split/spanned ZIP, PKWARE Strong Encryption,
-and encrypted central directories.
+both the range-coded end marker and the ZIP-declared size. WinZip JPEG method
+96 reconstructs 8-/12-bit sequential JPEG streams through a checked, bounded
+safe-Rust decoder. Current positive compatibility evidence covers the
+three-component, 1x1-sampled profile; other legal component and sampling
+layouts are not yet interoperability claims. Registered MP3 method 94 retains
+a stable metadata name but remains typed unsupported on extraction, as do split/spanned ZIP,
+PKWARE Strong Encryption, and encrypted central directories.
 
 The separate `RpmArchive` surface validates the lead, signature header, main
 header, typed index/store ranges, payload declaration, and the shared checked

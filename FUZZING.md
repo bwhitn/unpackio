@@ -119,6 +119,23 @@ allocator/restoration checks, early/missing end markers, exact input
 consumption, output-size reconciliation, and member CRC handling. The target
 never invokes the oracle or the test-only encoder.
 
+The same target embeds the exact WavPack 4.80 method-97 payload and expected
+RIFF/WAVE bytes for the project-authored 8-bit mono profile. Every input first
+requires exact extraction, then selects one WavPack byte mutation and one
+strict prefix inside an otherwise valid, CRC-correct ZIP envelope. This keeps
+block/header/metadata parsing, decoder panic containment, WavPack CRC, wrapper
+reconstruction, output reconciliation, and ZIP CRC paths reachable without an
+encoder, writer, or external command in the fuzz package.
+
+The target also embeds the provenance-complete WinZip 21 method-96 payload and
+project-authored JPEG. To control per-execution cost, one of every 64 selector
+classes (including the empty initial input) requires exact successful
+reconstruction, then derives an input-selected payload mutation and strict
+prefix inside an otherwise valid ZIP envelope. This makes properties, metadata
+bundle/LZMA handling, persistent JPEG tables, arithmetic contexts, slice
+buffers, Huffman reconstruction, exact outer consumption, limits, and member
+CRC paths reachable without invoking WinZip, XArchive, or an external decoder.
+
 Normal tests complement fuzzing with exhaustive decoding of every one- and
 two-byte 7z integer encoding, all truncations of the nine-byte form, all split
 points of the standard CRC vector, all byte-prefix truncations of valid outer
@@ -260,6 +277,9 @@ it must not bypass the existing core fuzz targets.
   vector in `CORPUS.md`; always run its exact positive case before the
   input-selected mutation and prefix so a decoder regression cannot hide
   behind permissive fuzz error handling.
+- Keep the method-97 WavPack payload and expected WAV tied to the exact hashes
+  in `CORPUS.md`; require its positive extraction before applying the selected
+  payload mutation and strict prefix.
 - Seed volume fuzzing with gaps, empty parts, short reads, exact-boundary reads,
   encrypted-block boundaries, and excessive totals.
 - Never place confidential archives, real passwords, decrypted headers, or
@@ -472,3 +492,27 @@ valid-XZ/PPMd-first invariants and hostile mutation/prefix paths ran against the
 updated dependency graph. The runner again reported no sanitizer or coverage
 instrumentation, so this remains finite invariant/no-panic evidence; nightly
 ASan coverage-guided fuzzing remains the authoritative CI gate.
+
+After adding ZIP WavPack method 97 and hardening the decoder-only local fork,
+the separately locked fuzz package passed formatting, warning-denied
+all-target/all-feature Clippy, and both deterministic generator tests. A fresh
+stable-built `archive_formats` binary then completed 10,000 executions from an
+empty corpus in 106 seconds with seed `970203`, no failure, and 39 MiB reported
+RSS. Every iteration required exact valid XZ, WavPack, and PPMd extraction;
+nonempty inputs also selected the method-specific mutation and strict-prefix
+paths. The runner reported missing sanitizer hooks and no coverage
+instrumentation on this stable host, so this is finite invariant/no-panic
+evidence only. The configured nightly AddressSanitizer coverage-guided run
+remains authoritative.
+
+After adding the ZIP JPEG method-96 decoder, the separately locked fuzz package
+again passed formatting, warning-denied all-target/all-feature Clippy, and both
+deterministic generator tests. The selector-throttled method-96 path requires
+byte-exact extraction of the provenance-complete WinZip fixture, then exercises
+a selected payload mutation and strict prefix without making the 3,155-byte
+payload dominate every iteration. A fresh stable-built `archive_formats`
+binary completed 10,000 seedless executions in 9 seconds with seed `960216`,
+no failure, and 43 MiB reported RSS. The runner reported missing sanitizer
+hooks and no coverage instrumentation on this stable host, so this remains a
+finite invariant/no-panic check; the configured nightly AddressSanitizer
+coverage-guided run remains authoritative.

@@ -71,11 +71,16 @@ CPIO payload. `CpioArchive` and `ArjArchive` report their retained source;
 data tar. Temporary decoder state remains governed by `Limits`.
 
 ZIP compression metadata names Store, Deflate, Deflate64, BZip2, ZIP-LZMA,
-both Zstandard IDs, XZ (95), PPMd (98), and the registered-but-unsupported MP3
-(94), JPEG (96), and WavPack (97) IDs. XZ and PPMd extraction use the same
-writer/callback/batch API and typed limit/integrity errors as other supported
-methods. A metadata name is not a decoder claim: attempting 94, 96, or 97
-returns `UnsupportedMethod` with the original two-byte numeric identifier.
+both Zstandard IDs, XZ (95), WinZip JPEG (96), WavPack (97), PPMd (98), and the
+registered-but-unsupported MP3 (94) ID. XZ, the positively verified
+three-component 1x1-sampled sequential JPEG profile, lossless RIFF/WAVE
+WavPack, and PPMd extraction use the same writer/callback/batch API and typed
+limit/integrity errors as other supported methods. A metadata name is not a
+decoder claim: attempting method 94 returns `UnsupportedMethod` with the
+original two-byte numeric identifier; unsupported WavPack profiles return
+`UnsupportedFeature`. The method-96 parser also admits the specification's
+other sequential component and sampling layouts, but those layouts are not a
+compatibility claim until positive fixtures are recorded.
 
 The `unstable-internals` feature is a repository test/fuzz hook. Its hidden raw
 parser, validated wire model, folder graph, and envelope exports are not

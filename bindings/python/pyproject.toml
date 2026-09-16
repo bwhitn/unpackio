@@ -38,4 +38,9 @@ features = ["extension-module"]
 module-name = "unpackio._native"
 python-source = "python"
 strip = true
-exclude = [{ path = "dist*/**", format = "sdist" }]
+exclude = [
+  { path = "dist*/**", format = "sdist" },
+  { path = "python/**/__pycache__/**", format = "wheel" },
+  { path = "python/**/*.pyc", format = "wheel" },
+  { path = "python/**/*.pyo", format = "wheel" },
+]

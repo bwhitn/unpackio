@@ -55,9 +55,15 @@ package.extract_entry_to(package.entries()[0].index, payload)
 `ZipEntry` exposes decoded/raw names, comments, extras, sizes, CRC, DOS
 timestamp, method, flags, creator/extractor versions, attributes, local-header
 offset, encryption kind, and directory metadata.
-Supported extraction includes ZIP XZ method 95 and PPMd-I revision-1 method
-98. The registered names `mp3`, `jpeg`, and `wavpack` are metadata-only and
-raise `UnsupportedMethodError` with IDs 94, 96, and 97 on extraction.
+Supported extraction includes ZIP XZ method 95, lossless RIFF/WAVE WavPack
+method 97, PPMd-I revision-1 method 98, and bounded WinZip JPEG method 96 for
+8-/12-bit sequential JPEG profiles. Positive JPEG compatibility evidence
+currently covers a three-component, 1x1-sampled image; other legal sequential
+component/sampling layouts are not yet interoperability claims. WavPack hybrid, DSD, RF64/non-RIFF,
+v5-only metadata, unsupported channel-layout profiles, and unsupported JPEG
+scan/frame profiles raise `UnsupportedFeatureError`. The registered name `mp3`
+remains metadata-only and raises `UnsupportedMethodError` with ID 94 on
+extraction.
 Passwords are supplied when opening a `ZipArchive`; trying another password
 creates another per-archive session. Even a zero-length encrypted member must
 be extracted so its password verifier and authentication data are checked.

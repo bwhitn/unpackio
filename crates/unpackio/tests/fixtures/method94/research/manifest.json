@@ -1,0 +1,2080 @@
+{
+  "schema": 1,
+  "purpose": "clean-room ZIP method-94/PMP format research",
+  "source_media": "deterministic project-authored integer PCM waveforms plus a standards-based synthetic MPEG-1 Layer III stream; MIT",
+  "lame_source": {
+    "url": "https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz",
+    "sha256": "3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb",
+    "license": "LGPL-2.0-or-later; external fixture generator only"
+  },
+  "lame_binary": {
+    "path_basename": "lame",
+    "sha256": "14f9f7a8ff90807b1626800cd1b57a764bf1e7abaa70d5d87d275496add715ae",
+    "version": "LAME 64bits version 4.0 (https://lame.sourceforge.io)"
+  },
+  "packmp3_source": {
+    "repository": "https://github.com/packjpg/packMP3",
+    "revision": "e61c11941552f4ffe6e219a847f441d9520d2e50",
+    "sha256": "09a51dd32c8c9940409769c5f32219ce704941a9531fa26182363cca6a8cb429",
+    "license": "LGPL-3.0-or-later; external oracle only"
+  },
+  "packmp3_binary": {
+    "path_basename": "packMP3",
+    "sha256": "09a51dd32c8c9940409769c5f32219ce704941a9531fa26182363cca6a8cb429",
+    "version": "--> packMP3 v1.0g (01/22/2016) by Matthias Stirner <--"
+  },
+  "cases": [
+    {
+      "name": "baseline_mono_44100_128",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "bde68e830eb1094f73edc26280791984cb3fe441e10c74d53d5356decf2dabc0"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12918,
+        "sha256": "e5f665234e177c5d82b33d749c4ad7dcd59807671a18dedd231813014ade55c7"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_032",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "32",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 4180,
+        "sha256": "67397034e2526bee208c5607e7cd3b7ba36ddc1305086b6690207847882bad4f"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 2749,
+        "sha256": "c4bf12b8120087893030ba23c91f696c7a5722049261ea315333c77753542e8b"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_040",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "40",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 5224,
+        "sha256": "1f2db13249dc6a3c2c483348c3e464fe3b22c5992353aaeb2038e803d8b88cc2"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 3379,
+        "sha256": "5330e3edf0816624701f6c8e57e5ce11ce44ebe9aeed91d93d50f27ba5bd6507"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_048",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "48",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 6269,
+        "sha256": "90be21a9d2e49093e86ea50e39e08a09c15e5ef7d5fe601743e7754632ef26a9"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 4203,
+        "sha256": "015bcbaacd7d2b4220140ca04dcc48c431c264adc50c9627d6f3806779027fa4"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_056",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "56",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 7496,
+        "sha256": "775a6e3910c3b260552f2b6d49743068ca51bc9caa5e8729803ea58d73d2487b"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 4838,
+        "sha256": "50c88d75e69417c942c4a3497704b076c0fb258e135166709ca9460270813349"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_064",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "64",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 8567,
+        "sha256": "4a9ac83936dc1aff506a26afb766f56b1566cb4377c9b9755bf7bb06beeec81a"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 5768,
+        "sha256": "7d661e704c1959ce9cc1b821a11b734454ce4d8fd99142216e57696bc3483099"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_080",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "80",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 10710,
+        "sha256": "9047e22ed71834474ec17fc9ef61b2075479224ede7210436ada6abfe9b2e3bb"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 7903,
+        "sha256": "4c31de664aad26c65a8a97e21b37c9da20cbf51fae7a5fd98f31dd96173c5991"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_096",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "96",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 12852,
+        "sha256": "69f9f0ee3909cb730b3685bfca6c55b133bfb60549820545bd18a519e518af97"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 9559,
+        "sha256": "7da26cd632e81220447b8d58473c0875548763310eddc982fb389cd61a1eb30d"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_112",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "112",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 14993,
+        "sha256": "6c9f78a6d42d9a596a790e1ed1d00d593442ffa1a54b18e08fefc09280925345"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 11256,
+        "sha256": "c76468f8f763994871e2118ccacdd5bf43697fc8d3a804d449376cb2145cddeb"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_192",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "192",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 25703,
+        "sha256": "d512717175b6c061be938ef660ef157821fd8742467e207108c034df30d98cb4"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 18972,
+        "sha256": "ccc695ac43ec66112658f2f23e2fc6dd17bd10c2f6d0bf26176df214ada79fa2"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_160",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "160",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 21420,
+        "sha256": "0188a30bfdd6e7c5362e5e60dd0a66bfa87ad3919195ce384a8bb3858fb4b8e6"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 16282,
+        "sha256": "62b112da161b613266aeb4a0acc9b9db3eca23086b06f95ec25af9df369bb2e2"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_224",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "224",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 29988,
+        "sha256": "0a32cfa07f6c6b95270f6e243b2bb55cc9d7e19bba72517e79089923f9f61334"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 21963,
+        "sha256": "db44cf27cc521e0e38af98c73cf9259720c998716f899e4389849b6e18dae5e3"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_256",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "256",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 34271,
+        "sha256": "4f4f2955693001099cf5a787f873a6fda76562a4f39719f8267efd63ce6e4517"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 24904,
+        "sha256": "38d92763f4c3abfc7c74e4008bd0fe9c2d6ef32190a4f044d38da58f014bdd0d"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_44100_320",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "320",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 42840,
+        "sha256": "9ee3fed71fb8d7ec276987e99cf4b236d39d0225cd8ae9962fb9ebc228989003"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 26540,
+        "sha256": "1631fd74228d350f99890ccf304767428f0972edd8644c8cf4eaee17729ea240"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_32000_128",
+      "pcm": {
+        "profile": "tones",
+        "rate": 32000,
+        "channels": 1,
+        "frames": 32000
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "32",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 64044,
+        "sha256": "c6ad8cea5b137b57e50b82a9ebba3b07dab3348118bd4c7c0d67ec7eee148fbf"
+      },
+      "mp3": {
+        "bytes": 17280,
+        "sha256": "95f369df5f7e0048b89ba0e3f8a00d49189201c2fbd8c3acc069ba2200cbdf8e"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 4431,
+        "sha256": "d2ade982d9e0595034fc9d340171a8b33dc3b8722f6019546cb933d0345a4543"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_48000_128",
+      "pcm": {
+        "profile": "tones",
+        "rate": 48000,
+        "channels": 1,
+        "frames": 48000
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "48",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 96044,
+        "sha256": "aa64a6f31c332933578c848ea750bc507fd191e9fa57788cdb7d94006d0f95ef"
+      },
+      "mp3": {
+        "bytes": 16896,
+        "sha256": "be9dfbf9c999f35564e3dc1e651a813304123b471b7fabf6e97bb6517118b6b6"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12603,
+        "sha256": "0c7300049de9a7a912f43a9b860dd4623158b0c832d6c026b117c6fbeb2bc7e7"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_silence",
+      "pcm": {
+        "profile": "silence",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "3fa20276d8a4131431490ed129d0b05fafa4e9c82d4339b5cf635512103d6615"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "4124218f11245d9e8422d2a366997d851cc4217ab53871dff51774390593480a"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 181,
+        "sha256": "b65ba4fc922234f49c41c036a75f0fe02352823d85254a9a7fb4f842f04e63da"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_impulse",
+      "pcm": {
+        "profile": "impulse",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "5a96ccd2ac7fcab51a221f4b932315399826659a375432f6a53c54fa83480842"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "134ad339f5304a92ba4f2503bc2bc755bea5d3b4cc3af1deb30148f12ccb86a4"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 6044,
+        "sha256": "78d684ce5956b30c382a9a07b515e2b32ea15427f26997c6c06b5f147dc4c190"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_noise",
+      "pcm": {
+        "profile": "noise",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "e18067b43af1227941460c2833ab5fbe5844285e4dcd5df875316893f6b8e570"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "b2101b8fc338c415f9eb32a4537edece8b9e131e63e264f72522177ca26b4c89"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 15354,
+        "sha256": "54621fd286877feacf51b9273241357bcb33d305f057abd357895f5c4f3cd449"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_transient",
+      "pcm": {
+        "profile": "transient",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "612888d66b7e81021964d56c5b98f85b5321f236367aa96d4f6d9e6329cdd594"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "96888be16eb8cc08611f463539682cdde829239a266368248afe6fb419015ad7"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 13903,
+        "sha256": "b9dc72adf745e1628c0c6e128889588be3eec5bf3f89e5278c59bc75e04be7a7"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_short",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 11025
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 22094,
+        "sha256": "479c43d55c5b522127a70a6cb256526805b99f4a67b996eb3dd0a7cbb74322bd"
+      },
+      "mp3": {
+        "bytes": 5014,
+        "sha256": "b13c6af6617aafdc16a5dcad138feef6536994e56dcd68d381b9747d6c4ab3f3"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 3643,
+        "sha256": "0ed3d6f9eab8426fc991c7a471967509f5f8a781dee0a022eb9399ccec82e995"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_long",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 88200
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "56d06245472bd948c58813072c5b32ed3f75e92ff238c4cecfb63b0face36008"
+      },
+      "mp3": {
+        "bytes": 33017,
+        "sha256": "6d26df9dc70e707834989e0bcf1c319d44fc31cb051f833b0af87f47e5e5cab0"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 24843,
+        "sha256": "973d2f3d9cef909ae0fa003c7231fa9b9b8a9b454a60f67844b9cc8f0b27f139"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_crc",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m",
+        "-p"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "d37f0c69bd5437befccc722268e023323e6e64ab6c7eb7efee767bb3a3dbe364"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12818,
+        "sha256": "aaf335c94dac8a9c0b133dae12fe5d4d3bb11941273b392535b20d6f951046a7"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_no_reservoir",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m",
+        "--nores"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "0e7cf7b940f3d632cc89be9d0252764d32f53c3dfe1a0312c690ecbe773ef87a"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 11927,
+        "sha256": "68580de62fa458648ef37c619dc5867707831d0d44fc171d08406e49f2f42daf"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_copyright",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m",
+        "-c"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "0c50f850de776a74879b872023ff930ada93c5aa3454a7b8ea5ed117c1d036c6"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12917,
+        "sha256": "53e48e00221dc8d2ec9f9adc81bc8f1ad974dfa13fd7cd3e07f77061fd9a5ce5"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_non_original",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m",
+        "-o"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "8493391bd508a26ec8298e908849f00b25030599e8dbf833f993bd11587cf9de"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12916,
+        "sha256": "eb0a9177ffd826d55f2af2d50640e34b33578c88e39bff8f7be797d084d74229"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_emphasis_50_15",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m",
+        "-e",
+        "5"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "ed3f3eafdefd252adb0c9fa9983c3012f66c75949d7ed17d81b07f3d21e0a7fc"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12916,
+        "sha256": "e4ee1427ab001ec4a2c32aadbba9cf098c0e51b7d0848ea20874f56cd32e50d8"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_id3v1",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m",
+        "--id3v1-only",
+        "--tt",
+        "unpackio-method94",
+        "--ta",
+        "project-authored"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 17263,
+        "sha256": "5db8bcf995c8bdfb37a52324aa863bfa18534fee4f86cbc313c2b4dc0205bdbc"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12970,
+        "sha256": "4c5c2a3e43573bf88b631b97deae7b7f85040aa45727928d771f8c79268aa4cb"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_id3v2",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m",
+        "--id3v2-only",
+        "--pad-id3v2-size",
+        "256",
+        "--tt",
+        "unpackio method 94 clean room corpus"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 17527,
+        "sha256": "1b90bba0e1ec91a17130979411ee87f98eaa55d6ef35203a107c07284ced69d5"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 13072,
+        "sha256": "b48ab2271323bb9d682beb982bdcf0239009b17ebcd67e16db62d04192b0201c"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_joint",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "146c03d3abae857dd3284fe693f9de4e02f34dbdab7ae1f02d8a068477eb7f10"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 13486,
+        "sha256": "84d8b671405752191cb7f03c750eb9cdfba4d0df453ea732012ca72553e59379"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_simple",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "s"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "dea43f0918111e5ef2c328aaa8662536fea7f02a436f012305c4eeef19444069"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 13446,
+        "sha256": "bf0c2579165210e3a4596f1b1b9b44f72ec96feaec736041b6b4932a9e609cf8"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_force_ms",
+      "pcm": {
+        "profile": "stereo_correlated",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "f"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "ff55568907d6d4afbda9738a68a20b96b617f8ffc6f85e81bb31ee13b02f1028"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "576596537a98096bb7e92da4f5eb5d7a7d4ed60036b328129fb5941d8bb9ddd7"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 10570,
+        "sha256": "5700413589f7488346a6792cfe678d2f1e227cc5ab0e0a4171083a1cc5a2b901"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_dual",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "d"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 17135,
+        "sha256": "aa29c334e4d87ccf0a135619dd50d42baa43ec9f6092ad0cab571589c0411db9"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12135,
+        "sha256": "4d68ade34ec1d94f7f7b30ee0ac53a631a52913d6756b644695f8f21f721eb11"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_antiphase",
+      "pcm": {
+        "profile": "stereo_antiphase",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "192",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "7a8cf7122f3455b1c84701bf2cbf338039efe523d43ccd8a6690fbd7b10dd068"
+      },
+      "mp3": {
+        "bytes": 25703,
+        "sha256": "8dc39fe86046de3652ca3c4da2c2e5d256f0fa997cdc471e7d2c8a6f58d8b2af"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 18791,
+        "sha256": "b2d477c50ddea7ce961cd26dd7f7de66d4b6d94a4b6cc27d0cf629ef597995d1"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_32000_128",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 32000,
+        "channels": 2,
+        "frames": 32000
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "32",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 128044,
+        "sha256": "7085c55403d708285f62309cb26a7127384194f54277c0c1de9fa9729944f0ab"
+      },
+      "mp3": {
+        "bytes": 17280,
+        "sha256": "4b771a6a11cf74f59dd6b16bd6eb79fc640d2a1290209bf2875b486ed41d2f7c"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 7240,
+        "sha256": "a420d9973d79481011ce7ab1fdff86ccb3103e5462ba188b14b29f16b83bbcd6"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_48000_128",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 48000,
+        "channels": 2,
+        "frames": 48000
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "48",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 192044,
+        "sha256": "2ae4c6e41be7c153668cdb68b538cb711ee24d3cfec319ee8423632750994b60"
+      },
+      "mp3": {
+        "bytes": 16896,
+        "sha256": "bbbc61ee98662c004436903447db03a15b4914c7414c02d09fce260512f81bdb"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12217,
+        "sha256": "d604c72778c69bbf493fdf612ace894cb3a449e1cbfac4866d867fdd7ea5da62"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_064",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "64",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 8567,
+        "sha256": "5f8862b9d1afcef69c7171bf487fbab29fe23cb408283aebc10d2e03fbbd8c50"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 5802,
+        "sha256": "aa3d67e25b44b77a338617e305a7d428a7e6af508a382bd5634826637ba524e7"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_096",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "96",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 12852,
+        "sha256": "94624228da5be538979ae5aeac8df3b096b13aacf4f8d31c3be6f8aa092207c3"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 9562,
+        "sha256": "58467b3e70729b3ecb498630956501f4ba5d8ffe8fcaae2d242f9a03cb2a94ee"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_160",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "160",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 21420,
+        "sha256": "b1b1a9ee6b77ff5bcea0799e1efb2863e47fc001275faa03f4e47228c01c3234"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 16771,
+        "sha256": "6f576cc8fee1a113001e87c62115d340933e9a8d817482d2a540417312cc6650"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_224",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "224",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 29988,
+        "sha256": "731c86ca9aea004ff02bd321d7d4618080864bcc7b876f265b0a789a735c3b08"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 22507,
+        "sha256": "852c4fc7c61370e9a48b24d95093d5a05b6a846df7fde5cdb0dceb67654246c1"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_256",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "256",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 34271,
+        "sha256": "7d242d4015abb48e8e9f3cd5e99204bda153c37c8d32f436b99cedc6cf87387e"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 25617,
+        "sha256": "df8ff291558ec247e626b724cb9096bb2043c59fd73a5dd779f4165def2b7d33"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_320",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "320",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 42840,
+        "sha256": "a342e4fb70b1510cb8648eb7dc5953f2b6f35628318da37cc5346b009a730b6b"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 32045,
+        "sha256": "c871c99f472ecaa557773c32b6e401a7d57f06ee7b4e2fb70d372cdd26f62a25"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_crc",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "192",
+        "-m",
+        "j",
+        "-p"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 25703,
+        "sha256": "ccd78370aeb7fca89e8fcf125c55f8bdd8bf788b73de19fcb5bfff29ec6dcb2c"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 19083,
+        "sha256": "c533cff3be8c7807c1db34db07f2ac9fd942e8abc03df0731d96ff3606655613"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_no_reservoir",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "192",
+        "-m",
+        "j",
+        "--nores"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 25703,
+        "sha256": "88738b50509867a7d806896328054dd7fe2ffe09ef09c92476e4ca5c89e09b7c"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 17950,
+        "sha256": "8c74890874ceba31eab53f7157ef360b87abf0386a1832cb4b0697fc2b307bf6"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_abr_096",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--abr",
+        "96",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 10713,
+        "sha256": "b117c0f4f31e248a26d1b9d99520f94d978cebf2375f329aae2e568a42a9d47a"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 8062,
+        "sha256": "5c4a925c2b46cb71d4b81c22800dbc037e8a9bf83f05e40d2154e0d65f6d2143"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_abr_192",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--abr",
+        "192",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 26043,
+        "sha256": "b2a834ba19da8952b61d0aa28800ae925d4f16f94bd4868c778ac441d078103d"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 20253,
+        "sha256": "9d87663fc36476ab2b60c6003a3de91cef3192badd16da9e9a5adf73bda4b602"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_vbr_0",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "-V",
+        "0",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 13330,
+        "sha256": "11778125e97c674d81ac84ab9572ac3027a465260a55c2d067f587bdcbb093ed"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 8673,
+        "sha256": "ac8b0dae3c43cb668fd506c8ff342dc587519a01fd13bb2c73bb5d7319b9d973"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_vbr_4",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "-V",
+        "4",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 9497,
+        "sha256": "215ed8a1e057568f0b4a0139c9a6db5767ee91e709371f8169dfeef11b22c573"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 5712,
+        "sha256": "4dd69ecb09bb99ff5bea911569a95605c16ba64df1a3d5fff74ab10ab4ad641a"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_vbr_9",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "-V",
+        "9",
+        "-m",
+        "m"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 6555,
+        "sha256": "9ea1198f7b9e7b154589cb4fd25083e2dfd35ee57646f289baa86bd6b19a8355"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 3901,
+        "sha256": "fa11f95cd6cbf6775a2676631649439b8dba15b25ca015465c3878dec556f741"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_cbr_no_tag",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "--cbr",
+        "-b",
+        "128",
+        "-m",
+        "m",
+        "-t"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 16718,
+        "sha256": "063ec8d59df294bb61d6a91a00ccc5b8151e5141df653f7083792cb98f946854"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 12775,
+        "sha256": "2a4ef1ba9ae9e07e51a4d831d2ace6043e101ccd909470e265758050e14c8b59"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "mono_vbr_no_tag",
+      "pcm": {
+        "profile": "tones",
+        "rate": 44100,
+        "channels": 1,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "-V",
+        "4",
+        "-m",
+        "m",
+        "-t"
+      ],
+      "wav": {
+        "bytes": 88244,
+        "sha256": "9d2a0f89e11cfad21e210fc0ffd39b40c97b4dc27e9d1a7ce62f0796eaeb70d7"
+      },
+      "mp3": {
+        "bytes": 9080,
+        "sha256": "316f6e00c6d1477909bd51f80d4137e01b18183b6ea014fd2668831a3b27f101"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 5576,
+        "sha256": "53c2143604941d092948e4e9b542ca31a8938cbcffbd409bda6fc02d18dcdb7c"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_vbr_2",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "-V",
+        "2",
+        "-m",
+        "j"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 24109,
+        "sha256": "f46e9a9ed5b2ae601ca445f4b78c1cc2682ef2c396e8878077c3b48a1229b9bf"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 17734,
+        "sha256": "6dcf39518001e0e70914de3813c19c3ad4c1ee8637c71910cc3f0bfaeca7ac97"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_vbr_no_tag",
+      "pcm": {
+        "profile": "stereo_split",
+        "rate": 44100,
+        "channels": 2,
+        "frames": 44100
+      },
+      "lame_arguments": [
+        "-S",
+        "--noreplaygain",
+        "-q",
+        "2",
+        "--resample",
+        "44.1",
+        "-V",
+        "2",
+        "-m",
+        "j",
+        "-t"
+      ],
+      "wav": {
+        "bytes": 176444,
+        "sha256": "936237d5e14cede2442c96352c2a1a593b7dc82407c17dfaa22c4d0b60c8fcfe"
+      },
+      "mp3": {
+        "bytes": 23692,
+        "sha256": "2e169e8379f195f33597da072e8715cf4af674de517dd44bbf5cf16858d56355"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 17588,
+        "sha256": "583eafbecf529137ebcf67773fd518170c32faa0a955b6b84839b1f67057d212"
+      },
+      "round_trip": true
+    },
+    {
+      "name": "stereo_intensity",
+      "synthetic_mp3": {
+        "profile": "zero-main-data MPEG-1 Layer III",
+        "sample_rate": 44100,
+        "sample_rate_index": 0,
+        "bitrate_kbps": 128,
+        "bitrate_index": 9,
+        "channel_mode": 1,
+        "mode_extension": 1,
+        "frames": 5
+      },
+      "mp3": {
+        "bytes": 2085,
+        "sha256": "ada1742f5400333160a4f2974d83c4b9861554ef9450e5dcea245241b4bc87d6"
+      },
+      "packmp3_exit": 0,
+      "packmp3_diagnostic": null,
+      "accepted": true,
+      "pmp": {
+        "bytes": 29,
+        "sha256": "7b77657aa97a104cf58ce3d4976455f678e93bc775419639328560e3179cb45f"
+      },
+      "round_trip": true
+    }
+  ]
+}

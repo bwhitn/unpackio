@@ -1,6 +1,6 @@
 # Threat model
 
-Status: ZIP XZ/PPMd method-95/98 review, 2026-09-14. Revisit whenever a provider,
+Status: ZIP XZ/WavPack/PPMd method-95/97/98 review, 2026-09-15. Revisit whenever a provider,
 decoder, cryptographic/password layer, filesystem adapter, cache, callback, or
 unsafe boundary is added.
 
@@ -113,6 +113,15 @@ vector is reserved. Its Block count, filter count/properties, total coder count,
 LZMA2 dictionaries, and aggregate declared output are all preflighted before
 the corresponding decoder or output allocation.
 
+For ZIP WavPack, the adapter parses the complete stream before invoking the
+codec. Input, block count, one-MiB block size, 131,072-frame block size,
+metadata count/length, 16 decorrelation terms, 16 channels, stream count,
+declared samples/output, and per-block worst-case working storage are checked
+first. Only one bounded audio block enters the decoder at a time, behind a
+panic boundary; reconstructed RIFF storage grows through fallible reservation.
+Hybrid, DSD, v5-only metadata, alternate wrappers, unknown sample counts, and
+newer channel layouts fail before codec allocation.
+
 For ZIP PPMd, the two-byte declaration is decoded without allocating. Order,
 restoration, coder/property counts, model memory, and declared output are
 validated first. The suballocator is one fallibly reserved bounded byte heap;
@@ -202,6 +211,14 @@ The implementation reconciles each Index record with its Block, validates the
 declared XZ Check before joining Block output, and then applies the normal ZIP
 decoded-size and CRC boundary. Corruption cannot finalize a writer or batch
 sink entry, including when method 95 is wrapped in ZipCrypto or WinZip AES.
+
+WavPack's rolling per-block CRC does not replace the ZIP member CRC. The
+adapter requires contiguous channel groups and frame indices, consistent
+format/version/sample declarations, complete wrapper reconstruction, exact
+packed consumption, and exact RIFF and ZIP output sizes. Every audio block CRC
+must pass before the outer ZIP CRC can finalize the entry, including through
+ZipCrypto or WinZip AES. A corrupt method-97 member cannot write or finalize a
+caller sink, and does not prevent independent access to another listed entry.
 
 PPMd's end marker does not replace the ZIP size or CRC. All three must agree,
 and exact range-input consumption rejects both concatenated and trailing data.
@@ -557,15 +574,27 @@ and methods explicitly marked unsupported in `COMPATIBILITY.md` return typed
 errors or remain preserved bounded raw metadata; they are not compatibility
 claims.
 
-ZIP method identifiers 94 (MP3), 96 (JPEG), and 97 (WavPack) are recognized
-for metadata only and fail with `UnsupportedMethod` before a codec parser or
-allocation is entered. Method 96's published container adds bundled metadata,
-an inner LZMA stream, JPEG marker/scan parsing, arithmetic coding, and exact
-reconstruction; method 97 requires a WavPack bitstream plus preservation of
-the original RIFF wrapper and unused sample bits. Method 94 has no public
-payload-framing specification located by this review. Those surfaces require
-their own parser, recursion/count/memory/work models, fixtures, and admissible
-safe decoders; numeric registration alone is not sufficient.
+ZIP method identifier 94 (MP3) is recognized for metadata only and fails with
+`UnsupportedMethod` before a codec parser or allocation is entered; no public
+payload-framing specification was located. Method 96's published container is
+admitted through a dedicated safe-Rust decoder: property and bundle headers
+are bounded, compressed metadata uses synthesized checked LZMA properties,
+aggregate metadata is charged to `max_header_bytes`, bundle/slice counts to
+`max_stream_frames`, and probability plus slice storage to
+`max_dictionary_bytes`. JPEG quantization/Huffman/frame/scan state is validated
+before use; zero quantizers, missing/oversubscribed/repeated tables, unsupported
+nonsequential profiles, size disagreement, truncated arithmetic segments, and
+trailing outer bytes fail closed. Arithmetic work, output reconstruction, and
+CRC finalization remain cancellable and budgeted, and no writer or batch sink
+is entered before the reconstructed member passes its ZIP integrity boundary.
+
+Method 97 is admitted only for legacy lossless RIFF/WAVE WavPack streams
+through stream version `0x407`. The wrapper restores every storage byte rather
+than normalizing samples, but rejects hybrid/lossy, DSD, RF64/non-RIFF, v5-only
+metadata, unknown sample counts, more than 16 channels, and newer channel
+identity layouts with typed errors. The pure-Rust decoder dependency is
+confined behind the project's checked parser/resource/integrity boundary; its
+encoder is disabled and no external process is a runtime fallback.
 
 The opt-in stock-`7zz` capability suite executes only in integration tests and
 uses unique temporary paths. Its result classifications never enter runtime
@@ -629,6 +658,15 @@ vector, while the ignored differential creates a fresh method-98 archive and
 requires both decoders to agree. The test encoder is absent from non-test
 builds and exposes no creation API. A local-only, hash-pinned external corpus
 adds method-98 interoperability evidence without being packaged or trusted.
+
+ZIP WavPack method 97 uses 10 committed legacy payloads produced by exact
+official WavPack 4.80 from deterministic project-authored WAV files. Exact
+official WavPack 5.9 independently reconstructs every expected byte. Normal
+tests additionally derive every packed prefix plus meaningful structural,
+bitstream, CRC, size, version, unsupported-profile, resource, cancellation,
+encryption, and sink-boundary failures. The encoder/decoder executables are
+test oracles only. A fresh, provenance-complete Windows WinZip product sample
+is intentionally deferred and cannot silently expand the admitted profile.
 
 Archive creation, modification, automatic filesystem extraction, downstream
 application integration, network volume fetching, and isolation from a hostile

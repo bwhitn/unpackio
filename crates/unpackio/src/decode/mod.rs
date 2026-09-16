@@ -8,6 +8,9 @@ mod lzma;
 mod phase5_filters;
 mod ppmd;
 mod ppmd_i;
+mod wavpack;
+mod winzip_jpeg;
+mod winzip_jpeg_tables;
 mod xz;
 
 pub(crate) use aes::decode_aes;
@@ -17,11 +20,13 @@ pub(crate) use codecs::{
 };
 pub(crate) use deflate64::decode_deflate64;
 pub(crate) use filters::{decode_bcj2, decode_filter, decode_filter_in_place};
-pub(crate) use lzma::{decode_lzma, decode_lzma2};
+pub(crate) use lzma::{decode_lzma, decode_lzma_exact, decode_lzma2};
 pub(crate) use ppmd::decode_ppmd;
 pub(crate) use ppmd_i::decode_zip_ppmd;
 #[cfg(test)]
 pub(crate) use ppmd_i::encode_zip_ppmd_fixture_for_test;
+pub(crate) use wavpack::decode_zip_wavpack;
+pub(crate) use winzip_jpeg::decode_zip_jpeg;
 pub(crate) use xz::{XzProfile, decode_xz};
 
 /// 7z Copy method identifier.

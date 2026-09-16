@@ -24,6 +24,98 @@ const XZ_ABC: &[u8] = &[
 // Stock 7zz 26.02 encoded the project-authored `abc` bytes with ZIP PPMd-I,
 // order 2, 1 MiB, and Restart restoration.
 const PPMD_ABC: &[u8] = &[0x01, 0x00, 0x61, 0x03, 0x6e, 0x81, 0x2d, 0x4c, 0x00];
+const WAVPACK_PCM8_HEX: &[u8] =
+    include_bytes!("../../crates/unpackio/tests/fixtures/method97/pcm8_mono.wv.hex");
+const WAVPACK_PCM8_WAVE_HEX: &[u8] =
+    include_bytes!("../../crates/unpackio/tests/fixtures/method97/pcm8_mono.wav.hex");
+const WINZIP_JPEG_ARCHIVE_B64: &[u8] =
+    include_bytes!("../../crates/unpackio/tests/fixtures/method96/winzip21-method96.zipx.b64");
+const WINZIP_JPEG_SOURCE_B64: &[u8] = include_bytes!(
+    "../../crates/unpackio/tests/fixtures/method96/method96-project-authored.jpg.b64"
+);
+
+fn hex_nibble(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte.saturating_sub(b'0')),
+        b'a'..=b'f' => Some(byte.saturating_sub(b'a').saturating_add(10)),
+        b'A'..=b'F' => Some(byte.saturating_sub(b'A').saturating_add(10)),
+        _ => None,
+    }
+}
+
+fn decode_hex_fixture(encoded: &[u8]) -> Option<Vec<u8>> {
+    let digits = encoded
+        .iter()
+        .copied()
+        .filter(|byte| !byte.is_ascii_whitespace())
+        .collect::<Vec<_>>();
+    let mut chunks = digits.chunks_exact(2);
+    let mut output = Vec::with_capacity(digits.len() / 2);
+    for chunk in chunks.by_ref() {
+        let high = hex_nibble(*chunk.first()?)?;
+        let low = hex_nibble(*chunk.get(1)?)?;
+        output.push(high.checked_mul(16)?.checked_add(low)?);
+    }
+    if !chunks.remainder().is_empty() {
+        return None;
+    }
+    Some(output)
+}
+
+fn base64_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'A'..=b'Z' => Some(byte.saturating_sub(b'A')),
+        b'a'..=b'z' => Some(byte.saturating_sub(b'a').saturating_add(26)),
+        b'0'..=b'9' => Some(byte.saturating_sub(b'0').saturating_add(52)),
+        b'+' => Some(62),
+        b'/' => Some(63),
+        b'=' => Some(64),
+        _ => None,
+    }
+}
+
+fn decode_base64_fixture(encoded: &[u8]) -> Option<Vec<u8>> {
+    let compact = encoded
+        .iter()
+        .copied()
+        .filter(|byte| !byte.is_ascii_whitespace())
+        .collect::<Vec<_>>();
+    if compact.len() % 4 != 0 {
+        return None;
+    }
+    let capacity = compact.len().checked_div(4)?.checked_mul(3)?;
+    let mut output = Vec::new();
+    output.try_reserve_exact(capacity).ok()?;
+    for chunk in compact.chunks_exact(4) {
+        let [first, second, third, fourth] = <[u8; 4]>::try_from(chunk).ok()?;
+        let first = base64_value(first)?;
+        let second = base64_value(second)?;
+        let third = base64_value(third)?;
+        let fourth = base64_value(fourth)?;
+        if first >= 64 || second >= 64 {
+            return None;
+        }
+        output.push((first << 2) | (second >> 4));
+        if third < 64 {
+            output.push((second << 4) | (third >> 2));
+        }
+        if fourth < 64 {
+            if third >= 64 {
+                return None;
+            }
+            output.push((third << 6) | fourth);
+        }
+    }
+    Some(output)
+}
+
+fn winzip_jpeg_fixture() -> Option<(Vec<u8>, Vec<u8>)> {
+    let archive = decode_base64_fixture(WINZIP_JPEG_ARCHIVE_B64)?;
+    let source = decode_base64_fixture(WINZIP_JPEG_SOURCE_B64)?;
+    let payload_end = 59_usize.checked_add(3_155)?;
+    let payload = archive.get(59..payload_end)?.to_vec();
+    Some((payload, source))
+}
 
 fn limits() -> Limits {
     Limits::builder()
@@ -482,6 +574,45 @@ fuzz_target!(|data: &[u8]| {
     if let Some(zip) = encoded_zip(PPMD_ABC, b"abc", 98, 20) {
         exercise_generated_zip(zip, b"abc");
     }
+    if let (Some(wavpack), Some(wave)) = (
+        decode_hex_fixture(WAVPACK_PCM8_HEX),
+        decode_hex_fixture(WAVPACK_PCM8_WAVE_HEX),
+    ) {
+        if let Some(zip) = encoded_zip(&wavpack, &wave, 97, 20) {
+            exercise_generated_zip(zip, &wave);
+        }
+    }
+    let method_selector = arbitrary.first().copied().unwrap_or_default();
+    if method_selector & 0x3f == 0 {
+        if let Some((jpeg_payload, jpeg)) = winzip_jpeg_fixture() {
+            if let Some(zip) = encoded_zip(&jpeg_payload, &jpeg, 96, 20) {
+                exercise_generated_zip(zip, &jpeg);
+            }
+            if !jpeg_payload.is_empty() {
+                let high = usize::from(arbitrary.get(1).copied().unwrap_or_default());
+                let low = usize::from(arbitrary.get(2).copied().unwrap_or_default());
+                let selected = high
+                    .checked_mul(256)
+                    .and_then(|value| value.checked_add(low));
+                if let Some(selected) = selected {
+                    let offset = selected % jpeg_payload.len();
+                    let mask = arbitrary.get(3).copied().unwrap_or(1).max(1);
+                    let mut hostile_jpeg = jpeg_payload.clone();
+                    if let Some(byte) = hostile_jpeg.get_mut(offset) {
+                        *byte ^= mask;
+                    }
+                    if let Some(zip) = encoded_zip(&hostile_jpeg, &jpeg, 96, 20) {
+                        exercise_zip(zip);
+                    }
+                    if let Some(prefix) = jpeg_payload.get(..offset) {
+                        if let Some(zip) = encoded_zip(prefix, &jpeg, 96, 20) {
+                            exercise_zip(zip);
+                        }
+                    }
+                }
+            }
+        }
+    }
     if !arbitrary.is_empty() {
         let mut hostile_xz = XZ_ABC.to_vec();
         let selector = match arbitrary.first() {
@@ -518,6 +649,25 @@ fuzz_target!(|data: &[u8]| {
         if let Some(prefix) = PPMD_ABC.get(..ppmd_prefix_size) {
             if let Some(zip) = encoded_zip(prefix, b"abc", 98, 20) {
                 exercise_zip(zip);
+            }
+        }
+
+        if let (Some(mut hostile_wavpack), Some(wave)) = (
+            decode_hex_fixture(WAVPACK_PCM8_HEX),
+            decode_hex_fixture(WAVPACK_PCM8_WAVE_HEX),
+        ) {
+            let wavpack_offset = usize::from(selector) % hostile_wavpack.len();
+            if let Some(byte) = hostile_wavpack.get_mut(wavpack_offset) {
+                *byte ^= mask;
+            }
+            if let Some(zip) = encoded_zip(&hostile_wavpack, &wave, 97, 20) {
+                exercise_zip(zip);
+            }
+            let prefix_size = usize::from(selector) % hostile_wavpack.len();
+            if let Some(prefix) = hostile_wavpack.get(..prefix_size) {
+                if let Some(zip) = encoded_zip(prefix, &wave, 97, 20) {
+                    exercise_zip(zip);
+                }
             }
         }
     }

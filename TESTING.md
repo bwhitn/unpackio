@@ -45,7 +45,8 @@ paths and make no automatic archive-name-based extraction decisions.
 The ordinary core suite includes generated ZIP, RPM, CPIO, Debian, and ARJ
 coverage. ZIP tests
 exercise ordinary/ZIP64/SFX structure; Store, Deflate, Deflate64, BZip2,
-ZIP-LZMA, both Zstandard IDs, XZ method 95, and PPMd method 98; ZipCrypto;
+ZIP-LZMA, both Zstandard IDs, XZ method 95, JPEG method 96, WavPack method 97,
+and PPMd method 98; ZipCrypto;
 WinZip AES AE-1/AE-2
 at every key size; duplicate/empty/CP437 names; password, authentication, CRC,
 descriptor, truncation, overlap, SFX, dictionary, output, work, and cancellation
@@ -53,12 +54,31 @@ failures. Method-95 cases cover all XZ 1.0.4 Checks and permitted prefilters,
 multiple Blocks, Stream Padding, every strict payload prefix, CRC-correct
 header/property/Index mutations, exact Index records, encryption composition,
 and failure before writer or batch-sink finalization.
+Method-97 cases cover 10 official-WavPack-generated profiles spanning every
+supported storage width, integer/float, mono/stereo, three/four/
+sixteen channels, a custom sample rate, wrapper trailers, and multiple blocks.
+Every strict payload prefix, structural/bitstream/CRC corruption, malformed or
+excessive metadata, size/version/profile disagreement, encryption composition,
+all applicable limits, cancellation, unrelated-entry access, and atomic sink
+failure are checked.
 Method-98 cases cover every legal property restoration value, order/model
 endpoints, end-marker/exact-input rules, a forced allocator-pressure pass for
 Restart/Cutoff/Freeze, every strict packed prefix, corrupt properties/range
 state/trailing data, declared size/CRC/version disagreement, encryption
 composition, unrelated-entry selection, and failure before writer or batch
 sink delivery.
+The committed WinZip 21 method-94/96 reference test independently pins each
+project-authored source, archive, and local-header payload SHA-256; source CRC;
+and member name, method, sizes, flags, encryption, and version-needed metadata.
+It requires byte-exact method-96 extraction/verification and typed unsupported
+method-94 failure without output. Dedicated method-96 tests cover compressed
+and stored metadata, extended properties, malformed Huffman/quantization/frame/
+scan state, unsupported profiles, sampled strict truncation, corruption,
+trailing input, exact LZMA declared-byte accounting, resource/work/cancellation
+failure, encryption composition, and atomic delivery. No normal test invokes
+an external tool. The separate checksum-pinned packMP3 and XFileUnpacker oracle
+runs that established the expected outputs are recorded in `CORPUS.md` and
+`PROVENANCE.md`.
 RPM tests exercise typed headers, shared-value allocation amplification,
 uncompressed/gzip/BZip2/XZ/LZMA/Zstandard payloads, newc/CRC-newc metadata,
 supported package digests, duplicates/empty members, truncation, corruption,
@@ -80,8 +100,9 @@ in-memory serializers, plus complete RPM, CPIO, Debian, and stored-ARJ inputs.
 It checks format-specific
 metadata, duplicate and empty entries, unsafe paths, one-entry and batch
 callback boundaries, corruption, cancellation, limits, password-required
-classification, XZ method-95 and PPMd method-98 metadata/extraction/errors,
-registered method-94/96/97 names with typed unsupported errors, and exception
+classification, XZ method-95, JPEG method-96, WavPack method-97, and PPMd
+method-98 metadata/extraction/errors, registered method-94 typed unsupported
+errors, and exception
 preservation through an installed ABI3 wheel.
 Python test authors never write an archive member name to the filesystem.
 
@@ -208,7 +229,9 @@ The separately pinned local-only WinZip/SharpCompress sample set is optional:
 
 ```text
 UNPACKIO_WINZIP_TESTDATA=/path/to/pinned/SharpCompress/tests/TestArchives/Archives \
-  cargo test -p unpackio --test winzip_reference --locked -- --ignored --nocapture
+  cargo test -p unpackio --test winzip_reference --locked \
+  external_pinned_zipx_archives_match_expected_outputs \
+  -- --ignored --exact --nocapture
 ```
 
 `CORPUS.md` records the exact acquisition revision, archive and output hashes,
@@ -218,6 +241,59 @@ regular member. Four filenames/upstream tests attest WinZip 26/27 BZip2,
 ZIP-LZMA, XZ, and Zstandard output. The supplemental PPMd sample has no recorded
 producer, tool version, or command and is explicitly not counted as WinZip
 method-98 evidence.
+
+The normal, non-ignored `zip_recompression_reference` integration test covers
+the separately committed WinZip 21 method-94/96 fixtures. Their controlled
+source inputs, exact product/installer identities, complete GUI recipe, archive
+and payload hashes, redistribution basis, and independent output-oracle results
+are recorded in `CORPUS.md`. The test confirms that the current public surface
+lists both real files accurately, reconstructs and verifies the method-96 JPEG
+byte for byte, and returns `UnsupportedMethod` for method 94 before emitting
+bytes.
+
+The separate method-94 clean-room research corpus is verified without an
+external executable by:
+
+```text
+ruby crates/unpackio/tests/fixtures/method94/verify.rb
+ruby crates/unpackio/tests/fixtures/method94/analyze.rb
+```
+
+It checks exact manifest/file-set agreement and all 54 MP3/PMP base64 sizes,
+SHA-256 values, signatures, oracle-acceptance records, and byte-exact
+round-trip assertions. The generator was also run twice into fresh temporary
+directories with the checksum-pinned LAME and packMP3 tools; recursive diffs of
+the original 53 manifest records and all 106 original pair files were empty;
+the added intensity-stereo pair was independently regenerated exactly. This
+corpus is research evidence and intentionally does not make the normal
+method-94 extraction test expect success. The analyzer independently parses
+MPEG framing and verifies the
+PMP signature, descriptor, byte-4 feature bitmap, global flags, reservoir
+marker, and frame count for all 54 pairs. It explicitly leaves only the byte-11
+entropy stream unresolved.
+
+The same test binary contains three ignored harnesses for the fresh local-only
+Windows WinZip evidence. They require the archive/original paths and recorded
+recipe/product variables rather than accepting an unlabelled sample:
+
+- `external_winzip_ppmd_oracle_matches_project_input` checks the pinned WinZip
+  21.0.12288 PPMd archive using `UNPACKIO_WINZIP_PPMD_ARCHIVE`,
+  `UNPACKIO_WINZIP_PPMD_ORIGINAL`, `UNPACKIO_WINZIP_PPMD_PRODUCT_VERSION`, and
+  `UNPACKIO_WINZIP_PPMD_AUTHORING_RECIPE`.
+- `external_winzip_wavpack_oracle_matches_original_wave` checks the pinned
+  WinZip 21.0.12288 WavPack archive using the existing
+  `UNPACKIO_WINZIP_WAVPACK_*`, `UNPACKIO_WINZIP_PRODUCT_VERSION`, and
+  `UNPACKIO_WINZIP_AUTHORING_RECIPE` variables.
+- `external_reproducible_winzip24_archives_match_project_input` checks all four
+  WinZip 24.0.14033 replacements using
+  `UNPACKIO_WINZIP_REPLACEMENT_TESTDATA`,
+  `UNPACKIO_WINZIP_REPLACEMENT_ORIGINAL`,
+  `UNPACKIO_WINZIP_REPLACEMENT_PRODUCT_VERSION`, and
+  `UNPACKIO_WINZIP_REPLACEMENT_AUTHORING_RECIPE`.
+
+Each harness pins the relevant archive/output hashes and metadata, performs
+byte-exact production extraction, and completes full archive verification.
+`CORPUS.md` records the successful 2026-09-16 invocations and exact values.
 
 The capability-probe command requires the exact 26.02 oracle and prints
 machine-readable `UNPACKIO_7ZZ_PROBE` TSV records. It distinguishes authoring,
@@ -344,11 +420,11 @@ LibFuzzer counter/feature observations from the subsequent 100,000-execution
 decoder campaign and 50,000-execution campaigns for the other targets are
 recorded, with their sanitizer limitation, in `FUZZING.md`.
 
-The `archive_formats` target additionally creates a valid ZIP method-95/XZ
-and method-98/PPMd member on every input and drives input-selected corruption
-and strict truncation through the same public open/verify/extract path. Every
-iteration requires both fixed streams to extract to the expected `abc` output
-before the hostile variants run.
+The `archive_formats` target additionally creates valid ZIP method-95/XZ,
+method-97/WavPack, and method-98/PPMd members on every input and drives
+input-selected corruption and strict truncation through the same public
+open/verify/extract path. Every iteration requires all fixed streams to extract
+to their exact expected output before the hostile variants run.
 
 The twentieth and twenty-first profiles use a fixed stock-`7zz` 26.02 PPMd
 order-6/64-KiB vector
@@ -648,3 +724,213 @@ Finally, the refreshed stable `archive_formats` harness completed 10,000
 seedless executions in 92 seconds with seed `2925986431`, no failure, and 49
 MiB reported RSS. Its missing-sanitizer/missing-coverage warnings make this a
 finite no-panic check only; the configured nightly ASan run remains required.
+
+### 2026-09-15 ZIP WavPack method 97 completion gate
+
+At that completion gate, the final locked root workspace passed formatting,
+warning-denied
+all-target/all-feature Clippy, warning-denied rustdoc, 244 non-ignored Rust
+tests, and three doctests. Twenty-six environment- or corpus-dependent tests
+remained intentionally ignored, including the then-deferred Windows WinZip
+method-97 product oracle. That oracle was completed on 2026-09-16 as recorded
+below. The separately locked Python binding passed
+formatting, warning-denied Clippy/rustdoc, its all-feature compile check, and
+both no-default-feature Rust tests. The fuzz package passed formatting,
+warning-denied Clippy, and both deterministic generator tests. The local
+decoder fork independently passed formatting, warning-denied Clippy, three
+tests, and its doctests. Cargo-deny 0.20.2 reported advisories, bans, licenses,
+and sources clean for the root, binding, fuzz, and local-decoder graphs.
+
+The complete root suite and all-feature binding check also passed in the
+official Rust 1.85.0 Docker image
+(`sha256:1829c432be4a592f3021501334d3fcca24f238432b13306a4e62669dec538e52`).
+The decoder fork passed warning-denied all-target/all-feature Clippy under the
+same MSRV. The release-only PPMd restoration-pressure test remained clean. The
+natural-order release benchmark target compiled and explicitly skipped because
+`UNPACKIO_7Z_TESTDATA` was not set; no ZIP throughput or peak-memory result is
+inferred. Miri is not installed locally, and nightly Miri, sanitizer-backed
+fuzzing, 32-bit execution, and hosted multi-platform wheels remain CI gates.
+
+All 10 deterministic method-97 payloads regenerated byte-for-byte with exact
+official WavPack 4.80, and exact official WavPack 5.9 decoded each expected WAV
+byte-for-byte. The Rust suite covers the admitted integer/float, one-to-16-
+channel, custom-rate, wrapper/trailer, and multiblock profiles; every strict
+prefix; structural, bitstream, and checksum corruption; unsupported profiles;
+resource/work/cancellation failures; ZipCrypto and WinZip AES; atomic writer
+and batch boundaries; and checked 8-bit PCM conversion. The final stable-built
+`archive_formats` harness completed 10,000 executions from an empty corpus in
+106 seconds with seed `970203`, no failure, and 39 MiB reported RSS. Its
+missing-sanitizer/missing-coverage warnings make that a finite no-panic check,
+not a substitute for nightly ASan fuzzing.
+
+Pinned maturin 1.15.0 produced the definitive direct
+`unpackio-0.2.0-cp39-abi3-macosx_10_12_x86_64.whl`: 1,024,211 bytes, SHA-256
+`59ca11ac016bb8d0251ebdda7f6a4600b0d229db14f9a0971414ee31d90525c4`.
+The 428,382-byte source distribution has SHA-256
+`565d6735ea86fad12383ff8d4587ccce944679f00eae4156bc41de2e07eec0b6`;
+its 162 entries include the decoder fork, patch record, adapter, and both new
+license sets, with no nested target, wheel, bytecode, or distribution output.
+An independent PEP 517 rebuild produced a 1,024,276-byte wheel with SHA-256
+`062cfda2c0b47f5d34b8fe34853f3012bb4924859bf7b6168845dabd8e54b42c`.
+The direct and rebuilt wheels each contain 20 identically named entries,
+installed into separate clean CPython 3.12.10 environments, and passed all 27
+binding tests. Both report version 0.2.0, no `Requires-Dist`, no entry point,
+and the complete MIT/WavPack BSD license and notice payload.
+
+At this gate, the Windows WinZip authoring/verification step was intentionally
+deferred at the user's request. Its ignored harness required a recorded product
+version, authoring recipe, original input, and archive/output SHA-256 values
+before any product-parity claim could be added. That evidence was supplied and
+the harness passed on 2026-09-16 as recorded above.
+
+### 2026-09-15 ZIP methods 94 and 96 fixture gate
+
+The provenance-complete WinZip 21 fixture addition passed
+`cargo fmt --all -- --check`, warning-denied all-workspace/all-target/all-feature
+Clippy, all-workspace/all-feature tests, and `cargo deny check`. The root suite
+reported 245 non-ignored Rust tests and three doctests passing; the same 26
+external-corpus/environment tests remained intentionally ignored. The new
+`zip_recompression_reference` test also passed independently.
+
+This phase adds fixed test data, a metadata/typed-error regression, and
+documentation only. It does not add or alter a production decoder, dependency,
+parser, unsafe boundary, resource policy, or fuzz-reachable runtime path, so no
+new Miri, property, fuzz, differential-extraction, or benchmark campaign was
+applicable. The earlier method-97 campaigns and gates remain recorded above.
+
+### 2026-09-16 ZIP JPEG method 96 completion gate
+
+The final method-96 implementation passed root formatting, warning-denied
+all-workspace/all-target/all-feature Clippy, all-workspace/all-feature tests,
+warning-denied rustdoc, and `cargo deny check`. The root suite reported 255
+non-ignored Rust tests and three doctests passing; 26 external-corpus or
+environment-dependent tests remained intentionally ignored. The separately
+locked Python binding, fuzz package, and local WavPack decoder graph passed
+their applicable formatting, warning-denied compile/lint/documentation, test,
+and cargo-deny gates. The release-only PPMd allocator-pressure test passed, and
+the natural-order release benchmark compiled and explicitly skipped because
+`UNPACKIO_7Z_TESTDATA` was unset.
+
+Method-96 tests cover the provenance-complete three-component, 8-bit,
+one-by-one-sampled WinZip fixture; stored and LZMA-compressed metadata bundles;
+short and extended bundle headers; sequential SOF0/SOF1 parsing at 8 and 12
+bits; repeated frame-component and scan-component identifiers; progressive and
+spectral-profile rejection; DQT, DHT, DRI, SOF, and SOS validation; absent,
+zero, oversubscribed, and repeatedly defined tables; inner-LZMA and outer-payload
+exact consumption; every fixture prefix; payload corruption; aggregate
+dictionary, metadata, frame, output, work, and cancellation limits; ZipCrypto
+and WinZip AES wrappers; and CRC-before-writer/batch delivery. Positive
+interoperability is deliberately claimed only for the committed fixture's
+layout; parser acceptance of other legal component and sampling layouts is not
+presented as fixture-backed compatibility evidence.
+
+The exact CI compile gate and complete root suite also passed in the official
+Rust 1.85.0 Linux image. The all-target/all-feature compile gate and complete
+library/integration suite passed for `i686-unknown-linux-gnu`, exercising the
+same method-96 paths on a 32-bit target. Current-toolchain Clippy is clean;
+optional Rust 1.85 Clippy still reports five pre-existing style lints outside
+the method-96 files, while the CI's Rust 1.85 compile/test contract passes.
+Miri and nightly sanitizer instrumentation are not installed locally, so their
+configured CI jobs remain authoritative. A stable selector-throttled fuzz run
+completed 10,000 seedless executions in 9 seconds with seed `960216`, no
+failure, and 43 MiB reported RSS; its missing-instrumentation warning means it
+is finite invariant/no-panic evidence, not sanitizer or coverage evidence.
+
+Pinned maturin 1.15.0 produced the final direct
+`unpackio-0.2.0-cp39-abi3-macosx_10_12_x86_64.whl`: 1,060,797 bytes, SHA-256
+`5c2666997f067eea50f761c932e9b273425509588c21db49976fce5e7748d283`.
+The 474,488-byte sdist has SHA-256
+`7743b1c48ff0f8d2c34167367f3a76da1dac87eb9de8ef10c22aa1cf1163d13d`;
+its 171 entries contain no nested target, wheel, distribution, bytecode, or
+`__pycache__` output. An isolated PEP 517 rebuild produced a 1,060,884-byte
+wheel with SHA-256
+`1b637162655378028e77cf8074d19e50a26f8795f31152b447c31ea885eb2366`.
+The direct and rebuilt wheels each contain the same 21 entry names, no Python
+bytecode, no runtime dependency, and no console entry point. Each installed in
+a separate clean CPython 3.12.10 environment and passed all 28 binding tests;
+both report version 0.2.0 and include the complete root-equivalent license and
+notice payload.
+
+### 2026-09-16 ZIP MP3 method-94 research-corpus gate
+
+The clean-room generator produced 53 accepted and unique MP3/PMP pairs. Every
+case passed packMP3 v1.0g's internal verification and a second byte-exact
+decode comparison. A complete second generation in a fresh temporary
+directory had an empty recursive diff against the committed manifest and all
+106 base64 files. The external-free verifier reported 53 unique MP3 streams,
+53 unique PMP streams, 972,360 decoded MP3 bytes, and 679,268 PMP bytes.
+`git diff --check` and the check for committed binary/oracle/temp-path leakage
+were also clean.
+
+The phase passed `cargo fmt --all -- --check`, warning-denied
+all-workspace/all-target/all-feature Clippy, all-workspace/all-feature tests,
+and `cargo deny check`; the targeted `zip_recompression_reference` test passed
+separately. The root suite again reported 255 non-ignored Rust tests and three
+doctests passing, with the same 26 external-corpus or environment-dependent
+tests intentionally ignored. This phase adds original fixture tooling,
+base64 research data, and documentation only. It changes no production parser,
+decoder, dependency, unsafe boundary, limit, or fuzz-reachable path, so no new
+Miri, sanitizer, property, fuzz, binding-wheel, or benchmark campaign applies.
+
+### 2026-09-16 method-94 envelope and fresh WinZip evidence gate
+
+The external-free method-94 verifier again accepted all 53 pairs, and the new
+MIT analyzer passed Ruby syntax checking before independently parsing every
+MP3 frame and verifying the PMP signature, descriptor, flags, reservoir marker,
+and big-endian frame count. It observed 13 distinct unresolved values for
+header byte 4 and deliberately made no claim about the entropy stream beginning
+at byte 11.
+A temporary-copy negative audit independently flipped the signature,
+descriptor, flags, reservoir, and frame-count bytes; the analyzer rejected all
+five mutations.
+
+Three opt-in production harness runs passed against the fresh local-only
+evidence: WinZip 21.0.12288 PPMd method 98, WinZip 21.0.12288 WavPack method
+97, and all four WinZip 24.0.14033 BZip2, ZIP-LZMA, XZ, and Zstandard
+replacement archives. The harnesses pin the executable/product identity in
+the provenance record, archive and source hashes, member method and version,
+compressed and uncompressed sizes, encryption state, CRC, decoded bytes, and
+full-archive verification. Stock `7zz` 26.02 also completed integrity checks
+for PPMd and all four formats it can decode; it identifies WavPack method 97
+but does not implement that decoder.
+
+The final tree passed `cargo fmt --all -- --check`, warning-denied
+all-workspace/all-target/all-feature Clippy, all-workspace/all-feature tests,
+warning-denied rustdoc, `cargo deny check`, and `git diff --check`. The ordinary
+suite reported 255 non-ignored Rust tests and three doctests passing, with 28
+environment- or corpus-dependent tests ignored; the three new evidence
+harnesses were then run explicitly and passed. This follow-up changes test and
+research tooling plus documentation, not a production parser, decoder,
+dependency, unsafe boundary, resource policy, or fuzz-reachable path. No new
+Miri, property, sanitizer-fuzz, binding-wheel, or benchmark campaign applies;
+the production-decoder and stock-`7zz` checks above are the applicable
+differential tests.
+
+### 2026-09-16 method-94 feature-map follow-up gate
+
+The clean-room generator now produces 54 accepted, unique MP3/PMP pairs. The
+additional input is a project-authored five-frame, zero-main-data MPEG-1 Layer
+III stream with intensity stereo enabled; the external packMP3 oracle accepted
+it, verified its own round trip, and independently decoded it byte for byte.
+A fresh complete generation matched the committed manifest and all 108 base64
+files exactly. The external-free verifier reported 54 unique MP3 streams, 54
+unique PMP streams, 974,445 decoded MP3 bytes, and 679,297 PMP bytes.
+
+The expanded MIT analyzer parses standard Layer III side information and
+mechanically verifies all eight byte-4 feature bits across 14 observed
+combinations: padding, mid/side stereo, intensity stereo, switched blocks,
+nonzero subblock gain, SCFSI scalefactor sharing, preflag, and scalefac-scale.
+It accepted all 54 unmodified pairs, and eight independent negative runs each
+flipped one byte-4 bit in the intensity fixture and were rejected. The entropy
+stream at byte 11 remains outside the verified grammar, so method 94 continues
+to return its typed unsupported-method error without output.
+
+This follow-up passed Ruby warning/syntax checks, the targeted
+`zip_recompression_reference` test, `cargo fmt --all -- --check`,
+warning-denied all-workspace/all-target/all-feature Clippy, the complete
+all-workspace/all-feature suite (255 non-ignored Rust tests and three doctests;
+28 environment- or corpus-dependent tests ignored), warning-denied rustdoc,
+`cargo deny check`, and `git diff --check`. It changes fixture/research tooling,
+corpus data, and documentation only; no production parser, decoder, dependency,
+unsafe boundary, resource policy, or fuzz-reachable path changed, so no new
+Miri, property, sanitizer-fuzz, binding-wheel, or benchmark campaign applies.

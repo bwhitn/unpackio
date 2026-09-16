@@ -467,6 +467,7 @@ dependencies = [
  "sha1",
  "sha2",
  "twox-hash",
+ "unpackio-wavicle-decoder",
  "zeroize",
 ]
 
@@ -478,6 +479,10 @@ dependencies = [
  "unpackio",
  "zeroize",
 ]
+
+[[package]]
+name = "unpackio-wavicle-decoder"
+version = "0.1.0"
 
 [[package]]
 name = "zeroize"

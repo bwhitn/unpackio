@@ -1,6 +1,6 @@
 [workspace]
 members = ["crates/unpackio"]
-exclude = ["bindings/python", "fuzz"]
+exclude = ["bindings/python", "fuzz", "vendor/wavicle-decoder"]
 resolver = "3"
 
 [workspace.package]

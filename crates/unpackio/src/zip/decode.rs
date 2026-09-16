@@ -6,7 +6,7 @@ use crate::{
     checksum::Crc32,
     decode::{
         XzProfile, decode_bzip2, decode_deflate, decode_deflate64, decode_lzma, decode_xz,
-        decode_zip_ppmd, decode_zstd,
+        decode_zip_jpeg, decode_zip_ppmd, decode_zip_wavpack, decode_zstd,
     },
     parse_util::{
         CONTROL_CHUNK_SIZE, ParseControl, check_limit, checked_range, try_reserve, usize_to_u64,
@@ -52,10 +52,7 @@ pub(super) fn decode_entry(
     }
     if matches!(
         entry.compression,
-        ZipCompressionMethod::Mp3
-            | ZipCompressionMethod::Jpeg
-            | ZipCompressionMethod::WavPack
-            | ZipCompressionMethod::Unknown(_)
+        ZipCompressionMethod::Mp3 | ZipCompressionMethod::Unknown(_)
     ) {
         return Err(unsupported_method(entry.compression));
     }
@@ -186,10 +183,25 @@ fn decode_compressed(
             }
             decode_zip_ppmd(input, entry.uncompressed_size, maximum, limits, control)
         }
-        ZipCompressionMethod::Mp3
-        | ZipCompressionMethod::Jpeg
-        | ZipCompressionMethod::WavPack
-        | ZipCompressionMethod::Unknown(_) => Err(unsupported_method(entry.compression)),
+        ZipCompressionMethod::WavPack => {
+            if entry.version_needed < 20 {
+                return Err(zip_format(
+                    "WavPack entries require ZIP version 2.0 or later",
+                ));
+            }
+            decode_zip_wavpack(input, entry.uncompressed_size, maximum, limits, control)
+        }
+        ZipCompressionMethod::Jpeg => {
+            if entry.version_needed < 20 {
+                return Err(zip_format(
+                    "WinZip JPEG entries require ZIP version 2.0 or later",
+                ));
+            }
+            decode_zip_jpeg(input, entry.uncompressed_size, maximum, limits, control)
+        }
+        ZipCompressionMethod::Mp3 | ZipCompressionMethod::Unknown(_) => {
+            Err(unsupported_method(entry.compression))
+        }
     }
 }
 

@@ -87,12 +87,17 @@ ranges. Traditional ZipCrypto and WinZip AES live in the ZIP crypto module and
 cannot share password state with 7z.
 
 ZIP XZ method 95 delegates only bounded LZMA2 Block data to the shared checked
-XZ layer; ZIP PPMd method 98 has a distinct checked PPMd-I revision-1 model and
-does not reuse the 7z PPMd7 variant-H decoder. Both adapters receive the
+XZ layer; ZIP WavPack method 97 reparses and bounds legacy lossless RIFF/WAVE
+blocks before calling its safe-Rust decoder one block at a time; ZIP PPMd
+method 98 has a distinct checked PPMd-I revision-1 model and does not reuse the
+7z PPMd7 variant-H decoder. All three adapters receive the
 validated entry's declared size and one shared operation control, enforce their
 format-specific termination and exact-consumption rules, and return a complete
-bounded buffer to the normal ZIP size/CRC and pre-delivery boundary. Registered
-methods 94, 96, and 97 stop at typed dispatch errors and have no decoder layer.
+bounded buffer to the normal ZIP size/CRC and pre-delivery boundary. Method 96
+adds a bounded metadata-bundle/LZMA layer, persistent validated JPEG tables,
+slice-local arithmetic-coded DCT reconstruction, and exact Huffman scan
+re-encoding before that same integrity boundary. Registered method 94 stops at
+a typed dispatch error and has no decoder layer.
 
 RPM header parsing produces ordered typed values without interpreting arbitrary
 tag bytes as UTF-8. Package-level digest selection occurs before payload

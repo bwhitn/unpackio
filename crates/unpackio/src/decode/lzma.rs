@@ -961,6 +961,7 @@ fn decode_stream(
     output: &mut Output,
     expected_increment: Option<u64>,
     require_eos: bool,
+    require_exact_input: bool,
     control: &mut ParseControl<'_>,
 ) -> Result<()> {
     let start = output.position()?;
@@ -978,6 +979,11 @@ fn decode_stream(
     loop {
         if let Some(size) = target {
             if output.position()? == size {
+                if require_exact_input && !range.is_finished() {
+                    return Err(format_error(
+                        "LZMA stream has trailing input after its declared output",
+                    ));
+                }
                 return Ok(());
             }
         }
@@ -1054,6 +1060,30 @@ pub(crate) fn decode_lzma(
         &mut output,
         expected,
         expected.is_none(),
+        false,
+        control,
+    )?;
+    Ok(output.bytes)
+}
+
+pub(crate) fn decode_lzma_exact(
+    input: &[u8],
+    properties: &[u8],
+    expected: u64,
+    maximum: u64,
+    control: &mut ParseControl<'_>,
+) -> Result<Vec<u8>> {
+    let (property, dictionary) = lzma_dictionary(properties)?;
+    let (lc, lp, pb) = properties_from_byte(property)?;
+    let mut state = LzmaState::new(lc, lp, pb)?;
+    let mut output = Output::new(maximum, u64::from(dictionary), Some(expected))?;
+    decode_stream(
+        &mut state,
+        input,
+        &mut output,
+        Some(expected),
+        false,
+        true,
         control,
     )?;
     Ok(output.bytes)
@@ -1200,6 +1230,7 @@ pub(crate) fn decode_lzma2(
                 packed,
                 &mut output,
                 Some(unpacked),
+                false,
                 false,
                 control,
             )?;

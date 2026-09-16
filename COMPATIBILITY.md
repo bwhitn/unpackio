@@ -50,14 +50,15 @@ below.
 | Area | Supported | Evidence | Explicit boundary |
 | --- | --- | --- | --- |
 | Structure | Ordinary ZIP, ZIP64 sizes/offsets/counts, bounded SFX prefixes, central/local headers, ZIP64 and signed/unsigned data descriptors, exact end record, raw archive comment | Generated Store/Deflate archives, empty and duplicate entries, CP437 names, SFX, ZIP64 SFX, descriptor and truncation/corruption cases | Split/spanned archives, central-directory encryption, and PKWARE Strong Encryption return `UnsupportedFeature` |
-| Compression | Store (0), Deflate (8), Deflate64 (9), BZip2 (12), ZIP-LZMA (14), deprecated Zstandard (20), Zstandard (93), XZ (95), PPMd-I revision 1 (98) | Exact generated/fixed-vector extraction for every listed method; a 24-profile 7z compatibility matrix; XZ 1.0.4 checks/prefilters/multiple Blocks/Stream Padding; all PPMd orders, property restoration values, end markers, and memory-pressure restoration paths; stock-`7zz` 26.02 ZIP differentials; pinned local-only WinZip 26/27 ZIPX samples; packed corruption, truncation, declared-size, output/work/cancellation tests | Registered MP3 (94), JPEG (96), WavPack (97), and all unregistered method IDs are listable but extraction is typed unsupported |
+| Compression | Store (0), Deflate (8), Deflate64 (9), BZip2 (12), ZIP-LZMA (14), deprecated Zstandard (20), Zstandard (93), XZ (95), WinZip JPEG (96), WavPack (97), PPMd-I revision 1 (98) | Exact generated/fixed-vector extraction for every listed method; a 24-profile 7z compatibility matrix; XZ 1.0.4 checks/prefilters/multiple Blocks/Stream Padding; WinZip 21 three-component 1x1-sampled method-96 byte-exact reconstruction plus stored/compressed metadata, table, truncation, corruption, limit, encryption-composition, and external-oracle cases; WavPack 4.80 integer/float, mono/stereo/odd/four/sixteen-channel, custom-rate, wrapper/trailer, and multi-block vectors; all PPMd orders, property restoration values, end markers, and memory-pressure restoration paths; official WavPack 5.9 and stock-`7zz` 26.02 differentials; fresh local-only WinZip 21 method-97/98 samples and reproducible WinZip 24 BZip2/LZMA/XZ/Zstandard replacements; historical pinned WinZip 26/27 samples; packed corruption, truncation, declared-size, output/work/cancellation tests | Registered MP3 (94) and all unregistered method IDs are listable but extraction is typed unsupported. WinZip JPEG nonsequential/progressive profiles are typed unsupported; sequential component/sampling layouts outside the positive three-component 1x1 fixture are parsed but not yet interoperability claims. WavPack hybrid, mono optimization, DSD, RF64/non-RIFF, v5-only metadata, newer channel layouts, and unknown sample counts are typed unsupported |
 | Encryption | Traditional ZipCrypto; WinZip AES AE-1/AE-2 with 128-, 192-, and 256-bit keys | Generated Store/Deflate ZipCrypto cases; all AES key sizes; AE-1 and AE-2; no/wrong password; authentication corruption including an empty AE-2 member; exact extraction/verification across method/version/key-size profiles | Passwords are caller-supplied bytes; no encoding is guessed. Strong encryption and encrypted central directories are unsupported |
 | Integrity | Local/central agreement, exact ranges, AES authentication code, decoded size, applicable CRC-32 | Corruption before/inside/after payload, bad CRC/authenticator, bad password, descriptor mismatch, truncation | AE-2 follows the WinZip AES rule that authentication replaces a meaningful CRC field |
 | Metadata | Raw and decoded names, raw comments/extras, duplicate order, DOS time, creator/version flags, attributes, Unix mode, directory/symlink classification, safe-path result | Generated duplicates, empty members, CP437/Unicode-path handling, modes, traversal/path-policy cases | Extended timestamp extras are preserved raw but not yet normalized into additional timestamp fields; no filesystem extraction |
-| Python API | Native `ZipArchive`/`ZipEntry` expose the documented metadata and extraction values | Installed-wheel tests cover duplicate/empty entries, every recorded metadata field, no/wrong/correct ZipCrypto passwords, AE-2 AES-256, XZ method-95 and PPMd method-98 exact extraction, registered unsupported names, corruption, callback/batch boundaries, and caller-owned seekable output | There is no compatibility facade, writer/mutation API, automatic path use, or whole-member return method |
+| Python API | Native `ZipArchive`/`ZipEntry` expose the documented metadata and extraction values | Installed-wheel tests cover duplicate/empty entries, every recorded metadata field, no/wrong/correct ZipCrypto passwords, AE-2 AES-256, XZ method-95, JPEG method-96, WavPack method-97, and PPMd method-98 exact extraction, registered unsupported names, corruption, callback/batch boundaries, and caller-owned seekable output | There is no compatibility facade, writer/mutation API, automatic path use, or whole-member return method |
 
 ZIP input, header, entry/name, decoded-output, dictionary, work, cancellation,
-XZ Block-count/filter, PPMd property/model, and SFX limits are checked before
+XZ Block-count/filter, JPEG metadata/table/model/slice, WavPack
+block/metadata/channel/working-memory, PPMd property/model, and SFX limits are checked before
 the relevant allocation or decoder work.
 Each entry is decoded and verified before `extract_entry_to` writes its first
 byte. Natural-order batch extraction shares total-output/work/cancellation
@@ -68,9 +69,38 @@ through 16, a 1 through 256 MiB suballocator, and restart, cutoff, or freeze
 restoration. It is not the PPMd7 variant-H codec used by 7z. The model memory is
 charged before allocation, and success requires exact range-input consumption,
 the PPMd end marker at the declared output boundary, decoded size, and ZIP CRC.
-Methods 94, 96, and 97 remain deliberately unsupported after the research
-recorded in `PROVENANCE.md`; their public enum and Python names preserve the
-verified registrations without implying a decoder claim.
+Method 94 remains deliberately unsupported after the research recorded in
+`PROVENANCE.md`. Its clean-room corpus mechanically establishes the outer
+signature, stream descriptor, byte-4 MPEG feature bitmap, global flags,
+reservoir marker, and frame count, but the entropy stream beginning at byte 11
+remains unspecified. No admissible decoder grammar exists, so its public enum
+and Python name preserve the verified registration without implying a decoder
+claim. The matching packMP3 source remains LGPL-only.
+Method 97 admits only lossless RIFF/WAVE WavPack 4.x streams through version
+`0x407`: 8-/16-/24-/32-bit integer and 32-bit float samples, one through 16
+channels (including the six-byte WavPack 4.60+ stream-count form), standard or
+custom sample rates, wrapper trailers, and multiple audio blocks. The adapter
+requires exact block consumption, the
+declared sample count, WavPack rolling CRCs, reconstructed RIFF and ZIP sizes,
+and the ZIP CRC. Hybrid, mono optimization/false-stereo blocks, DSD,
+RF64/non-RIFF wrappers, WavPack 5 metadata, newer channel layouts, unknown
+sample counts, and more than 16 channels are typed unsupported. Fresh WinZip
+21 product evidence independently passes byte-exact extraction and full
+archive verification for the admitted multiblock RIFF/WAVE profile.
+
+Method 96 has a bounded, checked safe-Rust decoder for the specified 8-/12-bit
+sequential profile, adapted from the pinned MIT XArchive logic. The fresh
+project-authored WinZip 21 fixture establishes real payload boundaries and
+byte-exact output for a
+three-component, 1x1-sampled image, while stored/compressed metadata, malformed
+table,
+truncation, corruption, limit, work, cancellation, CRC, writer/batch, and
+ZipCrypto/WinZip-AES composition tests define the admitted boundary. Method
+96's parser accepts the specification's one through four components and legal
+sampling factors, but layouts outside the positive fixture are not yet
+interoperability claims. The committed 54-pair clean-room MP3/PMP differential
+corpus is research evidence only and does not change method 94's support
+boundary.
 
 ## RPM packages
 

@@ -31,7 +31,8 @@ source-audit context, not unpackio evidence.
 
 ## ZIP and RPM evidence
 
-No external ZIP or RPM corpus is committed. Unit, binding, and fuzz tests build
+Except for the two provenance-complete WinZip 21 method-94/96 vectors below,
+no external ZIP or RPM corpus is committed. Unit, binding, and fuzz tests build
 complete containers in process from project-authored names and payloads. The
 serializers are test code, not runtime writer APIs. Every generated case is
 extracted by index, so duplicates and unsafe names never become filesystem
@@ -127,10 +128,239 @@ restoration algorithms in a 1 MiB model. Every strict packed prefix and the
 property/range/trailing/size/CRC/version/limit/cancellation mutations are
 derived in memory and are not retained as archive files.
 
+### ZIP WinZip methods 94 and 96 fixtures
+
+The method-94 and method-96 directories contain immutable base64 encodings of
+two controlled source files and two one-member ZIPX archives created on
+2026-09-15. The MP3 and JPEG are project-authored test patterns containing no
+third-party media and are released under the repository's MIT test-fixture
+terms. The MP3 is MPEG-1 Layer III, 128 kbit/s, 44.1 kHz mono; the JPEG is JFIF
+1.01 baseline, 8-bit, 512 by 384, with three components. Their byte identities,
+not their filenames or media appearance, are the oracle boundary.
+
+The archives were created in a clean, network-isolated Windows 11 Enterprise
+evaluation VM with WinZip 21.0.12288 64-bit evaluation. The installer SHA-256
+is `9f05084542ebe3194b42fa4163fa30b8bceb4ac37b99ff15715112f56611d3b7`;
+its extracted `WINZIP210-64.MSI` SHA-256 is
+`ed8e850f6a2e97aebc44ebcff6c91232e4b6b06eab71fdea1bbeb75fc0db04a8`.
+The installed `WINZIP64.EXE` has SHA-256
+`f0c9a57449a27c50146e15666c9dfa2f16e9b7cdf48d1ff2ac84220a974c24a1`,
+reports product version 21.0 (12288) and file version 31.0 64-bit, and had a
+valid Authenticode signature from WinZip Computing LLC.
+
+The complete GUI recipe was: enable **Settings > WinZip Options > General >
+Create new Zip files using the (.zipx) file type**; leave the Settings-ribbon
+ZIPX choice at **Best method**; choose **File > New Zip File** and then
+**Create/Share > From PC or Cloud**; add exactly one source file; leave
+conversion, encryption, and watermarking disabled; and save as `.zipx`. WinZip
+selected MP3 or JPEG recompression from the input type. Each archive was made
+in one uninterrupted run. Embedded DOS/NTFS timestamps mean a fresh GUI run is
+not promised byte-identical; the committed encodings are the deterministic,
+hash-pinned regression vectors.
+
+| Method | Source bytes / CRC-32 / SHA-256 | Payload bytes / SHA-256 | Archive bytes / SHA-256 |
+| --- | --- | --- | --- |
+| MP3 (94), `method94-project-authored.mp3` | 55,587 / `E6CDB0AC` / `372d875979967b2d95b48c2ded842a2a6bbd295c50d2455f8ad9829d2826aa0e` | 216 / `e348bb86122aaf35d1f4c136a0be6e025bf3ce2b5304aa1f17c962b5fff81de6` | 408 / `4cb0f2e7d5fae6f13d708ad79cf4721064675a50f6582d936aa41573e308a841` |
+| JPEG (96), `method96-project-authored.jpg` | 7,823 / `7422FE59` / `95ef01838a55308006fabf6d2e512123a37916067cce58dd5076c89da43e2244` | 3,155 / `b8c58ce398a10deae01f74e0632971765f9d6a1df53148584bf91c44e52dc091` | 3,347 / `47454618f65cef060c2ba1d96b8b36d8028681ac693f9be3d57e791ec57c15e1` |
+
+Both entries are unencrypted, require ZIP version 2.0, have no data descriptor,
+and begin their method payload at local offset 59. For method 94, the archive
+payload is byte-identical to the PMP stream emitted from the source by packMP3
+v1.0g commit `e61c11941552f4ffe6e219a847f441d9520d2e50`; the locally built oracle
+binary SHA-256 is
+`09a51dd32c8c9940409769c5f32219ce704941a9531fa26182363cca6a8cb429`.
+That LGPL-3.0-or-later tool decoded the payload back to the committed MP3 byte
+for byte and is not shipped or linked.
+
+For method 96, XFileUnpacker 0.1.0 Beta package SHA-256
+`060fd956663da7177d03b1fb7d364e3de5f2597f9b9d5ad06182900d8c245cf6`
+decoded the archive to the committed JPEG byte for byte. It ran as UID/GID
+65534 in a read-only Ubuntu 24.04 container with no network, all capabilities
+dropped, `no-new-privileges`, one CPU, 512 MiB memory, 64 PIDs, read-only input,
+a temporary `/tmp`, and a 1 MiB output-file cap. The package and its C++/Qt
+runtime are external oracles only. `7zz` 26.02 independently labels the members
+`MP3` and `Jpeg` but reports both methods unsupported for extraction.
+
+The ordinary `zip_recompression_reference` test checks all four file hashes,
+both payload hashes and offsets, source CRCs, and exact member metadata. It
+requires byte-exact method-96 extraction and verification while preserving the
+typed-unsupported, no-output boundary for method 94. The admitted safe-Rust
+method-96 tests also derive a stored-metadata equivalent plus malformed table/
+profile, strategic corruption, sampled strict-prefix, trailing-input, limit,
+work, cancellation, encryption, CRC, and atomic-output cases in memory. No
+proprietary or copyleft executable/source is committed or invoked by the
+package.
+
+### ZIP method-94 clean-room differential corpus
+
+`crates/unpackio/tests/fixtures/method94/research` contains 54 unique known
+MP3/PMP pairs created on 2026-09-16 for independent format research. They are
+not additional WinZip archives and do not expand the product support claim.
+The controlled WinZip 21 fixture above proves that WinZip's method-94 payload
+is byte-identical to packMP3 v1.0g PMP; this corpus varies that confirmed inner
+format directly without opening the VM.
+
+The MIT project script
+`crates/unpackio/tests/fixtures/method94/generate.rb` creates deterministic
+integer-PCM waveforms and encodes them with a temporary, checksum-pinned LAME
+4.0 executable. It then invokes the checksum-pinned packMP3 v1.0g executable
+only as an external black-box oracle. One additional five-frame, zero-main-data
+MPEG-1 Layer III input is constructed directly by the script from the public
+frame and side-information grammar to exercise intensity stereo, which LAME
+does not emit for this corpus. Every accepted PMP passed packMP3's
+internal verification and a separate decode whose MP3 bytes exactly matched
+the generated input. Neither executable, either source tree, nor an invocation
+path is shipped. LAME is LGPL-2.0-or-later and packMP3 is
+LGPL-3.0-or-later; their licenses apply to the uncommitted tools, while the
+original waveform definitions, fixture selection, generated test media, and
+repository scripts are released under the repository's MIT test-fixture terms.
+
+The corpus spans all MPEG-1 Layer III bitrates from 32 through 320 kbit/s; all
+three MPEG-1 sample rates; mono, joint/simple/forced-MS/dual stereo; CRC and
+reservoir variants; copyright, original, and emphasis flags; ID3v1/ID3v2;
+short, normal, and long streams; deterministic silence, impulse, tonal, noise,
+transient, correlated, antiphase, and split-stereo signals; and CBR, ABR, and
+VBR streams with and without encoder tags, plus a positive intensity-stereo
+case. The raw totals are 974,445 MP3 bytes and 679,297 PMP bytes. The 108 binary
+vectors are stored as base64 text under
+`research/pairs`.
+
+`research/manifest.json`, SHA-256
+`7f4eb2efae2e17b9fe4b8b2476492a7aa6af2e911674de0bfe465ff1d440d85e`,
+records the complete arguments and size/SHA-256 result for every case plus the
+source and binary identities below:
+
+| Tool | Pinned input | Local binary SHA-256 | Use |
+| --- | --- | --- | --- |
+| LAME 4.0 | Official source tarball SHA-256 `3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb` | `14f9f7a8ff90807b1626800cd1b57a764bf1e7abaa70d5d87d275496add715ae` | External MP3 fixture generator only |
+| packMP3 v1.0g | Commit `e61c11941552f4ffe6e219a847f441d9520d2e50` | `09a51dd32c8c9940409769c5f32219ce704941a9531fa26182363cca6a8cb429` | External PMP oracle only |
+
+Running the generator twice into fresh directories produced byte-identical
+manifests and pair trees. The standalone MIT verifier
+`crates/unpackio/tests/fixtures/method94/verify.rb` validates the exact file
+set, all decoded sizes and hashes, MP3/PMP signatures, and recorded round trips
+without invoking either external tool. Its successful summary is `54` pairs,
+`54` unique MP3 streams, `54` unique PMP streams, `974445` MP3 bytes, and
+`679297` PMP bytes. These pairs are admitted as reverse-engineering evidence,
+not as a completed grammar or decoder fixture claim.
+
+The original MIT analyzer
+`crates/unpackio/tests/fixtures/method94/analyze.rb`, SHA-256
+`276d81fa59db660dbcfb67d60b23196b541950424998911bf3fd683efe036522`,
+parses only standard MPEG-1 Layer III framing and independently observable PMP
+bytes. Across all 54 pairs it mechanically verifies this partial envelope:
+
+| PMP offset | Independently verified meaning in the corpus |
+| ---: | --- |
+| `0..2` | Literal `4d 53 0a` signature/version marker |
+| `3` | MPEG sample-rate index in bits 7..6, channel mode in bits 5..4, and the fixed MPEG bitrate index in bits 3..0; the bitrate field is zero for the observed ABR/VBR streams |
+| `4` | Feature-presence bitmap: frame padding in bit 7, mid/side stereo in bit 6, intensity stereo in bit 5, switched blocks in bit 4, nonzero subblock gain in bit 3, SCFSI scalefactor sharing in bit 2, Layer III preflag in bit 1, and scalefac-scale/coarse scalefactors in bit 0 |
+| `5` | CRC-present bit 7, original bit 6, copyright bit 5, MPEG emphasis in bits 3..2, ID3v2 bit 1, and ID3v1 bit 0 |
+| `6` | `0x80` when any parsed frame uses a nonzero Layer III `main_data_begin`; zero for the two no-reservoir cases |
+| `7..10` | Big-endian MPEG audio-frame count |
+| `11..` | Opaque entropy stream; field order, probability models, termination, and corruption rules remain unknown |
+
+The repeatable check is:
+
+```text
+ruby crates/unpackio/tests/fixtures/method94/analyze.rb
+```
+
+Its successful summary reports 54 analyzed pairs, all modeled envelope fields
+verified, 14 observed byte-4 feature combinations, and an opaque byte-11
+entropy stream.
+This narrows the format boundary but intentionally leaves method 94 typed
+unsupported: the outer envelope is not a safe decoder specification.
+
+### ZIP WavPack method-97 fixtures
+
+`crates/unpackio/tests/fixtures/method97/generate.rb` creates deterministic
+project-authored RIFF/WAVE inputs without a runtime writer. The script is MIT
+project test code (Ruby 2.6.10 was used) and has SHA-256
+`0f7c5c12c4557a6386aa475cf8fb21506d8f4dc3ca1b8036e9eaabb6fb57cc31`.
+It preserves a post-audio `LIST` chunk in every profile so the decoder must
+recover both WavPack wrapper-header and wrapper-trailer metadata. The float
+profile includes positive/negative zero, normal and subnormal values,
+infinities, and NaN payloads. The multiblock profile has 150,000 frames and
+forces four audio blocks. Three-, four-, and sixteen-channel profiles exercise
+both stereo-paired and mono channel blocks plus WAVEFORMATEXTENSIBLE metadata.
+
+Exact official WavPack 4.80.0 at commit
+`8256af6b90958f190cf70dfeb7afaed13649776e`, BSD-3-Clause, encoded each
+input using lossless very-high mode. The locally built encoder used for these
+bytes reports `wavpack 4.80.0` / `libwavpack 4.80.0` and has SHA-256
+`4f1142c59a3f52565cf47a1dc0da7864291ee5975eecfd43dfaa0ff7357d067d`.
+The generation command was:
+
+```text
+WAVPACK_ENCODER=<exact-wavpack-4.80.0>/wavpack \
+  ruby crates/unpackio/tests/fixtures/method97/generate.rb <temporary-directory>
+```
+
+The script invokes the encoder as `wavpack -y -q -hh input.wav output.wv`.
+The resulting `.wv` bytes and all compact expected `.wav` files are committed
+as lowercase hexadecimal text. The 300,076-byte multiblock WAV is regenerated
+by the script/test instead of committing a 600-KiB hex file.
+
+| Profile | WAV bytes / SHA-256 | WavPack bytes / SHA-256 |
+| --- | --- | --- |
+| 8-bit mono | 136 / `b286f8471259d727b74390573830ee67ef3bf58a01509e8d9ab37297a042b8ae` | 266 / `360ba88154daa018fc6c36e6df2d140a28a6d6f8704672166c0040615fce1e72` |
+| 16-bit stereo | 326 / `acb73122d14edd27261c13b3dd3174cecb00c6c20be8a5d1c590968b5979695b` | 428 / `a43ede3529217b0470018b8612f3b2f96918d7c18628b33089253777b8dc1e07` |
+| 16-bit mono, 12,345 Hz | 170 / `aa4cb23941c2237da76b364cb4e7a276dab7178069d0cdbb23fa78d35e55a527` | 296 / `2e2ea87c68e39d5c29d20918f98ba34ff66711379f87d634364ee0acf7ab31f4` |
+| 24-bit stereo | 358 / `a3aeec314491f6d05d0c1598b6dc5a237f0e894ecc12b292bdcadab7cbd30509` | 568 / `48c05a4f7fdc31c4fd3f035aae757c88ac2567e0fad45ba783d2a9dc641ebe32` |
+| 32-bit mono | 234 / `551a9ae4cda3567cef6f9fa100e757fd08f96e832a40377ccb99c992bc6c908b` | 470 / `b85f3103e14e8592ea7da6ed8f0af984906a3b98d3c1057c68746194fa5d3616` |
+| 32-bit float stereo | 166 / `fb455f5797e65483f9324069c8f3885b3bc541ad710e29fc17940b6cd18fe29d` | 400 / `d81b19a3c410d63a7bb747935b05ac8737789d70269553c30e0cb6f5058c2fd4` |
+| 16-bit four-channel | 350 / `81af8a2e1eb8c43bf97876f34f568658cbee826397986df95e95169bee2b2dcb` | 576 / `430b3964c346da530a5a50d3934fab0164b2f53f0caac4c55ac7f74cdc76a22f` |
+| 16-bit three-channel | 216 / `61241aa440795354d9f27fbaab5b9939a9daedb235b4607ef33cbf37c0fad3f2` | 472 / `80ed87d75feff8ceeb756bba709f6bcd8e3298a285b6e6e6fbb42e97c811ed53` |
+| 16-bit sixteen-channel | 392 / `a96ff76aab96a9998bbe142c8b9aa617216fc2005c371cdfbb761fa1106cc9fa` | 1,868 / `0aabf092e8ea98fd1583a25631028546f955e6665baac92b3eaa5e5e8e802a1e` |
+| 16-bit mono, multiple blocks | 300,076 / `6b89a12ab1e6de5b35ed11956a92daeb95c736757014d73816dc7985f32c3503` | 334 / `a8a070e2fffd4a980fd7cfc74243923127e236c8fdb141dc656653e7879941c5` |
+
+Exact official WavPack 5.9.0 at commit
+`5803634a030e2a11dba602ba057b89cc34486c67`, also BSD-3-Clause, independently
+decoded all 10 committed payloads. Each output matched the script-generated
+WAV byte-for-byte, including headers, unused storage bits, float patterns, and
+trailers. The local `wvunpack` oracle binary had SHA-256
+`4e53befd333f3a8eb9133eef62c9879cdd002770684735b80194d4d59dcbfedc`;
+the repeatable comparison is:
+
+```text
+ruby crates/unpackio/tests/fixtures/method97/generate.rb <temporary-directory>
+xxd -r -p <profile>.wv.hex <temporary-directory>/<profile>.wv
+wvunpack -q -y -o <temporary-directory>/<profile>.decoded.wav \
+  <temporary-directory>/<profile>.wv
+cmp <temporary-directory>/<profile>.wav \
+  <temporary-directory>/<profile>.decoded.wav
+```
+
+Rust tests wrap these payloads in deterministic method-97 ZIP records and
+derive every strict prefix plus header, metadata, bitstream, checksum, version,
+profile, size, and resource mutations in memory. ZipCrypto and WinZip AES
+envelopes are likewise project-authored test derivations. The external tools
+are never invoked by a built package.
+
+A fresh Windows WinZip product check was completed on 2026-09-16 with WinZip
+21.0 build 12288. Its signed `WINZIP64.EXE` reports product version
+`21.0 (12288)`, file version `31.0 (64-bit)`, and SHA-256
+`f0c9a57449a27c50146e15666c9dfa2f16e9b7cdf48d1ff2ac84220a974c24a1`.
+The GUI recipe was: create a new ZIPX archive; choose **Settings → ZIPX: Best
+method**; add `pcm16_multiblock.wav`; save as
+`winzip21-method97-wavpack-official.zipx`. WinZip selected WavPack method 97.
+
+The project-authored input is 300,076 bytes with SHA-256
+`6b89a12ab1e6de5b35ed11956a92daeb95c736757014d73816dc7985f32c3503`.
+The local-only archive is 508 bytes with SHA-256
+`f4ac3979e467ab6da8204448e5c4c9023e7708c53e38b8f222978d803d0f16fd`;
+its sole unencrypted member has packed size 334, CRC-32 `460BAD65`, method 97,
+and version-needed 2.0. Stock `7zz` 26.02 identifies the method but cannot
+decode it. The ignored
+`external_winzip_wavpack_oracle_matches_original_wave` test extracted the WAV
+byte-for-byte with the production decoder and completed full archive
+verification. The proprietary archive remains local-only and is not committed.
+
 ### Local-only WinZip ZIPX interoperability set
 
-No proprietary-tool sample is committed. On 2026-09-14 a sparse local clone of
-SharpCompress at commit
+No sample from this older third-party corpus is committed. On 2026-09-14 a
+sparse local clone of SharpCompress at commit
 `e04d51176c5d87668c4c8779825342230c33aa74` supplied four archives whose
 upstream filenames and tests identify WinZip 26 or 27. Their source commits do
 not record a WinZip command-line or GUI recipe, so the producer command cannot
@@ -160,9 +390,98 @@ The same pinned corpus includes `Zip.ppmd.zip`, SHA-256
 with six entries and the same three regular outputs encoded as PPMd method 98,
 version-needed 6.3, without encryption. Its history reaches the SharpCompress
 initial commit, but no producer/tool version or command is recorded and its
-name does not attest WinZip. It is therefore an independent local method-98
-sample, not evidence that the outstanding WinZip-PPMd provenance requirement
-has been met.
+name does not attest WinZip. It therefore remains an independent local
+method-98 sample, supplemental to the fresh reproducible WinZip evidence that
+later closed the provenance requirement.
+
+#### 2026-09-15 provenance follow-up
+
+The public history behind the four version-labelled archives was searched
+through their introducing commits, pull requests, linked issues, and review
+discussion. SharpCompress pull requests
+[#661](https://github.com/adamhathcock/sharpcompress/pull/661),
+[#722](https://github.com/adamhathcock/sharpcompress/pull/722), and
+[#723](https://github.com/adamhathcock/sharpcompress/pull/723) identify the
+WinZip-created samples but do not record the original command or GUI settings.
+There is consequently no exact authoring recipe to recover from the available
+upstream history.
+
+Two additional public PPMd method-98 archives were acquired only for the local
+audit and were not copied into the repository:
+
+| Local sample | Exact public origin | Archive SHA-256 | Entry / size / packed size | Method / version / properties | CRC-32 | Output SHA-256 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `readme.zip` | [Launchpad bug 393987 attachment 617789](https://bugs.launchpad.net/ubuntu/+source/unzip/+bug/393987/+attachment/617789/+files/readme.zip), reported 2009-06-30 | `bc81f4e2b25af9179d9cf375d4f529076e3d1bb76dfb25bd5abaccd42e3cedff` | `readme.txt` / 12,293 / 3,778 | PPMd (98) / 2.0 / `ff 03` (order 16, 64 MiB, Restart) | `4ED28B27` | `16a026fa21f5352cd2592d4460e6ab115937dd5f0ff8cc42680151814e187848` |
+| `winzip-el-ppmd.zip` | [`pmqs/zipdetails`](https://github.com/pmqs/zipdetails/tree/7adb025fe52a22e80f82b3def18c070872f9cb20/t/files/0003-winzip/el-ppmd) current audit commit `7adb025fe52a22e80f82b3def18c070872f9cb20`, path `winzip-el-ppmd.zip`, introduced by `3fb43446f347688befadc102a5f102b99a815686` | `19e8a5e2300224af597811e2c2cf3f3c46f881a57d0d00c5afa865280f90f392` | `lorem.txt` / 446 / 262 | PPMd (98) / 2.0 / `ff 03` (order 16, 64 MiB, Restart) | `F90EE7FF` | `90f2d6a24821c0718e632f7bfa709075e7e9cce009db4a141c04071b13cafeac` |
+
+The Launchpad reporter explicitly says the first archive was made on Windows
+with WinZip. The `zipdetails` directory and documentation identify the second
+as WinZip output. Neither source supplies the exact WinZip executable version
+or authoring command, and neither supplies complete redistribution provenance
+for its original input. They therefore remain local-only corroborating vectors
+and did not by themselves close the provenance requirement. On 2026-09-15,
+stock black-box `7zz` 26.02 and the
+production `unpackio` Rust API independently verified each archive, decoded the
+exact output hashes above, and accepted its CRC. The local checks used:
+
+```text
+shasum -a 256 <archive>
+7zz l -slt <archive>
+7zz t <archive>
+7zz x -so <archive> | shasum -a 256
+```
+
+### Fresh reproducible WinZip 21/24 evidence
+
+The outstanding producer-command gap was closed locally on 2026-09-16 without
+committing any proprietary archive. The common project-authored text input,
+`method98-project-authored.txt`, is 208,896 bytes, has CRC-32 `916D57C5`, and
+SHA-256
+`2f0f080056a61e094ebf01451fecdcaf854d2eedfe50abb250fa08ea8d38f91a`.
+It is the line `unpackio WinZip method 98 interoperability fixture\n` repeated
+4,096 times.
+
+WinZip 21.0 build 12288 created the PPMd archive using: new ZIPX archive;
+**Settings → ZIPX: PPMd (advanced users)**; add the exact input; save as
+`winzip21-method98-ppmd-official.zipx`. The 334-byte local-only archive has
+SHA-256
+`7ce980e5e69c83416ef0b010318212498203146128cb1f7ef3f3bf8a98fa8dbb`.
+Its one unencrypted member is 208,896 bytes, packed size 142, CRC-32
+`916D57C5`, PPMd method 98, and version-needed 2.0. Stock `7zz` 26.02 passed
+full integrity testing; the production decoder reproduced the original bytes
+and `ZipArchive::verify` succeeded through the ignored
+`external_winzip_ppmd_oracle_matches_project_input` harness.
+
+The four historical BZip2/LZMA/XZ/Zstandard evidence roles were replaced with
+fresh WinZip 24.0 build 14033 archives. The official `winzip240.exe` download
+had SHA-256
+`d0ba9969dbf653e8be5e09e653eab3dc0cf9229992e805a7ccdea57ba4f8372d`
+and a valid Corel Corporation Authenticode signature. Its embedded signed
+`WINZIP240-64.MSI` had SHA-256
+`5cf5ebc086513f314165d97876c2727b9e0bf687eab4ce897202a443b54b3bd8`.
+The installed signed `WINZIP64.EXE` reports product version `24.0 (14033)`,
+file version `33.0 (64-bit)`, and SHA-256
+`53c8ef7c606e2ff38ebd116216642e2d489fc424d52c058536985dc80f0e12ab`.
+
+For each archive, the exact GUI recipe was: create a new archive; choose
+**Create/Share → ZIPX**; choose **Settings → ZIPX** and the named method; add
+the common input with **Create/Share → From PC or Cloud**; save under the
+versioned filename below.
+
+| Local-only sample | Archive bytes / SHA-256 | Packed bytes | Method / version needed | Encryption |
+| --- | --- | ---: | --- | --- |
+| `winzip24-bzip2-replacement.zipx` | 372 / `b9e29b673894538ac684f5969bf7a1b659261c6c7a4b6e44493a921bdd2a6a69` | 180 | BZip2 (12) / 4.6 | none |
+| `winzip24-lzma-replacement.zipx` | 353 / `99f5fde3b733db5f29c45b4ad93abca595c41c8896043006aca19d94a162133f` | 161 | ZIP-LZMA (14) / 6.3 | none |
+| `winzip24-xz-replacement.zipx` | 400 / `730a78de0a36a82a2dbcd258a0ab1e65f385c6ba36f2f4c53ba9c7877fd27257` | 208 | XZ (95) / 2.0 | none |
+| `winzip24-zstd-replacement.zipx` | 277 / `49d159dd440832a05ba7e4ff3807b0c432d2c6af766547e525eb6a8f30c1401e` | 85 | Zstandard (93) / 2.0 | none |
+
+Each archive contains only the common unencrypted input above. Stock `7zz`
+26.02 passed `l -slt` inventory and `t` integrity checks for all four. The
+ignored `external_reproducible_winzip24_archives_match_project_input` test
+pins every archive hash, method/version/CRC/size/name field, extracts the exact
+input with the production decoder, and completes full verification. These
+fresh samples and the method-97/98 samples are deliberately local-only; only
+their recipes, identities, inventories, and results are committed.
 
 The local corpus can be reacquired and checked with:
 

@@ -1,0 +1,38 @@
+[package]
+name = "unpackio-wavicle-decoder"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Decoder-only, MSRV-compatible vendoring of wavicle 0.1.0 for unpackio"
+repository = "https://github.com/mark-ik/wavicle"
+publish = false
+
+[features]
+default = ["decode"]
+decode = []
+
+[lib]
+name = "wavicle"
+path = "src/lib.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+expect_used = "deny"
+indexing_slicing = "deny"
+panic = "deny"
+unwrap_used = "deny"
+
+[lints.rustdoc]
+bare_urls = "warn"
+broken_intra_doc_links = "deny"
+
+[profile.release]
+overflow-checks = true
+panic = "unwind"
+
+[profile.test]
+overflow-checks = true

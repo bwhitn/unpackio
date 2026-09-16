@@ -38,6 +38,26 @@ SharpCompress's managed I1 port by Michael Bone at commit
 e04d51176c5d87668c4c8779825342230c33aa74, Copyright (c) 2014 Adam
 Hathcock, MIT; its notice is reproduced in LICENSES/MIT-SharpCompress.txt.
 
+ZIP method 97 decoding uses a decoder-only local fork of `wavicle` 0.1.0 at
+commit 4ac1134efe7a85a0b8c5921afc7c124160d179f2, Copyright (c) 2026 Mark,
+under its MIT option. The fork omits the encoder and carries recorded
+decoder-only, Rust 1.85, checked hostile-input, and fallible-allocation
+patches. Its exact MIT notice is reproduced in LICENSES/MIT-wavicle.txt. The
+admitted modules identify portions derived from
+WavPack 5.9.0 at commit 5803634a030e2a11dba602ba057b89cc34486c67,
+Copyright (c) 1998-2025 David Bryant, BSD-3-Clause. The complete upstream
+WavPack notice is reproduced in LICENSES/BSD-3-Clause-wavpack.txt; exact files,
+hashes, and the bounded unpackio adapter are recorded in PROVENANCE.md.
+
+ZIP method 96 decoding adapts the WinZip JPEG metadata parser, arithmetic
+model, corrected prediction formulas, and lookup tables from XArchive at commit
+c17ca22a2ae75f1d6f97d0a56725655c49b97295, Copyright (c) 2019-2026
+hors<horsicq@gmail.com>, MIT. The safe Rust rewrite adds exact outer-stream
+accounting, checked arithmetic and allocation, complete table validation,
+aggregate resource limits, work accounting, and cancellation. The exact MIT
+notice is reproduced in LICENSES/MIT-xarchive.txt; exact source files, hashes,
+and adaptation scope are recorded in PROVENANCE.md.
+
 No AES or SHA-256 algorithm implementation is handwritten. Runtime AES-256-CBC
 and SHA-256 are supplied by the RustCrypto `aes`, `cbc`, `cipher`, and `sha2`
 crates. Deflate, BZip2, Brotli, LZ4, and Zstandard decoding is supplied by the

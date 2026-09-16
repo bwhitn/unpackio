@@ -40,9 +40,9 @@ pub enum ZipCompressionMethod {
     Mp3,
     /// XZ (method 95).
     Xz,
-    /// WinZip JPEG recompression (method 96), listable but not decoded.
+    /// WinZip JPEG recompression (method 96).
     Jpeg,
-    /// WinZip WavPack recompression (method 97), listable but not decoded.
+    /// WinZip lossless WavPack recompression (method 97).
     WavPack,
     /// PPMd variant I, revision 1 (method 98).
     Ppmd,
@@ -703,6 +703,16 @@ mod tests {
     // Stock 7zz 26.02 encoded `abc` with ZIP PPMd-I, order 2, 1 MiB,
     // Restart restoration. CORPUS.md records the exact command and hashes.
     const PPMD_I_O2_M1_RESTART_ABC: &str = "010061036e812d4c00";
+    // WavPack 4.80.0 `-hh` encoded this deterministic project-authored
+    // RIFF/WAVE vector. CORPUS.md records the exact source and hashes.
+    const WAVPACK_PCM16_STEREO: &str =
+        include_str!("../../tests/fixtures/method97/pcm16_stereo.wv.hex");
+    const WAVPACK_PCM16_STEREO_WAVE: &str =
+        include_str!("../../tests/fixtures/method97/pcm16_stereo.wav.hex");
+    const WINZIP_JPEG_ARCHIVE: &str =
+        include_str!("../../tests/fixtures/method96/winzip21-method96.zipx.b64");
+    const WINZIP_JPEG_SOURCE: &str =
+        include_str!("../../tests/fixtures/method96/method96-project-authored.jpg.b64");
 
     #[derive(Clone)]
     struct FixtureEntry {
@@ -884,6 +894,80 @@ mod tests {
             return Err(super::zip_format("test fixture has an odd hex length"));
         }
         Ok(output)
+    }
+
+    fn base64_value(byte: u8) -> Result<u8> {
+        match byte {
+            b'A'..=b'Z' => Ok(byte.saturating_sub(b'A')),
+            b'a'..=b'z' => Ok(byte.saturating_sub(b'a').saturating_add(26)),
+            b'0'..=b'9' => Ok(byte.saturating_sub(b'0').saturating_add(52)),
+            b'+' => Ok(62),
+            b'/' => Ok(63),
+            b'=' => Ok(64),
+            _ => Err(super::zip_format("test fixture contains invalid base64")),
+        }
+    }
+
+    fn decode_base64(encoded: &str) -> Result<Vec<u8>> {
+        let compact = encoded
+            .bytes()
+            .filter(|byte| !byte.is_ascii_whitespace())
+            .collect::<Vec<_>>();
+        if compact.len() % 4 != 0 {
+            return Err(super::zip_format("test base64 length is invalid"));
+        }
+        let capacity = compact
+            .len()
+            .checked_div(4)
+            .and_then(|value| value.checked_mul(3))
+            .ok_or_else(|| super::zip_format("test base64 size overflows"))?;
+        let mut output = Vec::new();
+        try_reserve(&mut output, capacity)?;
+        for chunk in compact.chunks_exact(4) {
+            let [first, second, third, fourth] = <[u8; 4]>::try_from(chunk)
+                .map_err(|_| super::zip_format("test base64 quartet is truncated"))?;
+            let first = base64_value(first)?;
+            let second = base64_value(second)?;
+            let third = base64_value(third)?;
+            let fourth = base64_value(fourth)?;
+            if first >= 64 || second >= 64 {
+                return Err(super::zip_format("test base64 padding is misplaced"));
+            }
+            output.push((first << 2) | (second >> 4));
+            if third < 64 {
+                output.push((second << 4) | (third >> 2));
+            }
+            if fourth < 64 {
+                if third >= 64 {
+                    return Err(super::zip_format("test base64 padding is misplaced"));
+                }
+                output.push((third << 6) | fourth);
+            }
+        }
+        Ok(output)
+    }
+
+    fn winzip_jpeg_fixture() -> Result<FixtureEntry> {
+        let source = decode_base64(WINZIP_JPEG_SOURCE)?;
+        let archive = decode_base64(WINZIP_JPEG_ARCHIVE)?;
+        let payload_end = 59_usize
+            .checked_add(3_155)
+            .ok_or_else(|| super::zip_format("test method 96 payload range overflows"))?;
+        let payload = archive
+            .get(59..payload_end)
+            .ok_or_else(|| super::zip_format("test method 96 payload is truncated"))?
+            .to_vec();
+        Ok(FixtureEntry {
+            name: b"method96-project-authored.jpg".to_vec(),
+            decoded: source,
+            payload,
+            method: 96,
+            version_needed: 20,
+            flags: 0,
+            extra: Vec::new(),
+            crc: 0x7422_fe59,
+            mode: 0o100_644,
+        })
     }
 
     fn encoded_fixture(
@@ -1286,12 +1370,8 @@ mod tests {
     }
 
     #[test]
-    fn registered_recompression_methods_are_named_and_typed_unsupported() -> Result<()> {
-        for (identifier, method) in [
-            (94, ZipCompressionMethod::Mp3),
-            (96, ZipCompressionMethod::Jpeg),
-            (97, ZipCompressionMethod::WavPack),
-        ] {
+    fn registered_mp3_recompression_is_named_and_typed_unsupported() -> Result<()> {
+        for (identifier, method) in [(94, ZipCompressionMethod::Mp3)] {
             let fixture =
                 encoded_fixture(b"registered.bin", b"not decoded", "00", identifier, 20, 0)?;
             let archive = open(build_zip(&[], std::slice::from_ref(&fixture))?.bytes)?;
@@ -1323,6 +1403,623 @@ mod tests {
                         if method_id.as_ref() == identifier.to_le_bytes()
                 ));
             }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn winzip_jpeg_method_96_extracts_and_verifies_exactly() -> Result<()> {
+        let fixture = winzip_jpeg_fixture()?;
+        let expected = fixture.decoded.clone();
+        let archive = open(build_zip(&[], std::slice::from_ref(&fixture))?.bytes)?;
+        let entry = archive
+            .entries()
+            .first()
+            .ok_or_else(|| super::zip_format("test method 96 entry is missing"))?;
+        assert_eq!(entry.compression_method(), ZipCompressionMethod::Jpeg);
+        assert_eq!(entry.version_needed(), 20);
+        assert_eq!(entry.compressed_size(), 3_155);
+        assert_eq!(entry.uncompressed_size(), 7_823);
+        assert_eq!(entry.crc32(), Some(0x7422_fe59));
+        assert_eq!(extract(&archive, 0)?, expected);
+
+        let cancellation = CancellationToken::new();
+        let mut budget = WorkBudget::unlimited();
+        archive.verify(&cancellation, &mut budget)?;
+        Ok(())
+    }
+
+    #[test]
+    fn winzip_jpeg_method_96_rejects_truncation_corruption_and_trailing_input() -> Result<()> {
+        let fixture = winzip_jpeg_fixture()?;
+        let last = fixture
+            .payload
+            .len()
+            .checked_sub(1)
+            .ok_or_else(|| super::zip_format("test method 96 payload is empty"))?;
+        for length in [0, 1, 3, 4, 7, 8, 160, 161, 512, 2_048, last] {
+            let mut truncated = fixture.clone();
+            truncated.payload = fixture
+                .payload
+                .get(..length)
+                .ok_or_else(|| super::zip_format("test method 96 prefix is out of range"))?
+                .to_vec();
+            let archive = open(build_zip(&[], &[truncated])?.bytes)?;
+            assert!(
+                extract(&archive, 0).is_err(),
+                "method 96 prefix {length} unexpectedly extracted"
+            );
+        }
+
+        for offset in [0, 3, 4, 8, 100, 161, 1_500, last] {
+            let mut corrupt = fixture.clone();
+            *corrupt
+                .payload
+                .get_mut(offset)
+                .ok_or_else(|| super::zip_format("test method 96 mutation is out of range"))? ^=
+                0x40;
+            let archive = open(build_zip(&[], &[corrupt])?.bytes)?;
+            assert!(
+                extract(&archive, 0).is_err(),
+                "method 96 mutation {offset} unexpectedly extracted"
+            );
+        }
+
+        let mut trailing = fixture.clone();
+        trailing.payload.push(0);
+        let archive = open(build_zip(&[], &[trailing])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::Format)
+        );
+
+        let mut old_version = fixture.clone();
+        old_version.version_needed = 19;
+        let archive = open(build_zip(&[], &[old_version])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::Format)
+        );
+
+        let mut bad_crc = fixture.clone();
+        bad_crc.crc ^= 1;
+        let archive = open(build_zip(&[], &[bad_crc])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::Checksum)
+        );
+
+        let mut short_declaration = fixture.clone();
+        short_declaration.decoded.pop();
+        short_declaration.crc = checksum(&short_declaration.decoded)?;
+        let archive = open(build_zip(&[], &[short_declaration])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::Format)
+        );
+
+        let mut long_declaration = fixture.clone();
+        long_declaration.decoded.push(0);
+        long_declaration.crc = checksum(&long_declaration.decoded)?;
+        let archive = open(build_zip(&[], &[long_declaration])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::Format)
+        );
+
+        let mut corrupt = fixture;
+        *corrupt
+            .payload
+            .get_mut(1_500)
+            .ok_or_else(|| super::zip_format("test method 96 mutation is out of range"))? ^= 0x20;
+        let healthy = stored(b"healthy", b"healthy")?;
+        let archive = open(build_zip(&[], &[corrupt, healthy])?.bytes)?;
+        assert!(extract(&archive, 0).is_err());
+        assert_eq!(extract(&archive, 1)?, b"healthy");
+        Ok(())
+    }
+
+    #[test]
+    fn winzip_jpeg_method_96_enforces_limits_cancellation_and_atomic_output() -> Result<()> {
+        let fixture = winzip_jpeg_fixture()?;
+        let built = build_zip(&[], std::slice::from_ref(&fixture))?;
+        let cancellation = CancellationToken::new();
+        for (limits, expected_limit) in [
+            (
+                Limits::builder().max_header_bytes(292).build(),
+                LimitKind::HeaderBytes,
+            ),
+            (
+                Limits::builder().max_dictionary_bytes(0).build(),
+                LimitKind::DictionaryBytes,
+            ),
+            (
+                Limits::builder().max_stream_frames(1).build(),
+                LimitKind::StreamFrames,
+            ),
+        ] {
+            let mut budget = WorkBudget::unlimited();
+            let archive =
+                ZipArchive::open_bytes(built.bytes.clone(), limits, &cancellation, &mut budget)?;
+            let mut output = Vec::new();
+            let mut budget = WorkBudget::unlimited();
+            assert!(matches!(
+                archive.extract_entry_to(0, &mut output, &cancellation, &mut budget),
+                Err(Error::LimitExceeded { limit, .. }) if limit == expected_limit
+            ));
+            assert!(output.is_empty());
+        }
+
+        let archive = open(built.bytes)?;
+        let mut output = Vec::new();
+        let mut budget = WorkBudget::bounded(0);
+        assert!(matches!(
+            archive.extract_entry_to(0, &mut output, &cancellation, &mut budget),
+            Err(Error::LimitExceeded {
+                limit: LimitKind::WorkUnits,
+                ..
+            })
+        ));
+        assert!(output.is_empty());
+
+        let cancelled = CancellationToken::new();
+        cancelled.cancel();
+        let mut budget = WorkBudget::unlimited();
+        assert!(matches!(
+            archive.extract_entry_to(0, &mut output, &cancelled, &mut budget),
+            Err(Error::Cancelled)
+        ));
+        assert!(output.is_empty());
+
+        let mut corrupt = fixture;
+        *corrupt
+            .payload
+            .get_mut(1_500)
+            .ok_or_else(|| super::zip_format("test method 96 mutation is out of range"))? ^= 0x10;
+        let archive = open(build_zip(&[], &[corrupt])?.bytes)?;
+        let mut budget = WorkBudget::unlimited();
+        assert!(
+            archive
+                .extract_entry_to(0, &mut output, &cancellation, &mut budget)
+                .is_err()
+        );
+        assert!(output.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn winzip_jpeg_method_96_composes_with_zipcrypto_and_winzip_aes() -> Result<()> {
+        let fixture = winzip_jpeg_fixture()?;
+        let expected = fixture.decoded.clone();
+        for encrypted in [
+            zipcrypto_fixture(fixture.clone())?,
+            winzip_aes_fixture(fixture.clone(), 3, 2)?,
+        ] {
+            let cancellation = CancellationToken::new();
+            let mut budget = WorkBudget::unlimited();
+            let archive = ZipArchive::open_bytes_with_password(
+                build_zip(&[], &[encrypted])?.bytes,
+                Limits::default(),
+                PASSWORD,
+                &cancellation,
+                &mut budget,
+            )?;
+            assert_eq!(extract(&archive, 0)?, expected);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn wavpack_method_97_extracts_supported_profiles_exactly() -> Result<()> {
+        let cases = [
+            (
+                "pcm8-mono.wav",
+                include_str!("../../tests/fixtures/method97/pcm8_mono.wv.hex").trim(),
+                include_str!("../../tests/fixtures/method97/pcm8_mono.wav.hex").trim(),
+            ),
+            (
+                "pcm16-stereo.wav",
+                WAVPACK_PCM16_STEREO.trim(),
+                WAVPACK_PCM16_STEREO_WAVE.trim(),
+            ),
+            (
+                "pcm16-custom-rate.wav",
+                include_str!("../../tests/fixtures/method97/pcm16_custom_rate.wv.hex").trim(),
+                include_str!("../../tests/fixtures/method97/pcm16_custom_rate.wav.hex").trim(),
+            ),
+            (
+                "pcm24-stereo.wav",
+                include_str!("../../tests/fixtures/method97/pcm24_stereo.wv.hex").trim(),
+                include_str!("../../tests/fixtures/method97/pcm24_stereo.wav.hex").trim(),
+            ),
+            (
+                "pcm32-mono.wav",
+                include_str!("../../tests/fixtures/method97/pcm32_mono.wv.hex").trim(),
+                include_str!("../../tests/fixtures/method97/pcm32_mono.wav.hex").trim(),
+            ),
+            (
+                "float32-stereo.wav",
+                include_str!("../../tests/fixtures/method97/float32_stereo.wv.hex").trim(),
+                include_str!("../../tests/fixtures/method97/float32_stereo.wav.hex").trim(),
+            ),
+            (
+                "pcm16-quad.wav",
+                include_str!("../../tests/fixtures/method97/pcm16_quad.wv.hex").trim(),
+                include_str!("../../tests/fixtures/method97/pcm16_quad.wav.hex").trim(),
+            ),
+            (
+                "pcm16-three-channel.wav",
+                include_str!("../../tests/fixtures/method97/pcm16_three_channel.wv.hex").trim(),
+                include_str!("../../tests/fixtures/method97/pcm16_three_channel.wav.hex").trim(),
+            ),
+            (
+                "pcm16-sixteen-channel.wav",
+                include_str!("../../tests/fixtures/method97/pcm16_sixteen_channel.wv.hex").trim(),
+                include_str!("../../tests/fixtures/method97/pcm16_sixteen_channel.wav.hex").trim(),
+            ),
+        ];
+        for (name, encoded, expected) in cases {
+            let decoded = decode_hex(expected)?;
+            let fixture = encoded_fixture(name.as_bytes(), &decoded, encoded, 97, 20, 0)?;
+            let archive = open(build_zip(&[], std::slice::from_ref(&fixture))?.bytes)?;
+            let entry = archive
+                .entries()
+                .first()
+                .ok_or_else(|| super::zip_format("test WavPack entry is missing"))?;
+            assert_eq!(entry.compression_method(), ZipCompressionMethod::WavPack);
+            assert_eq!(entry.version_needed(), 20);
+            assert_eq!(extract(&archive, 0)?, decoded, "{name}");
+
+            let cancellation = CancellationToken::new();
+            let mut budget = WorkBudget::unlimited();
+            archive.verify(&cancellation, &mut budget)?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn wavpack_method_97_extracts_multiple_audio_blocks() -> Result<()> {
+        let mut decoded = decode_hex(
+            "524946462494040057415645666d7420100000000100010044ac0000885801000200100064617461e0930400",
+        )?;
+        decoded.try_reserve_exact(300_032).map_err(|_| {
+            Error::Io(std::io::Error::new(
+                std::io::ErrorKind::OutOfMemory,
+                "test WavPack output allocation failed",
+            ))
+        })?;
+        decoded.resize(300_044, 0);
+        decoded.extend_from_slice(&decode_hex(
+            "4c49535417000000494e464f6d6574686f6439372d6d756c7469626c6f636b00",
+        )?);
+        let fixture = encoded_fixture(
+            b"multiblock.wav",
+            &decoded,
+            include_str!("../../tests/fixtures/method97/pcm16_multiblock.wv.hex").trim(),
+            97,
+            20,
+            0,
+        )?;
+        let archive = open(build_zip(&[], &[fixture])?.bytes)?;
+        assert_eq!(extract(&archive, 0)?, decoded);
+        Ok(())
+    }
+
+    #[test]
+    fn wavpack_method_97_rejects_truncation_corruption_and_unsupported_profiles() -> Result<()> {
+        let decoded = decode_hex(WAVPACK_PCM16_STEREO_WAVE.trim())?;
+        let fixture = encoded_fixture(
+            b"method97.wav",
+            &decoded,
+            WAVPACK_PCM16_STEREO.trim(),
+            97,
+            20,
+            0,
+        )?;
+
+        for length in 0..fixture.payload.len() {
+            let mut truncated = fixture.clone();
+            truncated.payload = fixture
+                .payload
+                .get(..length)
+                .ok_or_else(|| super::zip_format("test WavPack prefix range is invalid"))?
+                .to_vec();
+            let archive = open(build_zip(&[], &[truncated])?.bytes)?;
+            assert!(
+                extract(&archive, 0).is_err(),
+                "WavPack payload prefix {length} unexpectedly extracted"
+            );
+        }
+
+        let mut internal_crc = fixture.clone();
+        let crc = internal_crc
+            .payload
+            .get_mut(28)
+            .ok_or_else(|| super::zip_format("test WavPack block CRC is missing"))?;
+        *crc ^= 1;
+        let archive = open(build_zip(&[], &[internal_crc.clone()])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::Checksum)
+        );
+
+        let mut invalid_cases = Vec::new();
+
+        let mut trailing = fixture.clone();
+        trailing.payload.push(0);
+        invalid_cases.push((trailing, ErrorKind::Format));
+
+        let mut bad_metadata_size = fixture.clone();
+        *bad_metadata_size
+            .payload
+            .get_mut(33)
+            .ok_or_else(|| super::zip_format("test WavPack metadata size is missing"))? = 0xff;
+        invalid_cases.push((bad_metadata_size, ErrorKind::Format));
+
+        let mut excessive_terms = fixture.clone();
+        *excessive_terms
+            .payload
+            .get_mut(79)
+            .ok_or_else(|| super::zip_format("test WavPack term count is missing"))? = 9;
+        let archive = open(build_zip(&[], &[excessive_terms])?.bytes)?;
+        let error = extract(&archive, 0)
+            .err()
+            .ok_or_else(|| super::zip_format("excessive WavPack terms unexpectedly decoded"))?;
+        assert_eq!(error.kind(), ErrorKind::Format);
+        assert!(error.to_string().contains("term count"));
+
+        let mut bitstream_corruption = fixture.clone();
+        *bitstream_corruption
+            .payload
+            .get_mut(200)
+            .ok_or_else(|| super::zip_format("test WavPack bitstream byte is missing"))? ^= 0x40;
+        let archive = open(build_zip(&[], &[bitstream_corruption])?.bytes)?;
+        assert!(extract(&archive, 0).is_err());
+
+        let sixteen_decoded = decode_hex(
+            include_str!("../../tests/fixtures/method97/pcm16_sixteen_channel.wav.hex").trim(),
+        )?;
+        let sixteen = encoded_fixture(
+            b"sixteen.wav",
+            &sixteen_decoded,
+            include_str!("../../tests/fixtures/method97/pcm16_sixteen_channel.wv.hex").trim(),
+            97,
+            20,
+            0,
+        )?;
+        let channel_record = [0x0d, 0x03, 0x0f, 0x0b, 0x00, 0xff, 0xff, 0x00];
+        let channel_offset = sixteen
+            .payload
+            .windows(channel_record.len())
+            .position(|window| window == channel_record)
+            .ok_or_else(|| super::zip_format("test WavPack channel metadata is missing"))?;
+
+        let mut too_many_channels = sixteen.clone();
+        let channel_count_offset = channel_offset
+            .checked_add(2)
+            .ok_or_else(|| super::zip_format("test WavPack channel offset overflows"))?;
+        *too_many_channels
+            .payload
+            .get_mut(channel_count_offset)
+            .ok_or_else(|| super::zip_format("test WavPack channel count is missing"))? = 0x10;
+        let archive = open(build_zip(&[], &[too_many_channels])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::UnsupportedFeature)
+        );
+
+        let mut bad_stream_count = sixteen.clone();
+        let stream_count_offset = channel_offset
+            .checked_add(3)
+            .ok_or_else(|| super::zip_format("test WavPack stream offset overflows"))?;
+        *bad_stream_count
+            .payload
+            .get_mut(stream_count_offset)
+            .ok_or_else(|| super::zip_format("test WavPack stream count is missing"))? = 0x0a;
+        let archive = open(build_zip(&[], &[bad_stream_count])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::Format)
+        );
+
+        let mut excessive_channel_mask = sixteen;
+        let mask_offset = channel_offset
+            .checked_add(7)
+            .ok_or_else(|| super::zip_format("test WavPack channel mask offset overflows"))?;
+        *excessive_channel_mask
+            .payload
+            .get_mut(mask_offset)
+            .ok_or_else(|| super::zip_format("test WavPack channel mask is missing"))? = 1;
+        let archive = open(build_zip(&[], &[excessive_channel_mask])?.bytes)?;
+        assert_eq!(
+            extract(&archive, 0).as_ref().err().map(Error::kind),
+            Some(ErrorKind::Format)
+        );
+
+        let mut newer_stream = fixture.clone();
+        *newer_stream
+            .payload
+            .get_mut(8)
+            .ok_or_else(|| super::zip_format("test WavPack version is missing"))? = 8;
+        invalid_cases.push((newer_stream, ErrorKind::UnsupportedFeature));
+
+        let mut mono_optimized = fixture.clone();
+        mono_optimized
+            .payload
+            .get_mut(8..10)
+            .ok_or_else(|| super::zip_format("test WavPack version is missing"))?
+            .copy_from_slice(&0x0410_u16.to_le_bytes());
+        *mono_optimized
+            .payload
+            .get_mut(27)
+            .ok_or_else(|| super::zip_format("test WavPack flags are missing"))? |= 0x40;
+        invalid_cases.push((mono_optimized, ErrorKind::UnsupportedFeature));
+
+        let mut hybrid = fixture.clone();
+        *hybrid
+            .payload
+            .get_mut(24)
+            .ok_or_else(|| super::zip_format("test WavPack flags are missing"))? |= 0x08;
+        invalid_cases.push((hybrid, ErrorKind::UnsupportedFeature));
+
+        let mut dsd = fixture.clone();
+        *dsd.payload
+            .get_mut(27)
+            .ok_or_else(|| super::zip_format("test WavPack flags are missing"))? |= 0x80;
+        invalid_cases.push((dsd, ErrorKind::UnsupportedFeature));
+
+        let mut unknown_samples = fixture.clone();
+        unknown_samples
+            .payload
+            .get_mut(12..16)
+            .ok_or_else(|| super::zip_format("test WavPack sample count is missing"))?
+            .fill(0xff);
+        invalid_cases.push((unknown_samples, ErrorKind::UnsupportedFeature));
+
+        let mut missing_wrapper = fixture.clone();
+        *missing_wrapper
+            .payload
+            .get_mut(32)
+            .ok_or_else(|| super::zip_format("test WavPack wrapper metadata is missing"))? = 0x30;
+        invalid_cases.push((missing_wrapper, ErrorKind::UnsupportedFeature));
+
+        let mut old_zip_version = fixture.clone();
+        old_zip_version.version_needed = 19;
+        invalid_cases.push((old_zip_version, ErrorKind::Format));
+
+        for (invalid, expected_kind) in invalid_cases {
+            let archive = open(build_zip(&[], &[invalid])?.bytes)?;
+            assert_eq!(
+                extract(&archive, 0).as_ref().err().map(Error::kind),
+                Some(expected_kind)
+            );
+        }
+
+        let healthy = stored(b"healthy", b"healthy")?;
+        let archive = open(build_zip(&[], &[internal_crc, healthy])?.bytes)?;
+        assert_eq!(archive.entries().len(), 2);
+        assert_eq!(extract(&archive, 1)?, b"healthy");
+        Ok(())
+    }
+
+    #[test]
+    fn wavpack_method_97_enforces_limits_cancellation_and_atomic_output() -> Result<()> {
+        let decoded = decode_hex(WAVPACK_PCM16_STEREO_WAVE.trim())?;
+        let fixture = encoded_fixture(
+            b"method97.wav",
+            &decoded,
+            WAVPACK_PCM16_STEREO.trim(),
+            97,
+            20,
+            0,
+        )?;
+        let built = build_zip(&[], std::slice::from_ref(&fixture))?;
+        let cancellation = CancellationToken::new();
+        let limits = [
+            (
+                Limits::builder().max_dictionary_bytes(0).build(),
+                LimitKind::DictionaryBytes,
+            ),
+            (
+                Limits::builder().max_stream_frames(1).build(),
+                LimitKind::StreamFrames,
+            ),
+            (
+                Limits::builder().max_header_properties(1).build(),
+                LimitKind::HeaderProperties,
+            ),
+            (
+                Limits::builder().max_coder_property_bytes(1).build(),
+                LimitKind::CoderPropertyBytes,
+            ),
+            (
+                Limits::builder().max_streams_per_folder(1).build(),
+                LimitKind::StreamsPerFolder,
+            ),
+            (
+                Limits::builder().max_total_streams(0).build(),
+                LimitKind::TotalStreams,
+            ),
+        ];
+        for (limits, expected_limit) in limits {
+            let mut budget = WorkBudget::unlimited();
+            let archive =
+                ZipArchive::open_bytes(built.bytes.clone(), limits, &cancellation, &mut budget)?;
+            let mut output = Vec::new();
+            let mut budget = WorkBudget::unlimited();
+            assert!(matches!(
+                archive.extract_entry_to(0, &mut output, &cancellation, &mut budget),
+                Err(Error::LimitExceeded { limit, .. }) if limit == expected_limit
+            ));
+            assert!(output.is_empty());
+        }
+
+        let archive = open(built.bytes)?;
+        let mut output = Vec::new();
+        let mut budget = WorkBudget::bounded(0);
+        assert!(matches!(
+            archive.extract_entry_to(0, &mut output, &cancellation, &mut budget),
+            Err(Error::LimitExceeded {
+                limit: LimitKind::WorkUnits,
+                ..
+            })
+        ));
+        assert!(output.is_empty());
+
+        let cancelled = CancellationToken::new();
+        cancelled.cancel();
+        let mut budget = WorkBudget::unlimited();
+        assert!(matches!(
+            archive.extract_entry_to(0, &mut output, &cancelled, &mut budget),
+            Err(Error::Cancelled)
+        ));
+        assert!(output.is_empty());
+
+        let mut corrupt = fixture;
+        *corrupt
+            .payload
+            .get_mut(28)
+            .ok_or_else(|| super::zip_format("test WavPack block CRC is missing"))? ^= 1;
+        let archive = open(build_zip(&[], &[corrupt])?.bytes)?;
+        let mut writer = Vec::new();
+        let mut budget = WorkBudget::unlimited();
+        assert_eq!(
+            archive
+                .extract_entry_to(0, &mut writer, &cancellation, &mut budget)
+                .as_ref()
+                .err()
+                .map(Error::kind),
+            Some(ErrorKind::Checksum)
+        );
+        assert!(writer.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn wavpack_method_97_composes_with_zipcrypto_and_winzip_aes() -> Result<()> {
+        let decoded = decode_hex(WAVPACK_PCM16_STEREO_WAVE.trim())?;
+        let fixture = encoded_fixture(
+            b"method97.wav",
+            &decoded,
+            WAVPACK_PCM16_STEREO.trim(),
+            97,
+            20,
+            0,
+        )?;
+        for encrypted in [
+            zipcrypto_fixture(fixture.clone())?,
+            winzip_aes_fixture(fixture.clone(), 3, 2)?,
+        ] {
+            let cancellation = CancellationToken::new();
+            let mut budget = WorkBudget::unlimited();
+            let archive = ZipArchive::open_bytes_with_password(
+                build_zip(&[], &[encrypted])?.bytes,
+                Limits::default(),
+                PASSWORD,
+                &cancellation,
+                &mut budget,
+            )?;
+            assert_eq!(extract(&archive, 0)?, decoded);
         }
         Ok(())
     }

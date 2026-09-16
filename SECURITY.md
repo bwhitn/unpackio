@@ -174,6 +174,26 @@ declared Check (NONE, CRC-32, CRC-64, or SHA-256) are validated before the
 decoded member can succeed. The independent ZIP decoded-size and CRC boundary
 still applies, including after ZipCrypto or WinZip AES processing.
 
+ZIP JPEG method 96 validates its properties header and each bounded metadata
+bundle before reconstructing bytes. LZMA metadata must produce the exact
+declared bundle, aggregate metadata/bundle/slice/model/block memory is limited,
+and every arithmetic input byte and output byte is work/cancellation charged.
+Persistent JPEG quantization and canonical Huffman tables must be complete and
+valid before a sequential scan; zero quantizers, repeated components/symbols,
+oversubscribed codes, nonsequential profiles, coefficient overflow, truncated
+segments, output-size disagreement, and trailing outer bytes fail closed. The
+reconstructed JPEG is withheld until the independent ZIP CRC passes, including
+after ZipCrypto or WinZip AES processing.
+
+ZIP WavPack method 97 admits only legacy lossless RIFF/WAVE streams through
+stream version `0x407`. The checked adapter requires bounded complete blocks,
+contiguous sample/channel groups, consistent format and sample declarations,
+at most 16 channels and 16 decorrelation terms, known sample count, exact
+wrapper reconstruction, and exact packed/output consumption. It rejects
+hybrid/lossy, DSD, RF64/non-RIFF, v5-only metadata, newer channel layouts, and
+unknown sample counts. Each WavPack rolling CRC and the independent ZIP size
+and CRC must pass, including after ZipCrypto or WinZip AES processing.
+
 ZIP PPMd method 98 is a separate PPMd-I revision-1 boundary, not the 7z PPMd7
 variant-H decoder. Its two-byte little-endian declaration must encode order 2
 through 16, 1 through 256 MiB of model memory, and restoration mode restart,
@@ -283,6 +303,12 @@ For method 95, the XZ Index is parsed before decoding; Block count, filter
 count/properties, LZMA2 dictionary, total declared output, header bytes, and
 coder totals are checked first. Parsing, LZMA2 output, reverse filters, and all
 checks use the same work budget and cancellation token.
+For method 97, the complete block/metadata layout, block and frame maxima,
+channel topology, property totals, declared output, and worst-case per-block
+working storage are checked before codec entry. One bounded block is decoded
+at a time behind a panic boundary. Metadata scanning, per-sample decorrelation
+work, reconstruction, and both checksum layers share the operation's work
+budget and cancellation token; output capacity is reserved fallibly.
 For method 98, property and coder counts, declared output, and model memory are
 preflighted before model allocation. Range normalization, context traversal,
 allocator maintenance/restoration, each decoded byte, and final end-marker
@@ -386,8 +412,10 @@ semantic mutation, exhaustive truncation/limit cases, and eight
 coverage-guided targets: six 7z/path targets, the standalone-stream target,
 and an archive-format target that also constructs structurally valid ZIP,
 RPM, CPIO, Debian, and ARJ containers around arbitrary payloads. Its ZIP path
-includes valid method-95 XZ and method-98 PPMd streams plus structured
-corruption and truncation.
+includes valid method-95 XZ, method-96 JPEG, method-97 WavPack, and method-98
+PPMd streams plus structured corruption and truncation. The larger method-96
+path is selector-throttled but includes the empty initial input, so every smoke
+campaign reaches one exact positive decode and hostile mutation/prefix paths.
 Temporary `7zz` output supplies positive
 differential evidence only and is deleted after each opt-in test.
 
@@ -415,6 +443,27 @@ output, coder/property or work limits, and cancellation before any writer or
 batch sink is finalized. The external reference corpus is checksum-pinned,
 opt-in, and never packaged; its supplemental PPMd sample is not attributed to
 WinZip because the producer is unrecorded.
+
+ZIP method 96 has a provenance-complete WinZip 21 vector over a
+project-authored baseline JPEG, independently reconstructed byte-for-byte by a
+pinned external oracle. Normal tests also exercise stored and LZMA-compressed
+metadata, extended properties, malformed/missing/oversubscribed tables,
+unsupported scan/frame profiles, sampled strict truncation, strategic
+corruption, trailing input, low header/dictionary/frame/output/work limits,
+cancellation, CRC-finalized atomic writer and batch delivery, and both ZIP
+encryption schemes. The MIT reference source is not linked or executed.
+
+ZIP method 97 has 10 deterministic WavPack 4.80 `-hh` payloads over
+project-authored RIFF/WAVE inputs, independently decoded byte-for-byte by
+official WavPack 5.9. They cover every supported storage width, integer and
+float samples, mono/stereo, odd and maximum admitted channel
+groups, a custom rate, multiple blocks, and wrapper trailers. Normal tests
+reject every strict prefix, compressed-bit and internal-CRC corruption,
+malformed metadata, excessive terms, unsupported versions/profiles, size and
+resource disagreement, low work, and cancellation before any writer or batch
+sink is finalized. A separate ignored harness is ready for a freshly authored,
+versioned Windows WinZip archive; that deferred product oracle is not claimed
+as completed evidence.
 
 The exact-version capability probes are classification tests, not validation
 shortcuts. Their observed `7zz` rejection of unknown packed and non-final sizes

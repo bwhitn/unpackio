@@ -71,22 +71,88 @@ provenance, fixture, and validation requirements in [AGENTS.md](AGENTS.md).
     `FUZZING.md`, `TESTING.md`, and `BENCHMARKS.md` wherever claims or evidence
     change. Do not claim support based only on admitting a decoder dependency.
 
+- [x] Add bounded ZIP WavPack method 97 extraction:
+  - [x] Pin APPNOTE section 5.9, the WavPack WinZip compatibility profile,
+    official WavPack 4.80/5.9 source revisions, and the exact permissively
+    licensed decoder dependency and adapted-source notices.
+  - [x] Commit deterministic project-authored RIFF/WAVE inputs and WavPack
+    4.80 `-hh` payloads covering 8-/16-/24-/32-bit integer, 32-bit float,
+    mono, stereo, odd/four/sixteen-channel, custom-rate, multi-block, and
+    wrapper-trailer reconstruction. Verify every output against the official
+    WavPack 5.9 decoder.
+  - [x] Implement a checked method-97 adapter around the decoder-only local
+    fork of `wavicle` 0.1.0. Omit its encoder, retain the Rust 1.85 MSRV, make
+    reachable input-sized allocations fallible, replace input-derived
+    unchecked access/arithmetic, and bound blocks, metadata, channels, terms,
+    allocations, output, work, and cancellation; require exact block and ZIP
+    consumption; verify WavPack and ZIP CRCs; and reject hybrid, DSD, RF64,
+    alternate wrappers, mono optimization, v5-only metadata, and unsupported
+    channel layouts.
+  - [x] Cover Rust and installed-wheel Python metadata, exact output,
+    writer/callback/batch behavior, ZipCrypto/AES composition, every payload
+    prefix, corruption, typed unsupported profiles, limits, cancellation,
+    atomic failure, unrelated-entry access, and valid/hostile fuzz paths.
+  - [x] Update the compatibility, security, dependency, provenance, corpus,
+    fuzzing, testing, benchmark, and binding documentation for the admitted
+    profile, then record the independently completed Windows WinZip product
+    oracle without broadening the admitted decoder profile.
+
 ## Deferred research
 
-- [x] Research the remaining WinZip advanced recompression methods separately:
+- [ ] Complete the remaining MP3 recompression method while retaining the
+  completed JPEG method as an independent supported profile:
   - [x] Pin every authoritative registration and publicly available framing
-    detail for MP3 method 94, JPEG method 96, and WavPack method 97. The audit
-    found no public payload grammar for method 94; that evidence gap is now
-    explicit rather than inferred from the method number.
+    detail for MP3 method 94 and JPEG method 96. The audit found no public
+    payload grammar for method 94; that evidence gap is explicit rather than
+    inferred from the method number.
   - [x] Identify safe, permissively licensed decoder candidates and exact
     revisions; model their memory, output, recursion, and CPU/work bounds before
-    proposing a dependency or adaptation.
-  - [ ] Establish deterministic positive fixtures and redistributable
-    provenance for methods 94, 96, and 97. No admissible encoder/fixture set
-    was found in the completed research pass; `PROVENANCE.md` records the
-    searched primary specifications and rejected candidates. External tools
-    may be checksum-pinned test oracles only and must never become runtime
-    dependencies.
+    proposing a dependency or adaptation. Method 96 uses the MIT-licensed
+    adaptation reference XArchive commit
+    `c17ca22a2ae75f1d6f97d0a56725655c49b97295`; its direct C++/Qt expression is
+    not admissible runtime code, and the audit in `PROVENANCE.md` records the
+    validation, missing checks, and admitted safe-Rust rewrite. Method 94's
+    matching packMP3 v1.0g implementation remains LGPL-3.0-or-later and is an
+    external oracle only.
+  - [x] Establish deterministic positive fixtures and redistributable
+    provenance for methods 94 and 96. Fresh one-member WinZip 21.0.12288
+    archives over project-authored MP3 and JPEG test patterns are committed as
+    hash-pinned base64 fixtures with the exact product identities and GUI recipe
+    recorded in `CORPUS.md` and `PROVENANCE.md`. Pinned packMP3 and
+    XFileUnpacker oracles independently reconstructed the originals byte for
+    byte. Those external tools remain test oracles only and are neither
+    committed nor runtime dependencies.
+  - [x] Build a clean-room differential corpus for method 94 without reading or
+    adapting the LGPL implementation. The deterministic fixture generator
+    creates 54 unique project-authored MPEG-1 Layer III/PMP pairs spanning all
+    MPEG-1 bitrates and sample rates, mono/stereo modes, CRC, reservoir and
+    header flags, ID3 metadata, duration, signal classes, and CBR/ABR/VBR.
+    Every pair passed packMP3 v1.0g's internal verification and a separate
+    byte-exact decode, and an independent regeneration matched the committed
+    manifest and 108 base64 files exactly. LAME and packMP3 remain uncommitted
+    external fixture tools only.
+  - [x] Implement method 96 behind the checked Rust core and Python binding.
+    The decoder bounds input, output, fallible model/slice allocation,
+    metadata, bundle/slice counts, work, and cancellation; requires validated
+    JPEG tables and exact outer stream consumption; composes with ZipCrypto and
+    WinZip AES; and passes byte-exact fixture, corruption, sampled truncation,
+    stored/compressed metadata, malformed-table/profile, limit, cancellation,
+    atomic writer/batch, fuzz, and installed-wheel coverage.
+  - [x] Derive and mechanically verify the independently observable method-94
+    PMP envelope against all 54 clean-room pairs. The MIT-only analyzer proves
+    the `MS\x0a` signature; sample-rate/channel-mode/fixed-bitrate descriptor;
+    byte-4 padding, mid/side, intensity, switched-block, subblock-gain, SCFSI,
+    preflag, and scalefac-scale feature bits; CRC, original, copyright,
+    emphasis, ID3v1, and ID3v2 flags; reservoir marker; and big-endian
+    MPEG-frame count. The entropy stream beginning at byte 11 remains
+    unresolved, so this evidence does not admit a decoder.
+  - [ ] Implement method 94 only if it later clears its independent
+    specification, provenance, dependency, and positive-fixture gates. It still
+    lacks an admissible implementation source and public payload grammar; the
+    new differential corpus is evidence from which such a grammar may be
+    derived, not a decoder specification by itself. The method remains listable
+    with its stable metadata and returns a typed unsupported-method error. Do
+    not translate or link the LGPL packMP3 oracle.
   - [x] Add stable enum/Python method names only after the registrations are
     verified. Until a complete method passes its gates, preserve its numeric ID
     and return a typed unsupported-method error on extraction.
@@ -102,19 +168,25 @@ provenance, fixture, and validation requirements in [AGENTS.md](AGENTS.md).
   - [x] Retain current listable/typed-unsupported behavior until parser,
     integrity, resource, provenance, and generated-fixture gates are complete.
 
-- [ ] Validate representative benign WinZip-produced ZIPX archives for every
+- [x] Validate representative benign WinZip-produced ZIPX archives for every
   implemented method without committing proprietary samples.
   - [x] Pin and locally verify WinZip-labelled BZip2, ZIP-LZMA, XZ, and
     Zstandard samples by archive hash, method/version/encryption inventory,
     entry metadata, exact output hashes, and full verification. Record their
     upstream revisions and local-only redistribution decision.
-  - [ ] Acquire equivalent WinZip-produced PPMd method-98 evidence with a
-    recorded WinZip tool version and authoring command. The available pinned
-    `Zip.ppmd.zip` sample passes full extraction and integrity checks, but its
-    producer and command are unrecorded and its filename does not establish
-    WinZip provenance.
-  - [ ] Recover exact authoring commands for the four WinZip-labelled upstream
-    samples, or replace them with reproducible samples. Their hashes, upstream
-    introduction commits, tool-version labels, complete inventories, outputs,
-    and redistribution decision are recorded, but the upstream history does
-    not contain the original GUI or command-line recipe.
+  - [x] Generate and verify fresh WinZip-produced PPMd method-98 evidence with
+    WinZip 21.0 build 12288 on Windows. The exact executable identity, pinned
+    project-authored input, GUI recipe, archive/member hashes and inventory,
+    stock-`7zz` integrity result, and byte-exact production decoder/full-verify
+    result are recorded in `CORPUS.md` and `PROVENANCE.md`.
+  - [x] Generate and verify a fresh WavPack method-97 archive with WinZip 21.0
+    build 12288 on Windows. Best Method selected WavPack for the deterministic
+    multiblock WAV; the versioned recipe, hashes, method metadata, and
+    byte-exact ignored-harness result are recorded without committing the
+    proprietary archive.
+  - [x] Replace the four command-incomplete WinZip-labelled upstream evidence
+    roles with reproducible WinZip 24.0 build 14033 BZip2, ZIP-LZMA, XZ, and
+    Zstandard samples over one pinned project-authored input. Every archive has
+    an exact GUI recipe, hash and inventory, passes stock-`7zz` integrity, and
+    passes production extraction plus full verification. The historical
+    samples remain documented as supplemental local-only evidence.

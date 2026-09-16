@@ -24,6 +24,8 @@ warmup occur outside the timed loop.
 | 2026-07-21 | Uncommitted CPIO/Debian/ARJ snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 964,108-byte Python-only wheel; 23 installed-wheel tests passed | Process peak not measured | No console entry point or Python runtime dependency; includes ZIP/RPM, three new readers, ARJ decoder dependency, fixtures' required notices, and all existing formats; a size observation, not a throughput benchmark |
 | 2026-09-14 | Superseded ZIP XZ method-95 snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 943,934-byte wheel; 24 installed-wheel tests passed | Process peak not measured | This initial snapshot used the dependency's aggregate XZ reader; the final allocation audit replaced it with the in-tree fallibly allocating LZMA2 path and disabled that dependency feature. The unrelated 7z release benchmark compiled but skipped because `UNPACKIO_7Z_TESTDATA` was unset; no ZIP throughput claim |
 | 2026-09-14 | Uncommitted ZIP XZ/PPMd method-95/98 completion snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 984,218-byte wheel; 26 installed-wheel tests passed | Process peak not measured | The source distribution rebuilt into a separately hashed 984,299-byte wheel and passed the same installed suite. The natural-order 7z release benchmark compiled warning-free and again skipped without `UNPACKIO_7Z_TESTDATA`; the optimized PPMd restoration-pressure correctness matrix passed, but no ZIP timing or peak-memory claim is made |
+| 2026-09-15 | Uncommitted ZIP WavPack method-97 completion snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 1,024,211-byte direct wheel; 27 installed-wheel tests passed | Per-block working storage is preflighted; process peak not measured | Ten official-WavPack-generated exact-output profiles passed; the 428,382-byte sdist rebuilt to a separately hashed 1,024,276-byte wheel that passed the same suite. The natural-order benchmark compiled and explicitly skipped without `UNPACKIO_7Z_TESTDATA`; no WavPack throughput claim |
+| 2026-09-16 | Uncommitted ZIP JPEG method-96 completion snapshot | Optimized macOS x86-64 `cp39-abi3` wheel packaging | 1,060,797-byte direct wheel; 28 installed-wheel tests passed | Probability models and slice buffers are aggregate-preflighted; process peak not measured | The 474,488-byte sdist rebuilt to a separately hashed 1,060,884-byte wheel that passed the same suite. The natural-order benchmark compiled and explicitly skipped without `UNPACKIO_7Z_TESTDATA`; no JPEG throughput claim |
 
 The exact Git object for these historical measurements was not recorded. The
 `Pre-commit` labels preserve that limitation; the rows must not be attributed
@@ -107,6 +109,28 @@ measurements. A future ZIP XZ benchmark must report Block count and sizes,
 filter chain, Check type, LZMA2 dictionary, Stream Padding, ZIP encryption,
 compressed/output bytes, work units, temporary Block/member allocation, and
 sink cost.
+
+ZIP JPEG method 96 likewise has no throughput claim. It temporarily retains
+the reconstructed member, one fixed 28,328-bin probability model, and bounded
+slice buffers; metadata LZMA state is not live with slice decoding. Tests prove
+byte-exact WinZip reconstruction, aggregate dictionary/header/frame/output/work
+limits, cancellation, table validation, two encryption wrappers, and
+integrity-before-sink behavior. The external oracle and selector-throttled fuzz
+path are correctness evidence only. A future benchmark must report JPEG
+dimensions, precision, components/sampling, scan and slice topology, metadata
+bundle compression, compressed/output bytes, model/slice/output allocations,
+work units, encryption wrapper, sink cost, and peak RSS.
+
+ZIP WavPack method 97 likewise has no throughput claim. Its adapter preparses
+the complete stream, then calls the decoder one bounded block at a time while
+temporarily retaining the verified ZIP member output. Tests establish exact
+integer/float and one-to-sixteen-channel reconstruction, wrapper recovery,
+working-memory/output/work/cancellation limits, two checksum layers, and
+sink-finalization behavior; the official WavPack differential and fuzz smoke
+are correctness evidence only. A future benchmark must report block and
+channel topology, sample format/rate/count, wrapper bytes, compressed and
+decoded sizes, decoder/output allocations, work units, encryption wrapper,
+sink cost, and peak RSS.
 
 ZIP PPMd method 98 likewise has no throughput claim. The release-only pressure
 gate forces Restart, Cutoff, and Freeze restoration with an order-16, 1 MiB
