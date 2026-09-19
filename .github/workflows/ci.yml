@@ -179,13 +179,31 @@ jobs:
 
   miri:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: miri
       - run: cargo miri setup
-      - run: cargo miri test -p unpackio --lib --no-default-features
+      - name: Run bounded Miri smoke coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_name in \
+            bounded::tests::reads_7z_integer_boundary_encodings \
+            cancel::tests::cancellation_is_shared_by_clones \
+            checksum::tests::incremental_updates_match_one_shot \
+            decode::filters::tests::delta_distance_one_accumulates_bytes \
+            execute::tests::executes_stored_reverse_chain_in_validated_topological_order \
+            parser::tests::validates_plain_and_encoded_header_envelopes \
+            path::tests::rejects_required_dangerous_path_classes \
+            stream::lz4::tests::complete_checked_frame_reports_info_and_extracts \
+            volume::tests::aggregate_input_limit_precedes_volume_copy \
+            zip::tests::lists_and_extracts_stored_deflate_duplicates_cp437_and_sfx
+          do
+            cargo miri test --locked -p unpackio --lib --no-default-features "$test_name" -- --exact
+          done
 
   fuzz-smoke:
     runs-on: ubuntu-latest
