@@ -393,8 +393,9 @@ decoding, volume assembly, and CRC verification execute inside
 adapts a callable to the core's CRC-finalizing single-entry path.
 `extract_entries_to` adapts a structural begin/write/finish sink directly to
 the core's natural-order `EntrySink`, using one work budget and cancellation
-token for the complete batch. The core supplies bounded control chunks
-(currently at most 4 KiB). Partial writer counts are honored, impossible
+token for the complete batch. The core supplies bounded I/O chunks (currently
+at most 8 KiB) while retaining 4 KiB cancellation/work checkpoints. Partial
+writer counts are honored, impossible
 counts are rejected, callback `False` cancels, and raised Python exceptions
 are preserved. Batch `finish_entry` remains the per-member CRC trust boundary;
 no callback name is used as a filesystem destination.

@@ -504,3 +504,13 @@ The generated method/property matrix likewise adds no dependency or lockfile
 change. It uses `std::process::Command`, the existing `sha2` test use, and the
 installed exact-version oracle; all generated source and archive bytes remain
 in a uniquely named temporary directory that is removed after the test.
+
+## Rust 1.98.1 optimization dependency review
+
+The 2026-09-21 toolchain and hot-path pass adds no Rust, native, or Python
+runtime dependency and changes neither lockfile. The lifecycle fixture tools
+and macOS process sampler are opt-in development oracles/profilers only. The
+primary compiler is pinned to Rust 1.98.1 while the selected dependency graph
+continues to compile under the separately tested Rust 1.85 MSRV. GitHub's
+toolchain installer action is referenced by a full commit SHA; explicit
+1.98.1 and 1.85.0 inputs keep compiler selection separate from action code.

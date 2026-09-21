@@ -203,7 +203,7 @@ class Sink:
         ...
 
     def write_entry(self, index: int, chunk: bytes) -> None:
-        # Chunks are bounded (currently at most 4 KiB).
+        # Chunks are bounded (currently at most 8 KiB).
         ...
 
     def finish_entry(self, index: int) -> None:

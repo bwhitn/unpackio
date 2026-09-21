@@ -16,8 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
         with:
+          toolchain: "1.98.1"
           components: clippy, rustfmt
       - name: Verify the workspace has no CLI or executable examples
         run: >-
@@ -45,14 +46,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
+        with:
+          toolchain: "1.98.1"
       - run: cargo test --workspace --all-targets --all-features --locked
 
   windows-7zip-capability:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
+        with:
+          toolchain: "1.98.1"
       - name: Install checksum-pinned stock 7-Zip 26.02 oracle
         shell: pwsh
         run: |
@@ -99,7 +104,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
+        with:
+          toolchain: "1.98.1"
       - name: Install checksum-pinned stock 7-Zip 26.02 oracle
         shell: bash
         run: |
@@ -142,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
         with:
           toolchain: "1.85.0"
       - run: cargo check --workspace --all-targets --all-features --locked
@@ -152,8 +159,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
         with:
+          toolchain: "1.98.1"
           targets: i686-unknown-linux-gnu
       - run: sudo apt-get update
       - run: sudo apt-get install --yes gcc-multilib
@@ -195,10 +203,12 @@ jobs:
             cancel::tests::cancellation_is_shared_by_clones \
             checksum::tests::incremental_updates_match_one_shot \
             decode::filters::tests::delta_distance_one_accumulates_bytes \
+            decode::lzma::tests::lzma2_unknown_size_requires_and_accepts_eos \
             execute::tests::executes_stored_reverse_chain_in_validated_topological_order \
             parser::tests::validates_plain_and_encoded_header_envelopes \
             path::tests::rejects_required_dangerous_path_classes \
             stream::lz4::tests::complete_checked_frame_reports_info_and_extracts \
+            stream::tests::reader_pump_batches_without_changing_control_work \
             volume::tests::aggregate_input_limit_precedes_volume_copy \
             zip::tests::lists_and_extracts_stored_deflate_duplicates_cp437_and_sfx
           do

@@ -16,8 +16,8 @@ use crate::{
         HeaderEnvelope, PackStream, ParsedNextHeader, StoredProperty, StreamsInfo, Substream,
     },
     parse_util::{
-        CONTROL_CHUNK_SIZE, ParseControl, check_limit, format_error, try_reserve, u64_to_usize,
-        usize_to_u64,
+        CONTROL_CHUNK_SIZE, IO_CHUNK_SIZE, ParseControl, check_limit, format_error, try_reserve,
+        u64_to_usize, usize_to_u64,
     },
     parser::{
         archive_declares_more_bytes, parse_archive, parse_decoded_next_header,
@@ -628,26 +628,8 @@ impl Archive {
         cancellation: &CancellationToken,
         budget: &mut WorkBudget,
     ) -> Result<Vec<u8>> {
-        let mut reader = self.open_member(member_index, cancellation, budget)?;
-        let capacity = u64_to_usize(
-            reader.size()?,
-            "member output size is not representable on this platform",
-        )?;
-        let mut output = Vec::new();
-        try_reserve(&mut output, capacity)?;
-        let mut buffer = [0_u8; 8192];
-        loop {
-            let count = reader.read_chunk(&mut buffer)?;
-            if count == 0 {
-                break;
-            }
-            let bytes = buffer
-                .get(..count)
-                .ok_or_else(|| format_error("member read count exceeds its output buffer"))?;
-            output.extend_from_slice(bytes);
-        }
-        reader.finish()?;
-        Ok(output)
+        self.open_member(member_index, cancellation, budget)?
+            .into_bytes()
     }
 
     /// Streams one member to a caller-supplied writer and returns its verified
@@ -671,7 +653,7 @@ impl Archive {
     ) -> Result<u64> {
         let mut reader = self.open_member(member_index, cancellation, budget)?;
         let mut written = 0_u64;
-        let mut buffer = [0_u8; 8192];
+        let mut buffer = [0_u8; IO_CHUNK_SIZE];
         loop {
             let count = reader.read_chunk(&mut buffer)?;
             if count == 0 {
@@ -944,11 +926,8 @@ impl Archive {
                 .ok_or_else(|| format_error("member byte range is outside folder output"))?;
             sink.begin_entry(member_index, member, member_size)?;
             let mut member_crc = Crc32::new();
-            for chunk in bytes.chunks(CONTROL_CHUNK_SIZE) {
-                control.checkpoint(usize_to_u64(
-                    chunk.len(),
-                    "member output chunk length is not representable as u64",
-                )?)?;
+            for chunk in bytes.chunks(IO_CHUNK_SIZE) {
+                control.consume_bytes(chunk)?;
                 member_crc.update(chunk)?;
                 sink.write_entry(member_index, chunk)?;
             }
@@ -1733,19 +1712,44 @@ impl<'operation> MemberReader<'operation> {
         Ok(count)
     }
 
-    /// Consumes unread bytes and verifies member CRC before folder CRC.
-    ///
-    /// `Drop` cannot return integrity failures, so callers must invoke this
-    /// method before treating extraction as successful.
-    ///
-    /// # Errors
-    ///
-    /// Returns cancellation/work failures while consuming unread bytes, then
-    /// the applicable member or folder checksum failure. Encrypted failures
-    /// can be reported as [`Error::WrongPasswordOrCorrupt`].
-    pub fn finish(mut self) -> Result<()> {
-        let mut buffer = [0_u8; 8192];
-        while self.read_chunk(&mut buffer)? != 0 {}
+    fn consume_remaining(&mut self) -> Result<()> {
+        let member_length = self
+            .end
+            .checked_sub(self.start)
+            .ok_or_else(|| format_error("member length underflows"))?;
+        while self.position < member_length {
+            let remaining = member_length
+                .checked_sub(self.position)
+                .ok_or_else(|| format_error("member read position exceeds its range"))?;
+            let count = remaining.min(IO_CHUNK_SIZE);
+            let absolute = self
+                .start
+                .checked_add(self.position)
+                .ok_or_else(|| format_error("member read position overflows"))?;
+            let absolute_end = absolute
+                .checked_add(count)
+                .ok_or_else(|| format_error("member read range overflows"))?;
+            let source = self
+                .data
+                .get(absolute..absolute_end)
+                .ok_or_else(|| format_error("member read range is outside folder output"))?;
+            for chunk in source.chunks(CONTROL_CHUNK_SIZE) {
+                self.cancellation.check()?;
+                self.budget.charge(usize_to_u64(
+                    chunk.len(),
+                    "member read chunk length is not representable as u64",
+                )?)?;
+                self.checksum.update(chunk)?;
+            }
+            self.position = self
+                .position
+                .checked_add(count)
+                .ok_or_else(|| format_error("member read position overflows"))?;
+        }
+        Ok(())
+    }
+
+    fn verify_integrity(&self) -> Result<()> {
         if self
             .expected_crc
             .is_some_and(|expected| self.checksum.finalize() != expected)
@@ -1768,6 +1772,41 @@ impl<'operation> MemberReader<'operation> {
             });
         }
         Ok(())
+    }
+
+    fn into_bytes(mut self) -> Result<Vec<u8>> {
+        self.consume_remaining()?;
+        self.verify_integrity()?;
+        if self.start == 0 && self.end == self.data.len() {
+            return Ok(self.data);
+        }
+        let length = self
+            .end
+            .checked_sub(self.start)
+            .ok_or_else(|| format_error("member length underflows"))?;
+        let source = self
+            .data
+            .get(self.start..self.end)
+            .ok_or_else(|| format_error("member byte range is outside folder output"))?;
+        let mut output = Vec::new();
+        try_reserve(&mut output, length)?;
+        output.extend_from_slice(source);
+        Ok(output)
+    }
+
+    /// Consumes unread bytes and verifies member CRC before folder CRC.
+    ///
+    /// `Drop` cannot return integrity failures, so callers must invoke this
+    /// method before treating extraction as successful.
+    ///
+    /// # Errors
+    ///
+    /// Returns cancellation/work failures while consuming unread bytes, then
+    /// the applicable member or folder checksum failure. Encrypted failures
+    /// can be reported as [`Error::WrongPasswordOrCorrupt`].
+    pub fn finish(mut self) -> Result<()> {
+        self.consume_remaining()?;
+        self.verify_integrity()
     }
 }
 

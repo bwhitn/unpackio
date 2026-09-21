@@ -1,12 +1,115 @@
 # Benchmark results
 
-## Current result
+## 2026-09-21 Rust 1.98.1 archive-lifecycle matrix
+
+The Rust 1.98.1 optimization pass compared the unchanged source revision
+`e275e468c05004e2183c3cd5f043ab5f0b1e8a48` with the tree published by the
+completion revision containing this section. Both sides used the same generated
+fixture directory, Rust 1.98.1 (`48a229cea`, LLVM 22.1.8), release settings,
+CPython 3.12.10, and macOS 26.5.2 x86-64 host (8-core 2.3 GHz Intel, 16 GiB).
+The fixture manifest SHA-256 is
+`e2e52fb27dbab2b7ef1ca2e3211e94af298e63c0edf0e6f88b609a5168ea5025`.
+
+`benchmarks/generate_fixtures.py` creates the 41-file matrix: solid,
+encrypted, split-volume, and every stock-7zz-authorable supported 7z coder or
+filter; mixed and advanced ZIP; RPM, CPIO, Debian, and ARJ; and LZ4,
+Zstandard, and Unix `.Z` streams. `benchmarks/run_release.py` recorded 111
+native operation rows, and `benchmarks/run_python_release.py` recorded 89 rows
+through an installed ABI3 wheel. Each published value is the median of five
+fresh-process samples after a verified warmup. The reports include in-process
+and process wall time, user/system CPU, peak RSS, block I/O, input/output bytes,
+write callbacks, API-visible owned-output allocations, deterministic work
+units where available, cancellation latency, and binary/wheel size and hashes.
+The commands and interpretation rules are in `benchmarks/README.md`.
+
+Selected installed-wheel medians show the intended lifecycle effects. Negative
+percentages are faster. Tiny sub-millisecond rows and individual decoder rows
+remain sensitive to process launch, run order, and thermal state; they are
+retained in the complete reports and are not used to claim a universal decoder
+speedup.
+
+| Fixture and operation | Baseline | After | Change | Writes, baseline to after |
+| --- | ---: | ---: | ---: | ---: |
+| Solid 7z callback | 27.553 ms | 27.885 ms | +1.2% | 16 to 16 |
+| Solid 7z batch | 37.037 ms | 36.679 ms | -1.0% | 1,024 to 512 |
+| Mixed ZIP/ZIPX path inventory | 0.434 ms | 0.318 ms | -26.6% | 0 to 0 |
+| RPM batch | 1.158 ms | 0.834 ms | -28.0% | 1,024 to 512 |
+| CPIO writer | 0.042 ms | 0.036 ms | -15.8% | 32 to 16 |
+| Debian batch | 0.852 ms | 0.555 ms | -34.9% | 1,025 to 513 |
+| ARJ batch | 10.877 ms | 10.586 ms | -2.7% | 1,024 to 512 |
+| LZ4 callback | 2.082 ms | 1.685 ms | -19.1% | 1,024 to 512 |
+| Zstandard callback | 2.027 ms | 1.739 ms | -14.2% | 1,024 to 512 |
+| Unix `.Z` writer | 169.848 ms | 37.069 ms | -78.2% | 218,606 to 512 |
+| WinZip JPEG callback | 9.441 ms | 8.388 ms | -11.2% | 2 to 1 |
+| Split 7z path verification | 36.713 ms | 36.138 ms | -1.6% | 0 to 0 |
+| Encrypted 7z callback | 160.313 ms | 153.191 ms | -4.4% | 16 to 16 |
+
+The deterministic counters are the stronger acceptance evidence. All completed
+paired native rows produced identical decoded byte and work-unit totals; only
+in-flight cancellation work varies with the trigger schedule. All API-visible
+owned-output allocation counts stayed equal, and the affected 4 KiB delivery
+paths halved their write counts while retaining 4 KiB work and cancellation
+checkpoints. Unix `.Z` callback delivery fell from 218,606 writes to 512 per
+Python operation. Installed-wheel peak RSS for the selected rows remained
+within normal process-level variation; for example `.Z` writer RSS was
+16,785,408 versus 17,010,688 bytes. Cached-input block I/O was zero in the
+published rows. Triggered cancellation returned in approximately 1.4--1.6 ms,
+including the benchmark's 1 ms trigger delay; pre-cancelled operations retained
+their immediate typed-error path.
+
+| Artifact | Baseline bytes | After bytes | Change |
+| --- | ---: | ---: | ---: |
+| Native benchmark harness | 1,967,312 | 1,987,776 | +1.04% |
+| macOS x86-64 ABI3 wheel | 1,068,819 | 1,075,348 | +0.61% |
+| Installed native extension | 2,250,184 | 2,262,464 | +0.55% |
+
+The baseline and after wheel SHA-256 values are respectively
+`3aa7973901eca953f768ca6dd95d0c9ac7000ff18f1975dcfd515f2ac4665bd5`
+and `d8de208abb97a59ffe4acbf2a541ca57b5e4e4c07cacc7ec76c339a080e252b1`.
+The complete native baseline/after report hashes are
+`326c8641024b8bcc9dfcc53f951b568cc973a6266f9a70e800e2d5f230efccb1`
+and `61ea467ef6d029fc214cff5634e6d15bfedae2081a2ea5bbdb2357d797804e17`;
+the Python report hashes are
+`02aabb7f87d149adbd1c3917f8dd1caac65267a3ba94d3950e02698db99bfd7c`
+and `bf3b9e56937b43339471259c81bc93360326e0fbd5e3d1a03ba47036e29e711b`.
+
+Symbolized release sampling covered container traversal, solid state, every
+admitted decoder family, encryption/KDF, integrity work, volumes, delivery,
+batching, and Python projection. It identified Unix `.Z` bit-at-a-time input
+and per-byte delivery as the clearest project-owned hot path; that reader now
+uses a checked little-endian byte window and an 8 KiB delivery buffer. Public
+archive and stream delivery uses 8 KiB writes without weakening the independent
+4 KiB control cadence. Whole-folder 7z extraction transfers ownership instead
+of copying where the requested range permits, and partial ranges perform one
+checked copy. The JPEG arithmetic-model index was made explicitly inline after
+alternating samples confirmed the code-layout win. The exact-toolchain audit
+also caught a ThinLTO layout regression in solid LZMA2: forcing the measured
+probability/tree/literal/length helpers inline and precomputing invariant
+literal masks reduced a repeatable approximately 20% paired slowdown to about
+2% in seven alternating 100-iteration pairs; the complete five-process matrix
+then measured solid callback and verification at -0.2% and -3.5% natively.
+Profiles otherwise remained dominated by the admitted codec implementations
+(PPMd, Deflate64, BZip2, LZ4, and Zstandard) or by SHA-256 KDF work, so no
+speculative crypto, CRC, volume, or PyO3 rewrite was adopted.
+
+Rust 1.98's byte-endian UTF-16 conversion helpers were evaluated but not used:
+archive names are exact `[u16]` code units that may include unpaired surrogates,
+and the existing conversion plus raw-unit preservation is the required format
+and path-policy contract. `PROVENANCE.md` records that decision. No benchmark
+result relaxed a size, work, cancellation, checksum, password, or path-policy
+boundary.
+
+## Historical results
 
 Phase 7 retains the Phase 6 opt-in release-mode benchmark for natural-order
 caller-owned sink extraction of the solid `lzma2.7z` reference fixture.
 Extraction decodes its folder once, checks every member CRC before the sink
 finalizes that member, and checks the folder CRC before delivery. Parsing/opening and one correctness
 warmup occur outside the timed loop.
+
+The statements below are retained as contemporaneous history. References to a
+missing timing claim or a future lifecycle matrix were accurate for those
+snapshots and are superseded by the 2026-09-21 matrix above.
 
 | Date | Commit | Benchmark | Result | Peak memory | Notes |
 | --- | --- | --- | --- | --- | --- |
@@ -167,13 +270,15 @@ regression, while optimizing for size caused substantially broader slowdowns.
 Cargo and maturin both strip release symbols; `panic="unwind"` and overflow
 checks remain deliberate security requirements and are not size-tuning knobs.
 
-## Expanded future methodology
+## Continuing methodology
 
-Future work adds statistically sampled natural-order solid extraction and peak
-RSS benchmarks as the current full-folder-buffered callback/sink pipeline
-evolves. Each published result records commit, Rust version, target triple,
-CPU, RAM, archive hash, method graph, compressed and output bytes, file count,
-warmup/sample method, wall throughput, peak RSS, and configured limits.
+Future optimization work extends the statistically sampled lifecycle matrix
+rather than replacing it with a single-codec microbenchmark. Each published
+result records the source revision, Rust version, target triple, CPU, RAM,
+fixture-manifest hash, method graph, compressed and output bytes, file count,
+warmup/sample method, wall and CPU time, peak RSS, block I/O, delivery and
+allocation counters, work units, cancellation latency, artifact sizes, and
+configured limits.
 
 Benchmark inputs include small-file-heavy and large-file solid archives,
 non-solid controls, random versus natural order, encrypted and unencrypted

@@ -516,3 +516,36 @@ no failure, and 43 MiB reported RSS. The runner reported missing sanitizer
 hooks and no coverage instrumentation on this stable host, so this remains a
 finite invariant/no-panic check; the configured nightly AddressSanitizer
 coverage-guided run remains authoritative.
+
+## 2026-09-21 Rust 1.98.1 hot-path gate
+
+The production changes are reachable through the existing `stream_formats`,
+`archive_formats`, `decoding`, and `volumes` targets. The ordinary
+property/prefix/corruption suites remain the primary exact assertions for `.Z`
+code-window boundaries, 7z member/folder CRC finalization, and path/volume
+reads. Benchmark fixtures were not promoted to trusted seeds merely because
+they were performance inputs.
+
+Cargo-fuzz 0.13.2 and `nightly-2026-09-01` completed 10,000 seedless,
+coverage-guided AddressSanitizer executions for every target with no crash,
+sanitizer finding, timeout, or retained crash artifact. After the measured
+LZMA hot-loop tuning, the affected `decoding` and `archive_formats` binaries
+were rebuilt and each completed another 10,000 executions; the table records
+those final runs for those two targets:
+
+| Target | Coverage counters | Feature counters | Retained corpus | RSS | Time |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `path_validation` | 123 | 260 | 81 / 1,178 bytes | 41 MiB | <1 s |
+| `header_envelope` | 131 | 212 | 14 / 175 bytes | 42 MiB | <1 s |
+| `next_header` | 581 | 892 | 98 / 632 bytes | 48 MiB | <1 s |
+| `validated_graph` | 728 | 1,047 | 23 / 94 bytes | 63 MiB | <1 s |
+| `decoding` | 6,586 | 13,871 | 557 / 3,179 bytes | 329 MiB | 16 s |
+| `volumes` | 1,284 | 2,020 | 55 / 736 bytes | 98 MiB | 1 s |
+| `stream_formats` | 875 | 1,257 | 72 / 730 bytes | 351 MiB | 2 s |
+| `archive_formats` | 4,694 | 10,456 | 568 / 1,850 bytes | 347 MiB | 1,049 s |
+
+These RSS values are fuzzer-process observations, not product memory bounds.
+The separately locked fuzz package also passed its all-binary compile, both
+deterministic generated-profile tests, and cargo-deny advisory, ban, license,
+and source checks. Unlike the older stable-host observations above, this is the
+configured nightly ASan smoke gate rather than a no-instrumentation fallback.

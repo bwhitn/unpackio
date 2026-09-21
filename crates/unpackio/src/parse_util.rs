@@ -5,6 +5,7 @@ use std::io;
 use crate::{CancellationToken, Error, LimitKind, Result, WorkBudget};
 
 pub(crate) const CONTROL_CHUNK_SIZE: usize = 4096;
+pub(crate) const IO_CHUNK_SIZE: usize = 8192;
 
 pub(crate) struct ParseControl<'control> {
     cancellation: &'control CancellationToken,

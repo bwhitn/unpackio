@@ -671,3 +671,20 @@ is intentionally deferred and cannot silently expand the admitted profile.
 Archive creation, modification, automatic filesystem extraction, downstream
 application integration, network volume fetching, and isolation from a hostile
 in-process Python or Rust caller are not offered.
+
+## 2026-09-21 performance-change threat review
+
+The Rust 1.98.1 performance work does not treat throughput as authority to
+relax hostile-input controls. The new 8 KiB I/O batch is only a delivery and
+file-read granularity: cancellation and work-budget accounting retain 4 KiB
+sub-checkpoints. The `.Z` pending-output buffer is fixed-size stack state, and
+its checked code-window reader cannot address beyond the validated group. The
+7z fast path transfers ownership only when the requested member is the entire
+decoded folder and only after member/folder integrity succeeds; solid or
+partial members remain exact bounded copies.
+
+Generated benchmark archives, `7zz`, `lz4`, `zstd`, Unix `compress`, sampling
+tools, and Python virtual environments remain development-only. None is a
+runtime fallback, parser, writer surface, network source, or trusted-input
+designation. Benchmark success does not change the supported-method table or
+the treatment of every archive byte and volume response as hostile.

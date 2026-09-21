@@ -15,7 +15,7 @@ use crypto::ZipPassword;
 
 use crate::{
     CancellationToken, Error, LimitKind, Limits, Result, WorkBudget,
-    parse_util::{CONTROL_CHUNK_SIZE, ParseControl, check_limit, try_reserve, usize_to_u64},
+    parse_util::{IO_CHUNK_SIZE, ParseControl, check_limit, try_reserve, usize_to_u64},
 };
 
 /// A ZIP compression method stored in an entry header.
@@ -517,11 +517,8 @@ impl ZipArchive {
                 .min(self.limits.max_total_output_bytes()),
             &mut control,
         )?;
-        for chunk in decoded.chunks(CONTROL_CHUNK_SIZE) {
-            control.checkpoint(usize_to_u64(
-                chunk.len(),
-                "ZIP output chunk length is not representable as u64",
-            )?)?;
+        for chunk in decoded.chunks(IO_CHUNK_SIZE) {
+            control.consume_bytes(chunk)?;
             writer.write_all(chunk).map_err(Error::Io)?;
         }
         usize_to_u64(
@@ -581,11 +578,8 @@ impl ZipArchive {
                 LimitKind::TotalOutputBytes,
             )?;
             sink.begin_entry(entry)?;
-            for chunk in decoded.chunks(CONTROL_CHUNK_SIZE) {
-                control.checkpoint(usize_to_u64(
-                    chunk.len(),
-                    "ZIP sink chunk length is not representable as u64",
-                )?)?;
+            for chunk in decoded.chunks(IO_CHUNK_SIZE) {
+                control.consume_bytes(chunk)?;
                 sink.write_entry(entry.index, chunk)?;
             }
             sink.finish_entry(entry.index)?;
@@ -643,9 +637,10 @@ fn read_path(
     let mut bytes = Vec::new();
     try_reserve(&mut bytes, capacity)?;
     let mut file = File::open(path).map_err(Error::Io)?;
-    let mut buffer = [0_u8; CONTROL_CHUNK_SIZE];
+    let mut buffer = [0_u8; IO_CHUNK_SIZE];
+    let mut control = ParseControl::new(cancellation, budget);
     loop {
-        cancellation.check()?;
+        control.checkpoint(0)?;
         let read = file.read(&mut buffer).map_err(Error::Io)?;
         if read == 0 {
             break;
@@ -653,10 +648,7 @@ fn read_path(
         let chunk = buffer
             .get(..read)
             .ok_or_else(|| zip_format("path read returned an invalid byte count"))?;
-        budget.charge(usize_to_u64(
-            chunk.len(),
-            "ZIP input chunk length is not representable as u64",
-        )?)?;
+        control.consume_bytes(chunk)?;
         let requested = bytes
             .len()
             .checked_add(chunk.len())

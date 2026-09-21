@@ -16,7 +16,7 @@ use std::{
 
 use crate::{
     CancellationToken, Error, LimitKind, Limits, Result, WorkBudget,
-    parse_util::{CONTROL_CHUNK_SIZE, ParseControl, check_limit, usize_to_u64},
+    parse_util::{CONTROL_CHUNK_SIZE, IO_CHUNK_SIZE, ParseControl, check_limit, usize_to_u64},
     volume::{PathVolumeProvider, read_single_volume},
 };
 
@@ -719,10 +719,9 @@ impl<'control, W: Write> ExtractionControl<'control, W> {
         self.limits
     }
 
-    pub(super) fn write_output(&mut self, bytes: &[u8]) -> Result<()> {
-        self.cancellation.check()?;
+    pub(super) fn checked_output_total(&self, additional: usize) -> Result<u64> {
         let additional = usize_to_u64(
-            bytes.len(),
+            additional,
             "stream output chunk length is not representable as u64",
         )?;
         let next = self
@@ -739,6 +738,12 @@ impl<'control, W: Write> ExtractionControl<'control, W> {
             self.limits.max_total_output_bytes(),
             LimitKind::TotalOutputBytes,
         )?;
+        Ok(next)
+    }
+
+    pub(super) fn write_output(&mut self, bytes: &[u8]) -> Result<()> {
+        self.cancellation.check()?;
+        let next = self.checked_output_total(bytes.len())?;
         self.writer.write_all(bytes).map_err(Error::Io)?;
         self.output_bytes = next;
         Ok(())
@@ -780,7 +785,7 @@ where
 {
     let start_output = control.output_bytes;
     let mut charged_input = 0_usize;
-    let mut buffer = [0_u8; CONTROL_CHUNK_SIZE];
+    let mut buffer = [0_u8; IO_CHUNK_SIZE];
     loop {
         control.checkpoint(0)?;
         let result = catch_unwind(AssertUnwindSafe(|| reader.read(&mut buffer)));
@@ -807,24 +812,37 @@ where
             .checked_sub(charged_input)
             .ok_or_else(|| stream_format_error(format, "decoder input accounting underflows"))?;
         charged_input = input_position;
-        let work = input_delta
-            .checked_add(read)
-            .and_then(|units| units.checked_add(1))
-            .ok_or_else(|| stream_format_error(format, "decoder work accounting overflows"))?;
-        control.checkpoint(usize_to_u64(
-            work,
-            "decoder work is not representable as u64",
-        )?)?;
         if read == 0 {
+            let work = input_delta
+                .checked_add(1)
+                .ok_or_else(|| stream_format_error(format, "decoder work accounting overflows"))?;
+            control.checkpoint(usize_to_u64(
+                work,
+                "decoder work is not representable as u64",
+            )?)?;
             break;
         }
         let output = buffer.get(..read).ok_or_else(|| {
             stream_format_error(format, "decoder returned an invalid output length")
         })?;
-        control.write_output(output)?;
+        for (index, chunk) in output.chunks(CONTROL_CHUNK_SIZE).enumerate() {
+            let mut work = chunk
+                .len()
+                .checked_add(1)
+                .ok_or_else(|| stream_format_error(format, "decoder work accounting overflows"))?;
+            if index == 0 {
+                work = work.checked_add(input_delta).ok_or_else(|| {
+                    stream_format_error(format, "decoder work accounting overflows")
+                })?;
+            }
+            control.checkpoint(usize_to_u64(
+                work,
+                "decoder work is not representable as u64",
+            )?)?;
+        }
         if let Some(expected) = expected {
             let frame_output = control
-                .output_bytes
+                .checked_output_total(output.len())?
                 .checked_sub(start_output)
                 .ok_or_else(|| stream_format_error(format, "frame output accounting underflows"))?;
             if frame_output > expected {
@@ -834,6 +852,7 @@ where
                 ));
             }
         }
+        control.write_output(output)?;
     }
     let actual = control
         .output_bytes
@@ -888,6 +907,74 @@ impl Write for FallibleVec {
     }
 
     fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        cell::Cell,
+        io::{self, Cursor, Write},
+    };
+
+    use super::{ExtractionControl, IO_CHUNK_SIZE, pump_reader};
+    use crate::{CancellationToken, Limits, Result, WorkBudget};
+
+    #[derive(Default)]
+    struct RecordingWriter {
+        bytes: usize,
+        writes: usize,
+        maximum_write: usize,
+    }
+
+    impl Write for RecordingWriter {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.bytes = self
+                .bytes
+                .checked_add(bytes.len())
+                .ok_or_else(|| io::Error::other("test byte count overflow"))?;
+            self.writes = self
+                .writes
+                .checked_add(1)
+                .ok_or_else(|| io::Error::other("test write count overflow"))?;
+            self.maximum_write = self.maximum_write.max(bytes.len());
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn reader_pump_batches_without_changing_control_work() -> Result<()> {
+        const OUTPUT_BYTES: usize = 20_000;
+        const OUTPUT_BYTES_U64: u64 = 20_000;
+
+        let mut reader = Cursor::new(vec![0_u8; OUTPUT_BYTES]);
+        let consumed = Cell::new(0_usize);
+        let cancellation = CancellationToken::new();
+        let mut budget = WorkBudget::unlimited();
+        let mut writer = RecordingWriter::default();
+        let mut control =
+            ExtractionControl::new(&mut writer, &cancellation, &mut budget, Limits::default());
+        pump_reader(
+            &mut reader,
+            &consumed,
+            Some(OUTPUT_BYTES_U64),
+            "test",
+            0,
+            &mut control,
+            |_| false,
+        )?;
+        let extraction = control.finish();
+
+        assert_eq!(extraction.output_bytes(), OUTPUT_BYTES_U64);
+        assert_eq!(writer.bytes, OUTPUT_BYTES);
+        assert_eq!(writer.writes, 3);
+        assert_eq!(writer.maximum_write, IO_CHUNK_SIZE);
+        assert_eq!(budget.consumed(), 20_006);
         Ok(())
     }
 }

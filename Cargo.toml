@@ -35,5 +35,10 @@ overflow-checks = true
 panic = "unwind"
 strip = "symbols"
 
+[profile.profiling]
+inherits = "release"
+debug = 1
+strip = "none"
+
 [profile.test]
 overflow-checks = true

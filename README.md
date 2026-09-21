@@ -158,8 +158,10 @@ explicit and caller-directed.
 
 ## Build
 
-The workspace uses Rust edition 2024 and has a minimum supported Rust version
-(MSRV) of **1.85**. `Cargo.lock` is committed.
+The workspace uses Rust edition 2024. Primary local, CI, release, and Python
+binding builds are pinned to **Rust 1.98.1** by `rust-toolchain.toml`; the
+separately tested minimum supported Rust version (MSRV) remains **1.85**.
+`Cargo.lock` is committed.
 
 ```text
 cargo test --workspace --all-features --locked

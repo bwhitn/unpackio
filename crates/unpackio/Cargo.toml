@@ -47,6 +47,10 @@ zeroize = { version = "=1.9.0", default-features = false, features = ["alloc"] }
 name = "natural_order_solid"
 harness = false
 
+[[bench]]
+name = "archive_lifecycle"
+harness = false
+
 [[test]]
 name = "phase2_model"
 required-features = ["unstable-internals"]

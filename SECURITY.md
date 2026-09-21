@@ -513,3 +513,26 @@ disabling either header CRC. Its temporary archives are deleted.
 The checksum-pinned CI invocation does not trust those archives: it runs the
 same production limits, CRC checks, corruption cases, and exact temporary-tree
 cleanup as the local opt-in harnesses.
+
+## Rust 1.98.1 measured-I/O hardening
+
+The 2026-09-21 optimization pass changes no trust boundary or configured
+limit. Public writer/callback and path-read transfers may now be aggregated to
+8 KiB, but `ParseControl::consume_bytes` still divides hostile-input and output
+accounting into the existing 4 KiB cancellation/work checkpoints. Existing
+Python regressions continue to enforce an 8 KiB maximum callback chunk.
+
+Unix `.Z` output is accumulated in one fixed 8 KiB stack buffer instead of
+issuing one writer call per decoded code. Dictionary sizes remain preflighted,
+code windows use checked ranges and shifts, output limits are checked before
+each delivered buffer, and work is charged for exactly the emitted byte count.
+No input-derived allocation or unchecked access was introduced.
+
+The high-level 7z byte-return path now verifies the member and folder CRCs
+before moving a complete single-member folder buffer to the caller. A bounded
+substream still receives one fallible exact-size copy after verification.
+Writer extraction reads directly from the retained decoded folder in bounded
+chunks while retaining the documented rule that a writer may observe bytes
+before trailing CRC finalization. Failure never returns a trusted owned byte
+result. The core remains `#![forbid(unsafe_code)]`; password storage,
+zeroization, path policy, typed errors, and integrity ordering are unchanged.

@@ -1121,6 +1121,7 @@ impl Models {
     }
 }
 
+#[inline(always)]
 fn model_index(offset: usize, coordinates: &[usize], dimensions: &[usize]) -> Result<usize> {
     if coordinates.len() != dimensions.len() {
         return Err(format_error(

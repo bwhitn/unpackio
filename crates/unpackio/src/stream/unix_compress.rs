@@ -17,7 +17,7 @@ use super::{
 };
 use crate::{
     Error, LimitKind, Limits, Result,
-    parse_util::{CONTROL_CHUNK_SIZE, check_limit, usize_to_u64},
+    parse_util::{CONTROL_CHUNK_SIZE, IO_CHUNK_SIZE, check_limit, usize_to_u64},
 };
 
 const HEADER_BYTES: usize = 3;
@@ -172,6 +172,8 @@ fn decode_lzw<W: Write>(
     let mut first_character = 0_u8;
     let mut reader = CodeReader::new(input);
     let mut force_refill = false;
+    let mut output = [0_u8; IO_CHUNK_SIZE];
+    let mut output_length = 0_usize;
 
     loop {
         control.checkpoint(1)?;
@@ -207,8 +209,12 @@ fn decode_lzw<W: Write>(
             let literal = u8::try_from(encoded_code).map_err(|_| {
                 stream_format_error("unix-compress", "literal code is not representable")
             })?;
-            control.checkpoint(1)?;
-            control.write_output(std::slice::from_ref(&literal))?;
+            buffer_output(
+                std::slice::from_ref(&literal),
+                &mut output,
+                &mut output_length,
+                control,
+            )?;
             first_character = literal;
             previous_code = Some(encoded_code);
             continue;
@@ -259,7 +265,7 @@ fn decode_lzw<W: Write>(
             stream_format_error("unix-compress", "expanded literal is not representable")
         })?;
         expansion.push(first_character);
-        write_reversed(&mut expansion, control)?;
+        write_reversed(&mut expansion, &mut output, &mut output_length, control)?;
 
         if next_code < maximum_codes {
             let index = usize::try_from(next_code).map_err(|_| {
@@ -281,7 +287,7 @@ fn decode_lzw<W: Write>(
         }
         previous_code = Some(encoded_code);
     }
-    Ok(())
+    flush_output(&output, &mut output_length, control)
 }
 
 fn maximum_code_for_width(width: u8, maximum_width: u8) -> Result<u32> {
@@ -311,25 +317,77 @@ fn fallible_filled_vec<T: Clone>(length: usize, value: T) -> Result<Vec<T>> {
 
 fn write_reversed<W: Write>(
     expansion: &mut Vec<u8>,
+    output: &mut [u8; IO_CHUNK_SIZE],
+    output_length: &mut usize,
     control: &mut ExtractionControl<'_, W>,
 ) -> Result<()> {
-    let mut buffer = [0_u8; CONTROL_CHUNK_SIZE];
-    while !expansion.is_empty() {
-        let count = expansion.len().min(buffer.len());
-        for destination in buffer.iter_mut().take(count) {
-            *destination = expansion.pop().ok_or_else(|| {
-                stream_format_error("unix-compress", "expansion stack ended unexpectedly")
-            })?;
+    expansion.reverse();
+    buffer_output(expansion, output, output_length, control)?;
+    expansion.clear();
+    Ok(())
+}
+
+fn buffer_output<W: Write>(
+    bytes: &[u8],
+    output: &mut [u8; IO_CHUNK_SIZE],
+    output_length: &mut usize,
+    control: &mut ExtractionControl<'_, W>,
+) -> Result<()> {
+    let mut position = 0_usize;
+    while position < bytes.len() {
+        let available = output.len().checked_sub(*output_length).ok_or_else(|| {
+            stream_format_error("unix-compress", "output buffer length is invalid")
+        })?;
+        let remaining = bytes.len().checked_sub(position).ok_or_else(|| {
+            stream_format_error("unix-compress", "output position exceeds its source")
+        })?;
+        let count = remaining.min(available).min(CONTROL_CHUNK_SIZE);
+        if count == 0 {
+            flush_output(output, output_length, control)?;
+            continue;
         }
+        let source_end = position
+            .checked_add(count)
+            .ok_or_else(|| stream_format_error("unix-compress", "output source range overflows"))?;
+        let destination_end = output_length.checked_add(count).ok_or_else(|| {
+            stream_format_error("unix-compress", "output destination range overflows")
+        })?;
+        control.checked_output_total(destination_end)?;
+        let source = bytes.get(position..source_end).ok_or_else(|| {
+            stream_format_error("unix-compress", "output source range is invalid")
+        })?;
+        output
+            .get_mut(*output_length..destination_end)
+            .ok_or_else(|| {
+                stream_format_error("unix-compress", "output destination range is invalid")
+            })?
+            .copy_from_slice(source);
         control.checkpoint(usize_to_u64(
             count,
             "Unix compress output chunk is not representable as u64",
         )?)?;
-        let output = buffer.get(..count).ok_or_else(|| {
-            stream_format_error("unix-compress", "output buffer range is invalid")
-        })?;
-        control.write_output(output)?;
+        *output_length = destination_end;
+        position = source_end;
+        if *output_length == output.len() {
+            flush_output(output, output_length, control)?;
+        }
     }
+    Ok(())
+}
+
+fn flush_output<W: Write>(
+    output: &[u8; IO_CHUNK_SIZE],
+    output_length: &mut usize,
+    control: &mut ExtractionControl<'_, W>,
+) -> Result<()> {
+    if *output_length == 0 {
+        return Ok(());
+    }
+    let bytes = output
+        .get(..*output_length)
+        .ok_or_else(|| stream_format_error("unix-compress", "output buffer range is invalid"))?;
+    control.write_output(bytes)?;
+    *output_length = 0;
     Ok(())
 }
 
@@ -394,27 +452,44 @@ impl<'input> CodeReader<'input> {
             .input
             .get(self.group_start..group_end)
             .ok_or_else(|| stream_format_error("unix-compress", "code group is unavailable"))?;
-        let mut value = 0_u32;
-        for output_bit in 0..width {
-            let source_bit = self.bit_offset.checked_add(output_bit).ok_or_else(|| {
-                stream_format_error("unix-compress", "source bit offset overflows")
+        let final_bit = self
+            .bit_offset
+            .checked_add(width)
+            .and_then(|end| end.checked_sub(1))
+            .ok_or_else(|| stream_format_error("unix-compress", "code bit range overflows"))?;
+        let first_byte = self
+            .bit_offset
+            .checked_div(8)
+            .ok_or_else(|| stream_format_error("unix-compress", "source byte division failed"))?;
+        let final_byte = final_bit
+            .checked_div(8)
+            .ok_or_else(|| stream_format_error("unix-compress", "source byte division failed"))?;
+        let encoded_end = final_byte
+            .checked_add(1)
+            .ok_or_else(|| stream_format_error("unix-compress", "encoded byte range overflows"))?;
+        let encoded = group
+            .get(first_byte..encoded_end)
+            .ok_or_else(|| stream_format_error("unix-compress", "encoded code is truncated"))?;
+        let mut window = 0_u32;
+        for (index, byte) in encoded.iter().copied().enumerate() {
+            let shift = index
+                .checked_mul(8)
+                .and_then(|bits| u32::try_from(bits).ok())
+                .ok_or_else(|| {
+                    stream_format_error("unix-compress", "encoded byte shift overflows")
+                })?;
+            window |= u32::from(byte).checked_shl(shift).ok_or_else(|| {
+                stream_format_error("unix-compress", "encoded code window overflows")
             })?;
-            let source_byte = source_bit.checked_div(8).ok_or_else(|| {
-                stream_format_error("unix-compress", "source byte division failed")
-            })?;
-            let bit_in_byte = source_bit % 8;
-            let byte = group
-                .get(source_byte)
-                .copied()
-                .ok_or_else(|| stream_format_error("unix-compress", "encoded code is truncated"))?;
-            let bit = u32::from((byte >> bit_in_byte) & 1);
-            let shift = u32::try_from(output_bit).map_err(|_| {
-                stream_format_error("unix-compress", "output bit is not representable")
-            })?;
-            value |= bit
-                .checked_shl(shift)
-                .ok_or_else(|| stream_format_error("unix-compress", "decoded code overflows"))?;
         }
+        let bit_in_byte = self.bit_offset % 8;
+        let width_shift = u32::try_from(width)
+            .map_err(|_| stream_format_error("unix-compress", "code width is not representable"))?;
+        let mask = 1_u32
+            .checked_shl(width_shift)
+            .and_then(|value| value.checked_sub(1))
+            .ok_or_else(|| stream_format_error("unix-compress", "code mask overflows"))?;
+        let value = (window >> bit_in_byte) & mask;
         self.bit_offset = self
             .bit_offset
             .checked_add(width)
@@ -428,11 +503,39 @@ impl<'input> CodeReader<'input> {
 
 #[cfg(test)]
 mod tests {
+    use std::io::{self, Write};
+
     use super::super::{CompressedStream, StreamFormat, StreamInfoKind};
     use super::{
         BLOCK_MODE_FLAG, CLEAR_CODE, FIRST_BLOCK_CODE, INITIAL_CODE_BITS, maximum_code_for_width,
     };
-    use crate::{CancellationToken, Error, ErrorKind, LimitKind, Limits, Result, WorkBudget};
+    use crate::{
+        CancellationToken, Error, ErrorKind, LimitKind, Limits, Result, WorkBudget,
+        parse_util::IO_CHUNK_SIZE,
+    };
+
+    #[derive(Default)]
+    struct RecordingWriter {
+        bytes: Vec<u8>,
+        writes: usize,
+        maximum_write: usize,
+    }
+
+    impl Write for RecordingWriter {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.writes = self
+                .writes
+                .checked_add(1)
+                .ok_or_else(|| io::Error::other("test write count overflows"))?;
+            self.maximum_write = self.maximum_write.max(bytes.len());
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
 
     // Generated by macOS 26.5.1 /usr/bin/compress (SHA-256
     // bf8cb1cefedfbf86fbb38dd42278fcad8fe020f3b8989897f1a0b2187aabdda5)
@@ -672,6 +775,37 @@ mod tests {
             stream.decompress(&cancellation, &mut extraction_budget)?,
             expected
         );
+        Ok(())
+    }
+
+    #[test]
+    fn generated_literals_are_delivered_in_bounded_io_batches() -> Result<()> {
+        let mut codes = Vec::new();
+        let mut expected = Vec::new();
+        for index in 0_u32..20_000 {
+            let literal = u8::try_from(index % 251).map_err(|_| {
+                super::stream_format_error("unix-compress", "test literal is not representable")
+            })?;
+            codes.push(u16::from(literal));
+            expected.push(literal);
+        }
+        let bytes = literal_code_stream(&codes, 16, false)?;
+        let cancellation = CancellationToken::new();
+        let mut open_budget = WorkBudget::unlimited();
+        let stream = CompressedStream::open_bytes_as(
+            bytes,
+            StreamFormat::UnixCompress,
+            Limits::default(),
+            &cancellation,
+            &mut open_budget,
+        )?;
+        let mut writer = RecordingWriter::default();
+        let mut extraction_budget = WorkBudget::unlimited();
+        let extraction = stream.extract_to(&mut writer, &cancellation, &mut extraction_budget)?;
+        assert_eq!(writer.bytes, expected);
+        assert_eq!(extraction.output_bytes(), 20_000);
+        assert_eq!(writer.writes, 3);
+        assert_eq!(writer.maximum_write, IO_CHUNK_SIZE);
         Ok(())
     }
 

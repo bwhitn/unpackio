@@ -12,7 +12,7 @@ use std::{
 use crate::{
     CancellationToken, Error, LimitKind, Limits, Result, WorkBudget,
     parse_util::{
-        CONTROL_CHUNK_SIZE, ParseControl, check_limit, checked_range, try_reserve, usize_to_u64,
+        IO_CHUNK_SIZE, ParseControl, check_limit, checked_range, try_reserve, usize_to_u64,
     },
     rpm::decode::{PayloadCompression, decode_container_payload},
 };
@@ -548,11 +548,8 @@ impl DebArchive {
             total = checked_output_total(total, entry.size, self.limits)?;
             let data = self.entry_data(entry)?;
             sink.begin_entry(entry)?;
-            for chunk in data.chunks(CONTROL_CHUNK_SIZE) {
-                control.checkpoint(usize_to_u64(
-                    chunk.len(),
-                    "Debian sink chunk length is not representable",
-                )?)?;
+            for chunk in data.chunks(IO_CHUNK_SIZE) {
+                control.consume_bytes(chunk)?;
                 sink.write_entry(entry.index, chunk)?;
             }
             sink.finish_entry(entry.index)?;
@@ -751,17 +748,13 @@ fn copy_to_writer(
     budget: &mut WorkBudget,
     detail: &'static str,
 ) -> Result<()> {
-    for chunk in bytes.chunks(CONTROL_CHUNK_SIZE) {
-        cancellation.check()?;
-        budget.charge(usize_to_u64(
-            chunk.len(),
-            "Debian output chunk length is not representable",
-        )?)?;
+    let mut control = ParseControl::new(cancellation, budget);
+    for chunk in bytes.chunks(IO_CHUNK_SIZE) {
+        control.consume_bytes(chunk)?;
         writer.write_all(chunk).map_err(Error::Io)?;
     }
     if bytes.is_empty() {
-        cancellation.check()?;
-        budget.charge(0)?;
+        control.consume_bytes(bytes)?;
     }
     let _ = detail;
     Ok(())
@@ -805,9 +798,10 @@ fn read_path(
     let mut bytes = Vec::new();
     try_reserve(&mut bytes, capacity)?;
     let mut file = File::open(path).map_err(Error::Io)?;
-    let mut buffer = [0_u8; CONTROL_CHUNK_SIZE];
+    let mut buffer = [0_u8; IO_CHUNK_SIZE];
+    let mut control = ParseControl::new(cancellation, budget);
     loop {
-        cancellation.check()?;
+        control.checkpoint(0)?;
         let read = file.read(&mut buffer).map_err(Error::Io)?;
         if read == 0 {
             break;
@@ -815,10 +809,7 @@ fn read_path(
         let chunk = buffer
             .get(..read)
             .ok_or_else(|| deb_format("path read returned an invalid byte count"))?;
-        budget.charge(usize_to_u64(
-            chunk.len(),
-            "Debian input chunk length is not representable",
-        )?)?;
+        control.consume_bytes(chunk)?;
         let requested = bytes
             .len()
             .checked_add(chunk.len())

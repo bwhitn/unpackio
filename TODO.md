@@ -14,6 +14,26 @@ provenance, fixture, and validation requirements in [AGENTS.md](AGENTS.md).
 
 ## Current
 
+- [x] Adopt Rust 1.98.1 and optimize measured archive/stream hot paths — **Complete (2026-09-21)**:
+  - [x] Capture release-mode baselines across generated 7z, ZIP/ZIPX, RPM, CPIO, Debian, ARJ, LZ4, Zstandard, and
+    `.Z` fixtures for inventory, byte-return, writer, callback, batch, and Python paths. Record wall time, CPU, peak
+    memory, allocations/copies, decompressed/written bytes, disk I/O, cancellation latency, and wheel/native size.
+  - [x] Pin primary local, CI, release, and Python-binding builds to Rust 1.98.1 while retaining and testing
+    `rust-version = "1.85"` as the MSRV unless compatibility is deliberately changed.
+  - [x] Profile container/header traversal, coder graphs, solid state, every admitted decoder, encryption/KDF, CRC and
+    hash work, volume reads, sink callbacks, batch accounting, and PyO3 projection. Evaluate current UTF-16 conversion
+    APIs only where format semantics match, then implement measured buffer reuse, allocation, copy, batching, and I/O
+    improvements without optimizing one method at the expense of the complete archive lifecycle.
+  - [x] Preserve safe Rust, checked parsing, configured caller policy, cancellation, integrity-before-success,
+    password zeroization, path policy, typed partial/unsupported behavior, raw metadata, and public Python contracts.
+  - [x] Run workspace formatting/Clippy/tests, cargo-deny, MSRV, property/fuzz/differential/oracle, ABI3 wheel/sdist,
+    installed-package, and benchmark gates. Record reproducible before/after evidence and publish an immutable
+    revision before ALES updates its pin.
+
+  The immutable completion revision is the commit containing this record.
+  `BENCHMARKS.md`, `TESTING.md`, and `FUZZING.md` record the reproducible
+  baseline, profiles, complete gate results, and artifact/report hashes.
+
 - [x] Add bounded ZIP XZ method 95 extraction:
   - [x] Pin the exact method registration and payload framing from an
     authoritative ZIP/WinZip specification, including stream termination,

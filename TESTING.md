@@ -1,5 +1,18 @@
 # Test and platform matrix
 
+Primary checks use the repository-pinned Rust 1.98.1 toolchain. Rust 1.85.0 is
+run separately as the compatibility floor; passing on the primary compiler
+does not replace the MSRV jobs. If a non-rustup `cargo` precedes rustup on
+`PATH`, prepend the selected toolchain directory so Cargo also spawns the
+matching compiler:
+
+```text
+PATH="$(dirname "$(rustup which --toolchain 1.98.1 rustc)"):$PATH" cargo ...
+```
+
+`rustup run 1.98.1 cargo` alone is insufficient on such a host because Cargo
+resolves its child `rustc` from `PATH`.
+
 The required local phase gates are:
 
 ```text
@@ -152,12 +165,19 @@ volume, metadata, and Phase 6 stable-API tests run in the same linked job.
 ## Miri
 
 Miri applies to the safe in-tree parser/model/graph/decoder logic. The CI job
-uses nightly and runs the library tests without the unstable inspection API:
+uses nightly and runs a bounded, explicitly named smoke set without the
+unstable inspection API. This keeps the gate within its 30-minute budget while
+covering integer parsing, cancellation, CRC state, filter state, graph
+execution, header parsing, path policy, stream pumping, volume limits, and a
+ZIP lifecycle:
 
 ```text
 rustup toolchain install nightly --component miri
 cargo +nightly miri setup
-cargo +nightly miri test -p unpackio --lib --no-default-features
+for test_name in <the bounded list in .github/workflows/ci.yml>; do
+  cargo +nightly miri test --locked -p unpackio --lib \
+    --no-default-features "$test_name" -- --exact
+done
 ```
 
 The core has `#![forbid(unsafe_code)]`; Miri remains useful for dependency-free
@@ -453,6 +473,13 @@ The benchmark verifies output before timing and reports deterministic work
 units plus retained archive accounting. The 10,000-substream unit regression
 is the non-timing proof that natural-order member/substream traversal is
 linear; timing is not used as a correctness assertion.
+
+The broader generated lifecycle matrix is documented in
+`benchmarks/README.md`. It measures every concrete archive/stream family,
+advanced ZIP decoders, encrypted 7z, byte/writer/callback/batch paths, and an
+installed-wheel Python matrix in isolated release processes. Reports include
+wall/CPU/RSS/I/O, output/callback/copy proxies, cancellation response, and
+wheel/native size. The final before/after evidence is in `BENCHMARKS.md`.
 
 ## Python binding and wheels
 
@@ -934,3 +961,65 @@ all-workspace/all-feature suite (255 non-ignored Rust tests and three doctests;
 corpus data, and documentation only; no production parser, decoder, dependency,
 unsafe boundary, resource policy, or fuzz-reachable path changed, so no new
 Miri, property, sanitizer-fuzz, binding-wheel, or benchmark campaign applies.
+
+### 2026-09-21 Rust 1.98.1 archive-lifecycle optimization gate
+
+The completion tree passed the repository-pinned Rust 1.98.1 formatting,
+warning-denied workspace/all-target/all-feature Clippy, complete
+workspace/all-feature tests, no-default-feature check, warning-denied rustdoc,
+and three doctests. Root, Python-binding, and fuzz-package cargo-deny checks all
+passed advisories, bans, licenses, and sources. The separately locked Python
+crate also passed formatting, warning-denied all-target/all-feature Clippy, its
+two Rust tests, and its all-feature compile. Rust 1.85.0 passed the complete
+core workspace test suite and both the core and binding all-target/all-feature
+compile contracts. Rust 1.98.1 also compiled the complete workspace for
+`i686-unknown-linux-gnu`; linked 32-bit execution remains the Linux CI job's
+platform gate.
+
+The release-only PPMd allocator-pressure test passed. Exact stock `7zz` 26.02
+then passed the six generated core/property tests, both Phase 5 generated
+tests, the generated symlink test, three library interoperability tests, and
+the structured capability probe. Together those generated archives exercised
+every stock-authorable supported 7z coder/filter, encrypted and solid layouts,
+split volumes, corruption, truncation, resource limits, cancellation, and
+expected typed unsupported capability results. No oracle executable or output
+became a runtime dependency or committed fixture.
+
+On `nightly-2026-09-01`, all 12 bounded Miri smoke tests passed, including the
+LZMA2 EOS and new stream-pump batching/control-accounting regressions. An
+exploratory full library Miri run produced no finding through the archive,
+bounds, CPIO, and
+earlier Debian tests but was stopped at a CPU-heavy Debian matrix rather than
+misreported as a completed gate; CI and the recorded result use the explicit
+bounded set. Cargo-fuzz 0.13.2 completed 10,000 AddressSanitizer and
+coverage-guided executions for each of the eight targets with no crash,
+sanitizer finding, timeout, or artifact. `FUZZING.md` records the per-target
+coverage, feature, corpus, RSS, and duration observations. The fuzz package's
+two deterministic profile/mutation tests passed separately.
+
+Pinned maturin 1.15.0 produced the direct macOS x86-64 CPython 3.9 ABI3 wheel:
+1,075,348 bytes, SHA-256
+`d8de208abb97a59ffe4acbf2a541ca57b5e4e4c07cacc7ec76c339a080e252b1`.
+It installed into an isolated CPython 3.12.10 environment and passed all 28
+binding tests. The independently built 2,052,078-byte source distribution has
+SHA-256
+`940754358905c05dbd47b5515422c328894744b37beaa8e3d3897057cec2923f`;
+its 284 entries contain no nested target, distribution, wheel, bytecode, or
+`__pycache__` artifact. A no-build-isolation PEP 517 rebuild using the same
+pinned maturin produced a separately hashed 1,075,626-byte wheel
+(`40c60cab2b7d1bd3dc485384ae14ac0a4de913e17fb39168787dce59989938f7`).
+That wheel contains 21 entries, no runtime dependency or console entry point,
+and also passed all 28 tests after installation in a separate clean
+environment.
+
+The reproducible release benchmark gate generated 41 hash-pinned fixtures and
+ran 111 native plus 89 installed-wheel operation rows, with five isolated
+process samples per row. Every completed comparison retained exact decoded
+bytes, work accounting, and allocation counts; only deliberately in-flight
+cancellation work varies with its trigger schedule. The runners measured
+wall/CPU time, peak RSS, block I/O, writes, cancellation latency, and
+native/wheel size. The full
+method matrix, report hashes, selected before/after values, profiler findings,
+and deliberately rejected speculative changes are recorded in
+`BENCHMARKS.md`. The generator was rerun safely against its existing output and
+revalidated its manifest rather than silently replacing comparison inputs.

@@ -35,6 +35,7 @@ struct Probability(u16);
 impl Probability {
     const INITIAL: Self = Self(PROB_INITIAL);
 
+    #[inline(always)]
     fn decode(
         &mut self,
         range: &mut RangeDecoder<'_>,
@@ -175,6 +176,7 @@ impl ProbabilityTree {
         self.probabilities.fill(Probability::INITIAL);
     }
 
+    #[inline(always)]
     fn decode(
         &mut self,
         range: &mut RangeDecoder<'_>,
@@ -203,6 +205,7 @@ impl ProbabilityTree {
         u32::try_from(value).map_err(|_| format_error("LZMA tree value is not representable"))
     }
 
+    #[inline(always)]
     fn decode_reverse(
         &mut self,
         range: &mut RangeDecoder<'_>,
@@ -266,6 +269,7 @@ impl LengthDecoder {
         self.high.reset();
     }
 
+    #[inline(always)]
     fn decode(
         &mut self,
         range: &mut RangeDecoder<'_>,
@@ -418,7 +422,8 @@ impl DistanceDecoder {
 struct LiteralDecoder {
     probabilities: Vec<Probability>,
     literal_context_bits: u32,
-    literal_position_bits: u32,
+    literal_position_mask: u64,
+    previous_byte_shift: u32,
 }
 
 impl LiteralDecoder {
@@ -435,13 +440,21 @@ impl LiteralDecoder {
         let count = contexts
             .checked_mul(0x300)
             .ok_or_else(|| format_error("LZMA literal probability count overflows"))?;
+        let literal_position_mask = 1_u64
+            .checked_shl(literal_position_bits)
+            .and_then(|value| value.checked_sub(1))
+            .ok_or_else(|| format_error("LZMA literal position mask overflows"))?;
+        let previous_byte_shift = 8_u32
+            .checked_sub(literal_context_bits)
+            .ok_or_else(|| format_error("LZMA literal context width exceeds one byte"))?;
         let mut probabilities = Vec::new();
         try_reserve(&mut probabilities, count)?;
         probabilities.resize(count, Probability::INITIAL);
         Ok(Self {
             probabilities,
             literal_context_bits,
-            literal_position_bits,
+            literal_position_mask,
+            previous_byte_shift,
         })
     }
 
@@ -449,6 +462,7 @@ impl LiteralDecoder {
         self.probabilities.fill(Probability::INITIAL);
     }
 
+    #[inline(always)]
     fn decode(
         &mut self,
         range: &mut RangeDecoder<'_>,
@@ -458,15 +472,10 @@ impl LiteralDecoder {
         position: u64,
         control: &mut ParseControl<'_>,
     ) -> Result<u8> {
-        let position_mask = 1_u64
-            .checked_shl(self.literal_position_bits)
-            .and_then(|value| value.checked_sub(1))
-            .ok_or_else(|| format_error("LZMA literal position mask overflows"))?;
-        let position_part = (position & position_mask)
+        let position_part = (position & self.literal_position_mask)
             .checked_shl(self.literal_context_bits)
             .ok_or_else(|| format_error("LZMA literal position state overflows"))?;
-        let previous_part =
-            u64::from(previous_byte) >> (8_u32.saturating_sub(self.literal_context_bits));
+        let previous_part = u64::from(previous_byte) >> self.previous_byte_shift;
         let literal_state = position_part | previous_part;
         let base = usize::try_from(literal_state)
             .map_err(|_| format_error("LZMA literal state is not representable"))?

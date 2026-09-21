@@ -9,7 +9,7 @@ use std::{
 
 use crate::{
     Error, LimitKind, Limits, Result,
-    parse_util::{CONTROL_CHUNK_SIZE, ParseControl, check_limit, format_error, try_reserve},
+    parse_util::{IO_CHUNK_SIZE, ParseControl, check_limit, format_error, try_reserve},
 };
 
 /// A seekable archive volume with a discoverable byte length.
@@ -251,7 +251,7 @@ fn append_volume(
     volume.seek(SeekFrom::Start(0)).map_err(Error::Io)?;
 
     let mut remaining = length;
-    let mut buffer = [0_u8; CONTROL_CHUNK_SIZE];
+    let mut buffer = [0_u8; IO_CHUNK_SIZE];
     while remaining != 0 {
         control.checkpoint(0)?;
         let maximum = remaining.min(
@@ -272,15 +272,14 @@ fn append_volume(
         }
         let read_u64 = u64::try_from(read)
             .map_err(|_| format_error("volume read length is not representable as u64"))?;
-        control.checkpoint(read_u64)?;
+        let read_bytes = target
+            .get(..read)
+            .ok_or_else(|| format_error("volume read result exceeds its buffer"))?;
+        control.consume_bytes(read_bytes)?;
         remaining = remaining
             .checked_sub(read_u64)
             .ok_or_else(|| format_error("volume read exceeded the declared length"))?;
-        output.extend_from_slice(
-            target
-                .get(..read)
-                .ok_or_else(|| format_error("volume read result exceeds its buffer"))?,
-        );
+        output.extend_from_slice(read_bytes);
     }
     Ok(())
 }

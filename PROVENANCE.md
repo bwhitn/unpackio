@@ -1201,3 +1201,24 @@ The embedded raw LZMA EOS regression is the deterministic output of XZ Utils
 5.8.3 for the synthetic three-byte input `abc` using raw LZMA1 with a 4 KiB
 dictionary, lc=3, lp=0, and pb=2. It is test data only; no XZ source was copied
 for that vector, and it contains no third-party corpus content.
+
+## 2026-09-21 measured hot-path provenance
+
+The I/O batching, 7z ownership transfer, lifecycle benchmark harness,
+byte-window rewrite of the existing Unix `.Z` code reader, and LZMA hot-loop
+layout tuning are new project work licensed under MIT. They import no new
+algorithm or third-party source. The LZMA change retains the already recorded
+BSD-3-Clause algorithm/state adaptation, explicitly inlines only measured
+probability/tree/literal/length helpers, and precomputes two validated literal
+context invariants; it does not change range state, dictionary semantics,
+checked access, work accounting, or termination. The `.Z` format behavior
+remains the already recorded NetBSD `usr.bin/compress/zopen.c` revision and
+BSD-3-Clause notice; only the safe Rust execution strategy changed.
+
+Rust 1.98's new endian-byte UTF-16 conversion APIs were evaluated for 7z/PyO3
+metadata projection. They accept byte slices, while the validated model must
+retain exact native `u16` code units (including unpaired surrogates) for raw
+metadata and path policy. Using them would require a second byte view/copy and
+would not replace `String::from_utf16_lossy` without changing semantics, so no
+UTF conversion change was admitted. This is an evaluated non-change, not a
+new support or provenance claim.

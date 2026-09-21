@@ -31,6 +31,7 @@ const fn make_crc32_table() -> [u32; 256] {
 const CRC32_TABLE: [u32; 256] = make_crc32_table();
 
 /// Incremental CRC-32/ISO-HDLC state used by checked archive reads.
+#[derive(Clone, Copy)]
 pub(crate) struct Crc32 {
     state: u32,
 }

@@ -63,6 +63,9 @@ Do not configure a password or API-token secret for this workflow.
 
 ## Release procedure
 
+Release metadata and all wheel builds use Rust 1.98.1. The ordinary workflows
+also run Rust 1.85.0 as the declared MSRV; both toolchain gates must be green.
+
 1. Update all package versions and version assertions together. The Rust
    workspace, binding crate, Python project, and `unpackio.__version__` must
    agree.

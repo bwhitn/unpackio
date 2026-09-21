@@ -505,3 +505,13 @@ That local binary did not decode the bundled private method IDs for Brotli,
 LZ4, or Zstd, so it cannot be the sole oracle for those fixtures without a
 separately reviewed test plugin. This is an oracle limitation, not a Rust
 compatibility result.
+
+## Rust 1.98.1 optimization compatibility note
+
+The primary build compiler is now Rust 1.98.1; Rust 1.85 remains the tested
+MSRV and both crate manifests retain `rust-version = "1.85"`. No archive,
+stream, compression-method, encryption, metadata, or typed-error support row
+changes in this pass. Rust and installed-wheel byte/writer/callback/batch APIs
+return the same bytes and verification results. Callback chunks remain bounded
+to at most 8 KiB, raw 7z UTF-16 metadata and path classification are unchanged,
+and method 94 remains listable but typed unsupported.
