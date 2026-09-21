@@ -32,7 +32,9 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - run: cargo check -p unpackio --no-default-features --locked
-      - run: cargo test --workspace --all-targets --all-features --locked
+      - run: cargo test --workspace --all-features --locked
+      - name: Compile benchmarks without executing argument-requiring targets
+        run: cargo build --workspace --benches --all-features --locked
       - run: cargo test --workspace --doc --all-features --locked
       - run: cargo doc --workspace --no-deps --all-features --locked
         env:
@@ -49,7 +51,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
         with:
           toolchain: "1.98.1"
-      - run: cargo test --workspace --all-targets --all-features --locked
+      - run: cargo test --workspace --all-features --locked
+      - name: Compile benchmarks without executing argument-requiring targets
+        run: cargo build --workspace --benches --all-features --locked
 
   windows-7zip-capability:
     runs-on: windows-latest
@@ -190,10 +194,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
         with:
+          toolchain: "nightly-2026-09-01"
           components: miri
-      - run: cargo miri setup
+      - run: cargo +nightly-2026-09-01 miri setup
       - name: Run bounded Miri smoke coverage
         shell: bash
         run: |
@@ -212,21 +217,23 @@ jobs:
             volume::tests::aggregate_input_limit_precedes_volume_copy \
             zip::tests::lists_and_extracts_stored_deflate_duplicates_cp437_and_sfx
           do
-            cargo miri test --locked -p unpackio --lib --no-default-features "$test_name" -- --exact
+            cargo +nightly-2026-09-01 miri test --locked -p unpackio --lib --no-default-features "$test_name" -- --exact
           done
 
   fuzz-smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo install cargo-fuzz --locked
-      - run: cargo test --manifest-path fuzz/Cargo.toml --locked
-      - run: cargo fuzz run path_validation -- -runs=10000
-      - run: cargo fuzz run header_envelope -- -runs=10000
-      - run: cargo fuzz run next_header -- -runs=10000
-      - run: cargo fuzz run validated_graph -- -runs=10000
-      - run: cargo fuzz run decoding -- -runs=10000
-      - run: cargo fuzz run volumes -- -runs=10000
-      - run: cargo fuzz run stream_formats -- -runs=10000
-      - run: cargo fuzz run archive_formats -- -runs=10000
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
+        with:
+          toolchain: "nightly-2026-09-01"
+      - run: cargo +nightly-2026-09-01 install cargo-fuzz --version 0.13.2 --locked
+      - run: cargo +nightly-2026-09-01 test --manifest-path fuzz/Cargo.toml --locked
+      - run: cargo +nightly-2026-09-01 fuzz run path_validation -- -runs=10000
+      - run: cargo +nightly-2026-09-01 fuzz run header_envelope -- -runs=10000
+      - run: cargo +nightly-2026-09-01 fuzz run next_header -- -runs=10000
+      - run: cargo +nightly-2026-09-01 fuzz run validated_graph -- -runs=10000
+      - run: cargo +nightly-2026-09-01 fuzz run decoding -- -runs=10000
+      - run: cargo +nightly-2026-09-01 fuzz run volumes -- -runs=10000
+      - run: cargo +nightly-2026-09-01 fuzz run stream_formats -- -runs=10000
+      - run: cargo +nightly-2026-09-01 fuzz run archive_formats -- -runs=10000

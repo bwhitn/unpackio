@@ -54,6 +54,10 @@ cargo test --workspace --doc --all-features --locked
 GitHub Actions runs all targets/features on Linux, macOS, and Windows and runs
 Rust 1.85 separately as the MSRV. Tests use only caller-selected temporary
 paths and make no automatic archive-name-based extraction decisions.
+The platform jobs run the complete ordinary workspace suite and separately
+build every benchmark target. They do not execute `harness = false` lifecycle
+benchmarks as tests because those programs require explicit fixture and
+operation arguments.
 
 The ordinary core suite includes generated ZIP, RPM, CPIO, Debian, and ARJ
 coverage. ZIP tests
@@ -172,10 +176,10 @@ execution, header parsing, path policy, stream pumping, volume limits, and a
 ZIP lifecycle:
 
 ```text
-rustup toolchain install nightly --component miri
-cargo +nightly miri setup
+rustup toolchain install nightly-2026-09-01 --component miri
+cargo +nightly-2026-09-01 miri setup
 for test_name in <the bounded list in .github/workflows/ci.yml>; do
-  cargo +nightly miri test --locked -p unpackio --lib \
+  cargo +nightly-2026-09-01 miri test --locked -p unpackio --lib \
     --no-default-features "$test_name" -- --exact
 done
 ```
@@ -1023,3 +1027,34 @@ method matrix, report hashes, selected before/after values, profiler findings,
 and deliberately rejected speculative changes are recorded in
 `BENCHMARKS.md`. The generator was rerun safely against its existing output and
 revalidated its manifest rather than silently replacing comparison inputs.
+
+### 2026-09-21 Rust workflow correction gate
+
+The failure from Actions run `35598351665` was reproduced locally: selecting
+`--all-targets` caused Cargo to execute the `harness = false`
+`archive_lifecycle` benchmark without its required fixture arguments. The
+quality and three-platform jobs now run the repository-required complete
+ordinary workspace suite and separately use `cargo build --workspace
+--benches --all-features --locked`. This retains platform-specific benchmark
+compilation without treating an argument-driven benchmark program as a test.
+The workflow YAML parses successfully.
+
+With the exact Rust 1.98.1 toolchain, formatting, warning-denied
+workspace/all-target/all-feature Clippy, the no-default-feature check, 257
+non-ignored Rust tests, 28 intentional ignores, three doctests, the separate
+benchmark build, and warning-denied rustdoc passed. Rust 1.85.0 passed the
+all-target compile and complete ordinary suite, and Rust 1.98.1 passed the
+full i686 all-target compile. The separately locked Python binding passed
+formatting, warning-denied all-target/all-feature Clippy, both Rust tests, and
+its all-feature check. Root, fuzz, and Python-binding cargo-deny graphs each
+reported advisories, bans, licenses, and sources clean.
+
+Every Miri and cargo-fuzz command now selects the already tested
+`nightly-2026-09-01` explicitly even though the repository override selects
+stable 1.98.1. The 12 bounded Miri tests, both deterministic fuzz-package
+tests, and all eight 10,000-execution sanitizer fuzz runs passed locally.
+Hosted Ubuntu/macOS/Windows execution, linked i686 tests, exact-oracle jobs,
+and the immutable completion revision remain pending the documented Actions
+capacity reset; no workflow was dispatched from this follow-up. These changes
+do not alter runtime source, dependencies, or benchmarked paths, so no new
+parity or performance campaign applies.

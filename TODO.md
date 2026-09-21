@@ -14,7 +14,8 @@ provenance, fixture, and validation requirements in [AGENTS.md](AGENTS.md).
 
 ## Current
 
-- [x] Adopt Rust 1.98.1 and optimize measured archive/stream hot paths — **Complete (2026-09-21)**:
+- [ ] Adopt Rust 1.98.1 and optimize measured archive/stream hot paths — **Source/performance work is complete;
+  executed Rust CI failures and downstream release remain**:
   - [x] Capture release-mode baselines across generated 7z, ZIP/ZIPX, RPM, CPIO, Debian, ARJ, LZ4, Zstandard, and
     `.Z` fixtures for inventory, byte-return, writer, callback, batch, and Python paths. Record wall time, CPU, peak
     memory, allocations/copies, decompressed/written bytes, disk I/O, cancellation latency, and wheel/native size.
@@ -26,13 +27,32 @@ provenance, fixture, and validation requirements in [AGENTS.md](AGENTS.md).
     improvements without optimizing one method at the expense of the complete archive lifecycle.
   - [x] Preserve safe Rust, checked parsing, configured caller policy, cancellation, integrity-before-success,
     password zeroization, path policy, typed partial/unsupported behavior, raw metadata, and public Python contracts.
-  - [x] Run workspace formatting/Clippy/tests, cargo-deny, MSRV, property/fuzz/differential/oracle, ABI3 wheel/sdist,
-    installed-package, and benchmark gates. Record reproducible before/after evidence and publish an immutable
-    revision before ALES updates its pin.
+  - [ ] Close the full workspace, fuzz/Miri, ABI3 artifact, and downstream release gates:
+    - [x] Record locally passing formatting/Clippy/tests, cargo-deny, MSRV, property/fuzz/differential/oracle,
+      installed-package, and controlled benchmark evidence in `BENCHMARKS.md`, `TESTING.md`, and `FUZZING.md`.
+    - [x] Push performance candidate `c24d20c4eff723bae162579abbb0096afaeab929` and complete the six-platform ABI3
+      wheel build plus Python 3.12/3.13/3.14 installed-wheel smoke matrix in Actions run `35598351623`.
+    - [x] Correct the failure exposed by Actions run `35598351665`: the quality and platform jobs now use the
+      repository-required workspace test command without benchmark execution and separately build every benchmark
+      target on Ubuntu, macOS, and Windows. The complete ordinary suite, doctests, and non-executing benchmark build
+      pass locally with Rust 1.98.1.
+    - [x] Make fuzz and Miri commands explicitly use a tested pinned nightly toolchain despite the repository's
+      `rust-toolchain.toml` selecting stable 1.98.1. The failed fuzz job invoked stable and rejected `-Zsanitizer`; the
+      failed Miri job asked stable 1.98.1 for an unavailable component. Every command now selects
+      `nightly-2026-09-01` explicitly; the 12-test Miri matrix, two fuzz-package invariant tests, and all eight
+      10,000-execution cargo-fuzz targets pass locally with cargo-fuzz 0.13.2.
+    - [ ] Rerun the complete Rust workflow and require quality, all three platform jobs, Miri, fuzz smoke, MSRV,
+      32-bit, cargo-deny, documentation, and applicable exact-oracle jobs to pass on one final commit. If a fix changes
+      runtime source or dependencies, rerun the affected parity and controlled benchmark evidence. GitHub Actions
+      capacity is currently exhausted: implement and validate the workflow corrections locally, but do not dispatch
+      or rerun the hosted workflow until the owner confirms the allowance has reset.
+    - [ ] Designate the first fully passing successor as the immutable completion revision, then update ALES's exact
+      pin from `36ab720c973c941987b83b10f414ab00bfa5b6aa` and pass archive/stream adapters, routing, output/ObjectRules,
+      image, SBOM/license, runtime-pruning, and authorized-corpus performance acceptance.
 
-  The immutable completion revision is the commit containing this record.
-  `BENCHMARKS.md`, `TESTING.md`, and `FUZZING.md` record the reproducible
-  baseline, profiles, complete gate results, and artifact/report hashes.
+  Revision `c24d20c4eff723bae162579abbb0096afaeab929` is the measured performance candidate, not the final completion
+  revision while the executed CI failures above remain. `BENCHMARKS.md`, `TESTING.md`, and `FUZZING.md` record the
+  reproducible baseline, profiles, local gate results, and artifact/report hashes.
 
 - [x] Add bounded ZIP XZ method 95 extraction:
   - [x] Pin the exact method registration and payload framing from an

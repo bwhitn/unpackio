@@ -185,14 +185,14 @@ license exception.
 Run a smoke test with a nightly toolchain and cargo-fuzz:
 
 ```text
-cargo +nightly fuzz run path_validation -- -runs=10000
-cargo +nightly fuzz run header_envelope -- -runs=10000
-cargo +nightly fuzz run next_header -- -runs=10000
-cargo +nightly fuzz run validated_graph -- -runs=10000
-cargo +nightly fuzz run decoding -- -runs=10000
-cargo +nightly fuzz run volumes -- -runs=10000
-cargo +nightly fuzz run stream_formats -- -runs=10000
-cargo +nightly fuzz run archive_formats -- -runs=10000
+cargo +nightly-2026-09-01 fuzz run path_validation -- -runs=10000
+cargo +nightly-2026-09-01 fuzz run header_envelope -- -runs=10000
+cargo +nightly-2026-09-01 fuzz run next_header -- -runs=10000
+cargo +nightly-2026-09-01 fuzz run validated_graph -- -runs=10000
+cargo +nightly-2026-09-01 fuzz run decoding -- -runs=10000
+cargo +nightly-2026-09-01 fuzz run volumes -- -runs=10000
+cargo +nightly-2026-09-01 fuzz run stream_formats -- -runs=10000
+cargo +nightly-2026-09-01 fuzz run archive_formats -- -runs=10000
 ```
 
 The fuzz package enables `unpackio/unstable-internals` because three structural
@@ -549,3 +549,13 @@ The separately locked fuzz package also passed its all-binary compile, both
 deterministic generated-profile tests, and cargo-deny advisory, ban, license,
 and source checks. Unlike the older stable-host observations above, this is the
 configured nightly ASan smoke gate rather than a no-instrumentation fallback.
+
+The same gate was repeated after correcting the CI toolchain selection on
+2026-09-21. Every workflow command now names `nightly-2026-09-01`, preventing
+the repository's stable 1.98.1 override from selecting a compiler that cannot
+accept libFuzzer's sanitizer flags. Cargo-fuzz 0.13.2 passed both deterministic
+generator tests and 10,000 coverage-guided AddressSanitizer executions for
+each of the eight targets without a crash, sanitizer finding, timeout, or
+retained artifact. The final `archive_formats` run completed in 800 seconds;
+the other target durations remained bounded. The 12-test Miri matrix passed
+under the same explicitly selected nightly.
